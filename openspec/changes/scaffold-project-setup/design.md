@@ -48,19 +48,19 @@ from pathlib import Path
 class Settings(BaseSettings):
     # Database
     db_path: Path = Path("./data/cache.db")
-    
+
     # Cache configuration
     cache_ttl_days: int = 7
     error_cache_ttl_seconds: int = 300
-    
+
     # Logging
     log_level: str = "INFO"
     debug: bool = False
-    
+
     # API configuration (for future use)
     open5e_base_url: str = "https://api.open5e.com"
     dnd5e_base_url: str = "https://www.dnd5eapi.co/api"
-    
+
     class Config:
         env_file = ".env"
         case_sensitive = False
@@ -101,10 +101,10 @@ CREATE INDEX idx_content_type ON api_cache(content_type);
 ```python
 async def init_db() -> None:
     """Initialize database schema."""
-    
+
 async def get_cached(key: str) -> dict | None:
     """Retrieve cached data if not expired."""
-    
+
 async def set_cached(
     key: str,
     data: dict,
@@ -112,10 +112,10 @@ async def set_cached(
     ttl_seconds: int
 ) -> None:
     """Store data in cache with TTL."""
-    
+
 async def cleanup_expired() -> int:
     """Remove expired cache entries, return count deleted."""
-    
+
 async def clear_cache(content_type: str | None = None) -> int:
     """Clear all cache or specific content type."""
 ```
@@ -260,14 +260,14 @@ if __name__ == "__main__":
 async def test_db():
     """Provide in-memory database for testing."""
     from lorekeeper_mcp.cache.db import init_db
-    
+
     # Use in-memory database
     original_path = settings.db_path
     settings.db_path = ":memory:"
-    
+
     await init_db()
     yield
-    
+
     settings.db_path = original_path
 ```
 

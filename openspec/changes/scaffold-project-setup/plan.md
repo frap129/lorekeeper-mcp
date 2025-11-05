@@ -187,9 +187,9 @@ import pytest
 def test_settings_loads_defaults():
     """Test that settings loads with default values."""
     from lorekeeper_mcp.config import Settings
-    
+
     settings = Settings()
-    
+
     assert settings.db_path == Path("./data/cache.db")
     assert settings.cache_ttl_days == 7
     assert settings.log_level == "INFO"
@@ -199,14 +199,14 @@ def test_settings_loads_defaults():
 def test_settings_respects_env_vars(monkeypatch):
     """Test that environment variables override defaults."""
     from lorekeeper_mcp.config import Settings
-    
+
     monkeypatch.setenv("DB_PATH", "/tmp/test.db")
     monkeypatch.setenv("CACHE_TTL_DAYS", "3")
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
     monkeypatch.setenv("DEBUG", "true")
-    
+
     settings = Settings()
-    
+
     assert settings.db_path == Path("/tmp/test.db")
     assert settings.cache_ttl_days == 3
     assert settings.log_level == "DEBUG"
@@ -231,22 +231,22 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
-    
+
     # Database configuration
     db_path: Path = Path("./data/cache.db")
-    
+
     # Cache configuration
     cache_ttl_days: int = 7
     error_cache_ttl_seconds: int = 300
-    
+
     # Logging configuration
     log_level: str = "INFO"
     debug: bool = False
-    
+
     # API configuration
     open5e_base_url: str = "https://api.open5e.com"
     dnd5e_base_url: str = "https://www.dnd5eapi.co/api"
-    
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -327,16 +327,16 @@ async def test_init_db_creates_schema(tmp_path):
     from lorekeeper_mcp.cache.db import init_db
     from lorekeeper_mcp.config import settings
     import aiosqlite
-    
+
     # Use temporary database
     db_file = tmp_path / "test.db"
     settings.db_path = db_file
-    
+
     await init_db()
-    
+
     # Verify database file exists
     assert db_file.exists()
-    
+
     # Verify schema was created
     async with aiosqlite.connect(db_file) as db:
         cursor = await db.execute(
@@ -371,18 +371,18 @@ from lorekeeper_mcp.config import settings
 
 async def init_db() -> None:
     """Initialize the database schema.
-    
+
     Creates the api_cache table with indexes if it doesn't exist.
     Also ensures the parent directory exists and enables WAL mode.
     """
     # Ensure parent directory exists
     db_path = Path(settings.db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     async with aiosqlite.connect(db_path) as db:
         # Enable WAL mode for better concurrent access
         await db.execute("PRAGMA journal_mode=WAL")
-        
+
         # Create schema
         await db.execute("""
             CREATE TABLE IF NOT EXISTS api_cache (
@@ -394,7 +394,7 @@ async def init_db() -> None:
                 source_api TEXT NOT NULL
             )
         """)
-        
+
         # Create indexes
         await db.execute(
             "CREATE INDEX IF NOT EXISTS idx_expires_at ON api_cache(expires_at)"
@@ -402,7 +402,7 @@ async def init_db() -> None:
         await db.execute(
             "CREATE INDEX IF NOT EXISTS idx_content_type ON api_cache(content_type)"
         )
-        
+
         await db.commit()
 ```
 
@@ -437,12 +437,12 @@ async def test_get_cached_returns_none_for_missing_key(tmp_path):
     """Test that get_cached returns None for missing keys."""
     from lorekeeper_mcp.cache.db import init_db, get_cached
     from lorekeeper_mcp.config import settings
-    
+
     settings.db_path = tmp_path / "test.db"
     await init_db()
-    
+
     result = await get_cached("nonexistent_key")
-    
+
     assert result is None
 
 
@@ -454,23 +454,23 @@ async def test_get_cached_returns_none_for_expired_entry(tmp_path):
     import aiosqlite
     import json
     import time
-    
+
     settings.db_path = tmp_path / "test.db"
     await init_db()
-    
+
     # Insert expired entry directly
     async with aiosqlite.connect(settings.db_path) as db:
         now = time.time()
         await db.execute(
-            """INSERT INTO api_cache 
+            """INSERT INTO api_cache
                (cache_key, response_data, created_at, expires_at, content_type, source_api)
                VALUES (?, ?, ?, ?, ?, ?)""",
             ("test_key", json.dumps({"data": "value"}), now - 100, now - 1, "spell", "test")
         )
         await db.commit()
-    
+
     result = await get_cached("test_key")
-    
+
     assert result is None
 
 
@@ -482,24 +482,24 @@ async def test_get_cached_returns_valid_entry(tmp_path):
     import aiosqlite
     import json
     import time
-    
+
     settings.db_path = tmp_path / "test.db"
     await init_db()
-    
+
     # Insert valid entry
     test_data = {"spell": "Fireball", "level": 3}
     async with aiosqlite.connect(settings.db_path) as db:
         now = time.time()
         await db.execute(
-            """INSERT INTO api_cache 
+            """INSERT INTO api_cache
                (cache_key, response_data, created_at, expires_at, content_type, source_api)
                VALUES (?, ?, ?, ?, ?, ?)""",
             ("test_key", json.dumps(test_data), now, now + 3600, "spell", "test")
         )
         await db.commit()
-    
+
     result = await get_cached("test_key")
-    
+
     assert result == test_data
 ```
 
@@ -516,31 +516,31 @@ Append to `src/lorekeeper_mcp/cache/db.py`:
 ```python
 async def get_cached(key: str) -> dict[str, Any] | None:
     """Retrieve cached data if not expired.
-    
+
     Args:
         key: Cache key to look up
-        
+
     Returns:
         Cached data as dict if found and not expired, None otherwise
     """
     async with aiosqlite.connect(settings.db_path) as db:
         db.row_factory = aiosqlite.Row
-        
+
         cursor = await db.execute(
-            """SELECT response_data, expires_at 
-               FROM api_cache 
+            """SELECT response_data, expires_at
+               FROM api_cache
                WHERE cache_key = ?""",
             (key,)
         )
         row = await cursor.fetchone()
-        
+
         if row is None:
             return None
-        
+
         # Check if expired
         if row["expires_at"] < time.time():
             return None
-        
+
         return json.loads(row["response_data"])
 ```
 
@@ -575,15 +575,15 @@ async def test_set_cached_stores_data(tmp_path):
     """Test that set_cached stores data correctly."""
     from lorekeeper_mcp.cache.db import init_db, set_cached, get_cached
     from lorekeeper_mcp.config import settings
-    
+
     settings.db_path = tmp_path / "test.db"
     await init_db()
-    
+
     test_data = {"spell": "Magic Missile", "level": 1}
     await set_cached("spell_123", test_data, "spell", 3600)
-    
+
     result = await get_cached("spell_123")
-    
+
     assert result == test_data
 
 
@@ -592,18 +592,18 @@ async def test_set_cached_overwrites_existing(tmp_path):
     """Test that set_cached overwrites existing entries."""
     from lorekeeper_mcp.cache.db import init_db, set_cached, get_cached
     from lorekeeper_mcp.config import settings
-    
+
     settings.db_path = tmp_path / "test.db"
     await init_db()
-    
+
     # Store initial data
     await set_cached("key", {"version": 1}, "spell", 3600)
-    
+
     # Overwrite with new data
     await set_cached("key", {"version": 2}, "spell", 3600)
-    
+
     result = await get_cached("key")
-    
+
     assert result == {"version": 2}
 ```
 
@@ -626,7 +626,7 @@ async def set_cached(
     source_api: str = "unknown"
 ) -> None:
     """Store data in cache with TTL.
-    
+
     Args:
         key: Cache key
         data: Data to cache (must be JSON-serializable)
@@ -636,10 +636,10 @@ async def set_cached(
     """
     now = time.time()
     expires_at = now + ttl_seconds
-    
+
     async with aiosqlite.connect(settings.db_path) as db:
         await db.execute(
-            """INSERT OR REPLACE INTO api_cache 
+            """INSERT OR REPLACE INTO api_cache
                (cache_key, response_data, created_at, expires_at, content_type, source_api)
                VALUES (?, ?, ?, ?, ?, ?)""",
             (key, json.dumps(data), now, expires_at, content_type, source_api)
@@ -681,31 +681,31 @@ async def test_cleanup_expired_removes_old_entries(tmp_path):
     import aiosqlite
     import json
     import time
-    
+
     settings.db_path = tmp_path / "test.db"
     await init_db()
-    
+
     # Insert expired and valid entries
     async with aiosqlite.connect(settings.db_path) as db:
         now = time.time()
         await db.execute(
-            """INSERT INTO api_cache 
+            """INSERT INTO api_cache
                (cache_key, response_data, created_at, expires_at, content_type, source_api)
                VALUES (?, ?, ?, ?, ?, ?)""",
             ("expired", json.dumps({"data": 1}), now - 100, now - 1, "spell", "test")
         )
         await db.execute(
-            """INSERT INTO api_cache 
+            """INSERT INTO api_cache
                (cache_key, response_data, created_at, expires_at, content_type, source_api)
                VALUES (?, ?, ?, ?, ?, ?)""",
             ("valid", json.dumps({"data": 2}), now, now + 3600, "spell", "test")
         )
         await db.commit()
-    
+
     count = await cleanup_expired()
-    
+
     assert count == 1
-    
+
     # Verify expired entry was removed
     async with aiosqlite.connect(settings.db_path) as db:
         cursor = await db.execute("SELECT COUNT(*) FROM api_cache")
@@ -726,7 +726,7 @@ Append to `src/lorekeeper_mcp/cache/db.py`:
 ```python
 async def cleanup_expired() -> int:
     """Remove expired cache entries.
-    
+
     Returns:
         Number of entries deleted
     """
@@ -779,7 +779,7 @@ import pytest
 def test_server_instance_exists():
     """Test that server instance is created."""
     from lorekeeper_mcp.server import mcp
-    
+
     assert mcp is not None
     assert mcp.name == "lorekeeper-mcp"
 
@@ -787,7 +787,7 @@ def test_server_instance_exists():
 def test_server_exports_from_package():
     """Test that server is exported from package."""
     from lorekeeper_mcp import mcp
-    
+
     assert mcp is not None
 ```
 
@@ -893,7 +893,7 @@ from pathlib import Path
 @pytest.fixture
 async def test_db(tmp_path, monkeypatch):
     """Provide an in-memory database for testing.
-    
+
     This fixture:
     - Creates a temporary database file
     - Initializes the schema
@@ -901,17 +901,17 @@ async def test_db(tmp_path, monkeypatch):
     """
     from lorekeeper_mcp.cache.db import init_db
     from lorekeeper_mcp.config import settings
-    
+
     # Use temporary database
     db_file = tmp_path / "test.db"
     original_path = settings.db_path
     monkeypatch.setattr(settings, "db_path", db_file)
-    
+
     # Initialize database
     await init_db()
-    
+
     yield db_file
-    
+
     # Cleanup is automatic (tmp_path is removed by pytest)
 
 
@@ -919,7 +919,7 @@ async def test_db(tmp_path, monkeypatch):
 def mcp_server():
     """Provide configured MCP server instance for testing."""
     from lorekeeper_mcp.server import mcp
-    
+
     return mcp
 ```
 
@@ -954,7 +954,7 @@ async def test_get_cached_returns_none_for_missing_key(tmp_path):
     """Test that get_cached returns None for missing keys."""
     from lorekeeper_mcp.cache.db import init_db, get_cached
     from lorekeeper_mcp.config import settings
-    
+
     settings.db_path = tmp_path / "test.db"
     await init_db()
 ```
@@ -987,7 +987,7 @@ def test_server_instance_exists(mcp_server):
 def test_server_exports_from_package():
     """Test that server is exported from package."""
     from lorekeeper_mcp import mcp
-    
+
     assert mcp is not None
 ```
 
@@ -1279,7 +1279,7 @@ Expected: Server starts without errors (timeout kills it)
 
 **Step 4: Verify cache operations work end-to-end**
 
-Run: 
+Run:
 ```bash
 uv run python -c "
 import asyncio

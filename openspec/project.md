@@ -33,7 +33,7 @@ LoreKeeper is an MCP (Model Context Protocol) server designed to fetch informati
 ### Architecture Patterns
 - MCP server architecture using FastMCP framework
 - SQLite for caching layer to reduce API calls and improve response times
-- Dual-API strategy: 
+- Dual-API strategy:
   - Primary: Open5e API (comprehensive community-maintained data)
   - Fallback: Official D&D 5e API (for data not available in Open5e, such as rules)
 - Cache-aside pattern for database caching
