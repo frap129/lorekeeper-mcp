@@ -145,3 +145,64 @@ def test_monster_model_with_stats() -> None:
 
     assert monster.strength == 8
     assert monster.dexterity == 14
+
+
+def test_monster_model_invalid_stats() -> None:
+    """Test Monster model validation for invalid ability scores and stats."""
+    # Test ability score below 1
+    with pytest.raises(ValidationError):
+        Monster(
+            name="Invalid Monster",
+            slug="invalid",
+            size="Medium",
+            type="humanoid",
+            alignment="neutral",
+            armor_class=10,
+            hit_points=10,
+            hit_dice="2d6",
+            challenge_rating="1/2",
+            strength=0,  # Invalid: must be >= 1
+        )
+
+    # Test ability score above 30
+    with pytest.raises(ValidationError):
+        Monster(
+            name="Invalid Monster",
+            slug="invalid",
+            size="Medium",
+            type="humanoid",
+            alignment="neutral",
+            armor_class=10,
+            hit_points=10,
+            hit_dice="2d6",
+            challenge_rating="1/2",
+            dexterity=31,  # Invalid: must be <= 30
+        )
+
+    # Test negative armor_class
+    with pytest.raises(ValidationError):
+        Monster(
+            name="Invalid Monster",
+            slug="invalid",
+            size="Medium",
+            type="humanoid",
+            alignment="neutral",
+            armor_class=-1,  # Invalid: must be >= 0
+            hit_points=10,
+            hit_dice="2d6",
+            challenge_rating="1/2",
+        )
+
+    # Test negative hit_points
+    with pytest.raises(ValidationError):
+        Monster(
+            name="Invalid Monster",
+            slug="invalid",
+            size="Medium",
+            type="humanoid",
+            alignment="neutral",
+            armor_class=10,
+            hit_points=-5,  # Invalid: must be >= 0
+            hit_dice="2d6",
+            challenge_rating="1/2",
+        )
