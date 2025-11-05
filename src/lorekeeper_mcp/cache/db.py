@@ -73,3 +73,32 @@ async def get_cached(key: str) -> dict[str, Any] | None:
             return None
 
         return json.loads(row["response_data"])
+
+
+async def set_cached(
+    key: str,
+    data: dict[str, Any],
+    content_type: str,
+    ttl_seconds: int,
+    source_api: str = "unknown",
+) -> None:
+    """Store data in cache with TTL.
+
+    Args:
+        key: Cache key for the data
+        data: Data to cache as dictionary
+        content_type: Type of content (e.g., "spell", "monster")
+        ttl_seconds: Time to live in seconds
+        source_api: Source API that provided the data (default: "unknown")
+    """
+    async with aiosqlite.connect(settings.db_path) as db:
+        now = time.time()
+        expires_at = now + ttl_seconds
+
+        await db.execute(
+            """INSERT OR REPLACE INTO api_cache
+               (cache_key, response_data, created_at, expires_at, content_type, source_api)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (key, json.dumps(data), now, expires_at, content_type, source_api),
+        )
+        await db.commit()

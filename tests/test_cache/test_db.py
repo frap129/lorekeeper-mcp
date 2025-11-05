@@ -150,3 +150,47 @@ async def test_get_cached_returns_valid_entry(tmp_path, monkeypatch):
     result = await get_cached("test_key")
 
     assert result == test_data
+
+
+@pytest.mark.asyncio
+async def test_set_cached_stores_data(tmp_path, monkeypatch):
+    """Test that set_cached stores data with TTL and can be retrieved."""
+    from lorekeeper_mcp.cache.db import init_db, set_cached, get_cached
+    from lorekeeper_mcp.config import settings
+
+    db_file = tmp_path / "test.db"
+    monkeypatch.setattr(settings, "db_path", db_file)
+    await init_db()
+
+    test_data = {"spell": "Magic Missile", "level": 1}
+    ttl_seconds = 3600
+
+    await set_cached("spell_key", test_data, "spell", ttl_seconds, "d20_api")
+
+    result = await get_cached("spell_key")
+
+    assert result == test_data
+
+
+@pytest.mark.asyncio
+async def test_set_cached_overwrites_existing(tmp_path, monkeypatch):
+    """Test that set_cached overwrites existing entries."""
+    from lorekeeper_mcp.cache.db import init_db, set_cached, get_cached
+    from lorekeeper_mcp.config import settings
+
+    db_file = tmp_path / "test.db"
+    monkeypatch.setattr(settings, "db_path", db_file)
+    await init_db()
+
+    # Store initial data
+    initial_data = {"spell": "Fireball", "level": 3}
+    await set_cached("spell_key", initial_data, "spell", 3600)
+
+    # Overwrite with new data
+    new_data = {"spell": "Ice Storm", "level": 4}
+    await set_cached("spell_key", new_data, "spell", 3600)
+
+    # Should retrieve the new data
+    result = await get_cached("spell_key")
+
+    assert result == new_data
