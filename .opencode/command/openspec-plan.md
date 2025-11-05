@@ -3,7 +3,7 @@ description: Craft a detailed plan to implement an OpenSpec change/
 ---
 
 <ChangeId>
-  $ARGUMENTS
+  $1
 </ChangeId>
 <!-- OPENSPEC:START -->
 **Guardrails**

@@ -2,6 +2,9 @@
 description: Implement an approved OpenSpec change and keep tasks in sync.
 ---
 
+<ChangeId>
+  $1
+</ChangeId>
 <!-- OPENSPEC:START -->
 
 **Guardrails**
