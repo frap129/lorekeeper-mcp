@@ -194,3 +194,85 @@ async def test_set_cached_overwrites_existing(tmp_path, monkeypatch):
     result = await get_cached("spell_key")
 
     assert result == new_data
+
+
+@pytest.mark.asyncio
+async def test_cleanup_expired_removes_old_entries(tmp_path, monkeypatch):
+    """Test that cleanup_expired removes expired entries and preserves valid ones."""
+    import aiosqlite
+    import json
+    import time
+
+    from lorekeeper_mcp.cache.db import init_db, set_cached, get_cached
+    from lorekeeper_mcp.config import settings
+
+    db_file = tmp_path / "test.db"
+    monkeypatch.setattr(settings, "db_path", db_file)
+    await init_db()
+
+    now = time.time()
+
+    # Insert expired entries directly
+    async with aiosqlite.connect(settings.db_path) as db:
+        # Expired entry 1
+        await db.execute(
+            """INSERT INTO api_cache
+               (cache_key, response_data, created_at, expires_at, content_type, source_api)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            ("expired_key_1", json.dumps({"data": "old1"}), now - 200, now - 100, "spell", "test"),
+        )
+        # Expired entry 2
+        await db.execute(
+            """INSERT INTO api_cache
+               (cache_key, response_data, created_at, expires_at, content_type, source_api)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            ("expired_key_2", json.dumps({"data": "old2"}), now - 150, now - 50, "monster", "test"),
+        )
+        await db.commit()
+
+    # Insert valid entries using set_cached
+    valid_data_1 = {"spell": "Fireball", "level": 3}
+    valid_data_2 = {"monster": "Goblin", "cr": 0.25}
+    await set_cached("valid_key_1", valid_data_1, "spell", 3600, "test")
+    await set_cached("valid_key_2", valid_data_2, "monster", 7200, "test")
+
+    # Verify all entries exist before cleanup
+    assert await get_cached("expired_key_1") is None  # Should be None due to expiration check
+    assert await get_cached("expired_key_2") is None  # Should be None due to expiration check
+    assert await get_cached("valid_key_1") == valid_data_1
+    assert await get_cached("valid_key_2") == valid_data_2
+
+    # Count total entries in database before cleanup
+    async with aiosqlite.connect(settings.db_path) as db:
+        cursor = await db.execute("SELECT COUNT(*) FROM api_cache")
+        total_before_row = await cursor.fetchone()
+        total_before = total_before_row[0] if total_before_row else 0
+
+    # Import cleanup_expired after setting up test data
+    from lorekeeper_mcp.cache.db import cleanup_expired
+
+    # Run cleanup
+    deleted_count = await cleanup_expired()
+
+    # Verify cleanup deleted the expired entries
+    assert deleted_count == 2
+
+    # Verify valid entries still exist
+    assert await get_cached("valid_key_1") == valid_data_1
+    assert await get_cached("valid_key_2") == valid_data_2
+
+    # Verify expired entries are completely gone from database
+    async with aiosqlite.connect(settings.db_path) as db:
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM api_cache WHERE cache_key IN ('expired_key_1', 'expired_key_2')"
+        )
+        expired_remaining_row = await cursor.fetchone()
+        expired_remaining = expired_remaining_row[0] if expired_remaining_row else 0
+        assert expired_remaining == 0
+
+    # Verify total count decreased by 2
+    async with aiosqlite.connect(settings.db_path) as db:
+        cursor = await db.execute("SELECT COUNT(*) FROM api_cache")
+        total_after_row = await cursor.fetchone()
+        total_after = total_after_row[0] if total_after_row else 0
+        assert total_after == total_before - 2

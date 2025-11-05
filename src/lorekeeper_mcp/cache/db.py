@@ -102,3 +102,17 @@ async def set_cached(
             (key, json.dumps(data), now, expires_at, content_type, source_api),
         )
         await db.commit()
+
+
+async def cleanup_expired() -> int:
+    """Remove expired cache entries from the database.
+
+    Returns:
+        Number of entries that were deleted
+    """
+    async with aiosqlite.connect(settings.db_path) as db:
+        current_time = time.time()
+        cursor = await db.execute("DELETE FROM api_cache WHERE expires_at < ?", (current_time,))
+        deleted_count = cursor.rowcount
+        await db.commit()
+        return deleted_count
