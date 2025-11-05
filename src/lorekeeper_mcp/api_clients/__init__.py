@@ -8,6 +8,7 @@ from lorekeeper_mcp.api_clients.exceptions import (
     NetworkError,
     ParseError,
 )
+from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
 __all__ = [
     "ApiClientError",
@@ -15,5 +16,6 @@ __all__ = [
     "BaseHttpClient",
     "CacheError",
     "NetworkError",
+    "Open5eV2Client",
     "ParseError",
 ]
