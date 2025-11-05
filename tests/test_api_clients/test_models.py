@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from lorekeeper_mcp.api_clients.models.base import BaseModel
+from lorekeeper_mcp.api_clients.models.monster import Monster
 from lorekeeper_mcp.api_clients.models.spell import Spell
 
 
@@ -100,3 +101,47 @@ def test_spell_cantrip() -> None:
 
     assert spell.level == 0
     assert spell.name == "Fire Bolt"
+
+
+def test_monster_model_minimal() -> None:
+    """Test Monster model with minimal fields."""
+    monster = Monster(
+        name="Goblin",
+        slug="goblin",
+        size="Small",
+        type="humanoid",
+        alignment="neutral evil",
+        armor_class=15,
+        hit_points=7,
+        hit_dice="2d6",
+        challenge_rating="1/4",
+    )
+
+    assert monster.name == "Goblin"
+    assert monster.size == "Small"
+    assert monster.armor_class == 15
+    assert monster.challenge_rating == "1/4"
+
+
+def test_monster_model_with_stats() -> None:
+    """Test Monster model with ability scores."""
+    monster = Monster(
+        name="Goblin",
+        slug="goblin",
+        size="Small",
+        type="humanoid",
+        alignment="neutral evil",
+        armor_class=15,
+        hit_points=7,
+        hit_dice="2d6",
+        challenge_rating="1/4",
+        strength=8,
+        dexterity=14,
+        constitution=10,
+        intelligence=10,
+        wisdom=8,
+        charisma=8,
+    )
+
+    assert monster.strength == 8
+    assert monster.dexterity == 14
