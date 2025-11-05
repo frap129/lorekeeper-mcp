@@ -3,7 +3,7 @@
 import json
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import aiosqlite
 
@@ -72,7 +72,7 @@ async def get_cached(key: str) -> dict[str, Any] | None:
         if row["expires_at"] < time.time():
             return None
 
-        return json.loads(row["response_data"])
+        return cast(dict[str, Any], json.loads(row["response_data"]))
 
 
 async def set_cached(

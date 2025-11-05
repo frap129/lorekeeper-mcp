@@ -1,5 +1,6 @@
 """FastMCP server instance and lifecycle management."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastmcp import FastMCP
@@ -8,7 +9,7 @@ from lorekeeper_mcp.cache.db import init_db
 
 
 @asynccontextmanager
-async def lifespan(app):
+async def lifespan(app: FastMCP) -> AsyncGenerator[None]:
     """Initialize resources on startup, cleanup on shutdown."""
     # Startup: Initialize database
     await init_db()
