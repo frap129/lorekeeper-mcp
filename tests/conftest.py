@@ -26,12 +26,7 @@ async def test_db(tmp_path, monkeypatch):
     # Initialize database schema
     await init_db()
 
-    # The database file should be created by init_db
-    # If not, we can touch it to ensure it exists for the test
-    if not db_file.exists():
-        db_file.touch()
-
-    return db_file
+    yield db_file
 
 
 @pytest.fixture
