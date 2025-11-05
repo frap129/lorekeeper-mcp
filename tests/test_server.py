@@ -3,12 +3,10 @@
 import pytest
 
 
-def test_server_instance_exists():
+def test_server_instance_exists(mcp_server):
     """Test that server instance is created with correct name."""
-    from lorekeeper_mcp.server import mcp
-
-    assert mcp is not None
-    assert mcp.name == "lorekeeper-mcp"
+    assert mcp_server is not None
+    assert mcp_server.name == "lorekeeper-mcp"
 
 
 def test_server_exports_from_package():

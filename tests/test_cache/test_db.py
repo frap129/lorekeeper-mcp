@@ -4,24 +4,15 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_init_db_creates_schema(tmp_path, monkeypatch):
+async def test_init_db_creates_schema(test_db):
     """Test that init_db creates the database schema with all components."""
     import aiosqlite
 
-    from lorekeeper_mcp.cache.db import init_db
-    from lorekeeper_mcp.config import settings
-
-    # Use temporary database
-    db_file = tmp_path / "test.db"
-    monkeypatch.setattr(settings, "db_path", db_file)
-
-    await init_db()
-
     # Verify database file exists
-    assert db_file.exists()
+    assert test_db.exists()
 
     # Verify schema was created completely
-    async with aiosqlite.connect(db_file) as db:
+    async with aiosqlite.connect(test_db) as db:
         # Check table exists
         cursor = await db.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='api_cache'"
@@ -77,14 +68,9 @@ async def test_init_db_creates_schema(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_get_cached_returns_none_for_missing_key(tmp_path, monkeypatch):
+async def test_get_cached_returns_none_for_missing_key(test_db):
     """Test that get_cached returns None for missing keys."""
-    from lorekeeper_mcp.cache.db import init_db, get_cached
-    from lorekeeper_mcp.config import settings
-
-    db_file = tmp_path / "test.db"
-    monkeypatch.setattr(settings, "db_path", db_file)
-    await init_db()
+    from lorekeeper_mcp.cache.db import get_cached
 
     result = await get_cached("nonexistent_key")
 
@@ -92,18 +78,14 @@ async def test_get_cached_returns_none_for_missing_key(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_get_cached_returns_none_for_expired_entry(tmp_path, monkeypatch):
+async def test_get_cached_returns_none_for_expired_entry(test_db):
     """Test that get_cached returns None for expired entries."""
     import aiosqlite
     import json
     import time
 
-    from lorekeeper_mcp.cache.db import init_db, get_cached
+    from lorekeeper_mcp.cache.db import get_cached
     from lorekeeper_mcp.config import settings
-
-    db_file = tmp_path / "test.db"
-    monkeypatch.setattr(settings, "db_path", db_file)
-    await init_db()
 
     # Insert expired entry directly
     async with aiosqlite.connect(settings.db_path) as db:
@@ -122,18 +104,14 @@ async def test_get_cached_returns_none_for_expired_entry(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_get_cached_returns_valid_entry(tmp_path, monkeypatch):
+async def test_get_cached_returns_valid_entry(test_db):
     """Test that get_cached returns valid non-expired entries."""
     import aiosqlite
     import json
     import time
 
-    from lorekeeper_mcp.cache.db import init_db, get_cached
+    from lorekeeper_mcp.cache.db import get_cached
     from lorekeeper_mcp.config import settings
-
-    db_file = tmp_path / "test.db"
-    monkeypatch.setattr(settings, "db_path", db_file)
-    await init_db()
 
     # Insert valid entry
     test_data = {"spell": "Fireball", "level": 3}
@@ -153,14 +131,9 @@ async def test_get_cached_returns_valid_entry(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_set_cached_stores_data(tmp_path, monkeypatch):
+async def test_set_cached_stores_data(test_db):
     """Test that set_cached stores data with TTL and can be retrieved."""
-    from lorekeeper_mcp.cache.db import init_db, set_cached, get_cached
-    from lorekeeper_mcp.config import settings
-
-    db_file = tmp_path / "test.db"
-    monkeypatch.setattr(settings, "db_path", db_file)
-    await init_db()
+    from lorekeeper_mcp.cache.db import set_cached, get_cached
 
     test_data = {"spell": "Magic Missile", "level": 1}
     ttl_seconds = 3600
@@ -173,14 +146,9 @@ async def test_set_cached_stores_data(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_set_cached_overwrites_existing(tmp_path, monkeypatch):
+async def test_set_cached_overwrites_existing(test_db):
     """Test that set_cached overwrites existing entries."""
-    from lorekeeper_mcp.cache.db import init_db, set_cached, get_cached
-    from lorekeeper_mcp.config import settings
-
-    db_file = tmp_path / "test.db"
-    monkeypatch.setattr(settings, "db_path", db_file)
-    await init_db()
+    from lorekeeper_mcp.cache.db import set_cached, get_cached
 
     # Store initial data
     initial_data = {"spell": "Fireball", "level": 3}
@@ -197,18 +165,14 @@ async def test_set_cached_overwrites_existing(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_cleanup_expired_removes_old_entries(tmp_path, monkeypatch):
+async def test_cleanup_expired_removes_old_entries(test_db):
     """Test that cleanup_expired removes expired entries and preserves valid ones."""
     import aiosqlite
     import json
     import time
 
-    from lorekeeper_mcp.cache.db import init_db, set_cached, get_cached
+    from lorekeeper_mcp.cache.db import set_cached, get_cached
     from lorekeeper_mcp.config import settings
-
-    db_file = tmp_path / "test.db"
-    monkeypatch.setattr(settings, "db_path", db_file)
-    await init_db()
 
     now = time.time()
 
