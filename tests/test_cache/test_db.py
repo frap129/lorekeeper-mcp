@@ -74,3 +74,79 @@ async def test_init_db_creates_schema(tmp_path, monkeypatch):
         journal_mode = await cursor.fetchone()
         assert journal_mode is not None
         assert journal_mode[0] == "wal"
+
+
+@pytest.mark.asyncio
+async def test_get_cached_returns_none_for_missing_key(tmp_path, monkeypatch):
+    """Test that get_cached returns None for missing keys."""
+    from lorekeeper_mcp.cache.db import init_db, get_cached
+    from lorekeeper_mcp.config import settings
+
+    db_file = tmp_path / "test.db"
+    monkeypatch.setattr(settings, "db_path", db_file)
+    await init_db()
+
+    result = await get_cached("nonexistent_key")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_cached_returns_none_for_expired_entry(tmp_path, monkeypatch):
+    """Test that get_cached returns None for expired entries."""
+    import aiosqlite
+    import json
+    import time
+
+    from lorekeeper_mcp.cache.db import init_db, get_cached
+    from lorekeeper_mcp.config import settings
+
+    db_file = tmp_path / "test.db"
+    monkeypatch.setattr(settings, "db_path", db_file)
+    await init_db()
+
+    # Insert expired entry directly
+    async with aiosqlite.connect(settings.db_path) as db:
+        now = time.time()
+        await db.execute(
+            """INSERT INTO api_cache
+               (cache_key, response_data, created_at, expires_at, content_type, source_api)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            ("test_key", json.dumps({"data": "value"}), now - 100, now - 1, "spell", "test"),
+        )
+        await db.commit()
+
+    result = await get_cached("test_key")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_cached_returns_valid_entry(tmp_path, monkeypatch):
+    """Test that get_cached returns valid non-expired entries."""
+    import aiosqlite
+    import json
+    import time
+
+    from lorekeeper_mcp.cache.db import init_db, get_cached
+    from lorekeeper_mcp.config import settings
+
+    db_file = tmp_path / "test.db"
+    monkeypatch.setattr(settings, "db_path", db_file)
+    await init_db()
+
+    # Insert valid entry
+    test_data = {"spell": "Fireball", "level": 3}
+    async with aiosqlite.connect(settings.db_path) as db:
+        now = time.time()
+        await db.execute(
+            """INSERT INTO api_cache
+               (cache_key, response_data, created_at, expires_at, content_type, source_api)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            ("test_key", json.dumps(test_data), now, now + 3600, "spell", "test"),
+        )
+        await db.commit()
+
+    result = await get_cached("test_key")
+
+    assert result == test_data

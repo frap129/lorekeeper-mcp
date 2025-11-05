@@ -1,6 +1,9 @@
 """Database cache layer for API responses using SQLite."""
 
+import json
+import time
 from pathlib import Path
+from typing import Any
 
 import aiosqlite
 
@@ -40,3 +43,33 @@ async def init_db() -> None:
         await db.execute("CREATE INDEX IF NOT EXISTS idx_content_type ON api_cache(content_type)")
 
         await db.commit()
+
+
+async def get_cached(key: str) -> dict[str, Any] | None:
+    """Retrieve cached data if not expired.
+
+    Args:
+        key: Cache key to look up
+
+    Returns:
+        Cached data as dict if found and not expired, None otherwise
+    """
+    async with aiosqlite.connect(settings.db_path) as db:
+        db.row_factory = aiosqlite.Row
+
+        cursor = await db.execute(
+            """SELECT response_data, expires_at
+               FROM api_cache
+               WHERE cache_key = ?""",
+            (key,),
+        )
+        row = await cursor.fetchone()
+
+        if row is None:
+            return None
+
+        # Check if expired
+        if row["expires_at"] < time.time():
+            return None
+
+        return json.loads(row["response_data"])
