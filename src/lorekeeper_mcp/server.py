@@ -17,6 +17,8 @@ async def lifespan(app):
 
 
 # Create FastMCP server instance
+# Note: FastMCP doesn't support description parameter in constructor
+# Description will be available through tools when they are implemented
 mcp = FastMCP(
     name="lorekeeper-mcp",
     version="0.1.0",
