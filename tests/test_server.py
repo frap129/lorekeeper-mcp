@@ -1,6 +1,6 @@
 """Tests for FastMCP server initialization."""
 
-import pytest
+from lorekeeper_mcp import mcp
 
 
 def test_server_instance_exists(mcp_server):
@@ -11,6 +11,4 @@ def test_server_instance_exists(mcp_server):
 
 def test_server_exports_from_package():
     """Test that server is exported from package."""
-    from lorekeeper_mcp import mcp
-
     assert mcp is not None

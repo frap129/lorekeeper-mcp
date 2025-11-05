@@ -1,6 +1,5 @@
 """Tests to verify project directory structure is correctly created."""
 
-import os
 from pathlib import Path
 
 

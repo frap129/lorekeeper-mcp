@@ -1,7 +1,10 @@
 """Pytest configuration and fixtures for lorekeeper-mcp testing."""
 
 import pytest
-from pathlib import Path
+
+from lorekeeper_mcp.cache.db import init_db
+from lorekeeper_mcp.config import settings
+from lorekeeper_mcp.server import mcp
 
 
 @pytest.fixture
@@ -14,9 +17,6 @@ async def test_db(tmp_path, monkeypatch):
     - Uses monkeypatch to modify settings.db_path
     - Cleans up after the test
     """
-    from lorekeeper_mcp.cache.db import init_db
-    from lorekeeper_mcp.config import settings
-
     # Create temporary database file
     db_file = tmp_path / "test_cache.db"
 
@@ -35,6 +35,4 @@ def mcp_server():
 
     Returns the mcp instance from lorekeeper_mcp.server.
     """
-    from lorekeeper_mcp.server import mcp
-
     return mcp

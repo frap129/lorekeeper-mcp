@@ -1,11 +1,8 @@
 """Tests for configuration management."""
 
-import os
 from pathlib import Path
 
-import pytest
-
-from lorekeeper_mcp.config import settings
+from lorekeeper_mcp.config import Settings, settings
 
 
 class TestSettings:
@@ -32,17 +29,13 @@ class TestSettings:
         monkeypatch.setenv("OPEN5E_BASE_URL", "https://test.open5e.com")
         monkeypatch.setenv("DND5E_BASE_URL", "https://test.dnd5eapi.co/api")
 
-        # Reimport to pick up new environment variables
-        import importlib
-        import lorekeeper_mcp.config
+        # Create a new Settings instance to pick up environment variables
+        test_settings = Settings()
 
-        importlib.reload(lorekeeper_mcp.config)
-        from lorekeeper_mcp.config import settings as reloaded_settings
-
-        assert reloaded_settings.db_path == Path("./data/test.db")
-        assert reloaded_settings.cache_ttl_days == 14
-        assert reloaded_settings.error_cache_ttl_seconds == 600
-        assert reloaded_settings.log_level == "DEBUG"
-        assert reloaded_settings.debug is True
-        assert reloaded_settings.open5e_base_url == "https://test.open5e.com"
-        assert reloaded_settings.dnd5e_base_url == "https://test.dnd5eapi.co/api"
+        assert test_settings.db_path == Path("./data/test.db")
+        assert test_settings.cache_ttl_days == 14
+        assert test_settings.error_cache_ttl_seconds == 600
+        assert test_settings.log_level == "DEBUG"
+        assert test_settings.debug is True
+        assert test_settings.open5e_base_url == "https://test.open5e.com"
+        assert test_settings.dnd5e_base_url == "https://test.dnd5eapi.co/api"
