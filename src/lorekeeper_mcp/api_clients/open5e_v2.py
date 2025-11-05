@@ -3,6 +3,7 @@
 from typing import Any
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
+from lorekeeper_mcp.api_clients.models.equipment import Armor, Weapon
 from lorekeeper_mcp.api_clients.models.spell import Spell
 
 
@@ -38,3 +39,35 @@ class Open5eV2Client(BaseHttpClient):
         # Parse results
         results = response.get("results", [])
         return [Spell(**spell_data) for spell_data in results]
+
+    async def get_weapons(self, **filters: Any) -> list[Weapon]:
+        """Get weapons with optional filters.
+
+        Args:
+            name: Filter by weapon name
+            category: Filter by weapon category
+            **filters: Additional filter parameters
+
+        Returns:
+            List of Weapon objects
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+        response = await self.make_request("/weapons/", params=params)
+        results = response.get("results", [])
+        return [Weapon(**weapon_data) for weapon_data in results]
+
+    async def get_armor(self, **filters: Any) -> list[Armor]:
+        """Get armor with optional filters.
+
+        Args:
+            name: Filter by armor name
+            category: Filter by armor category
+            **filters: Additional filter parameters
+
+        Returns:
+            List of Armor objects
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+        response = await self.make_request("/armor/", params=params)
+        results = response.get("results", [])
+        return [Armor(**armor_data) for armor_data in results]
