@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from lorekeeper_mcp.api_clients.models.base import BaseModel
+from lorekeeper_mcp.api_clients.models.equipment import Armor, Weapon
 from lorekeeper_mcp.api_clients.models.monster import Monster
 from lorekeeper_mcp.api_clients.models.spell import Spell
 
@@ -206,3 +207,58 @@ def test_monster_model_invalid_stats() -> None:
             hit_dice="2d6",
             challenge_rating="1/2",
         )
+
+
+def test_weapon_model() -> None:
+    """Test Weapon model."""
+    weapon = Weapon(
+        name="Longsword",
+        slug="longsword",
+        category="Martial Melee",
+        damage_dice="1d8",
+        damage_type="slashing",
+        cost="15 gp",
+        weight=3.0,
+    )
+
+    assert weapon.name == "Longsword"
+    assert weapon.damage_dice == "1d8"
+    assert weapon.damage_type == "slashing"
+
+
+def test_weapon_with_properties() -> None:
+    """Test Weapon with properties array."""
+    weapon = Weapon(
+        name="Shortbow",
+        slug="shortbow",
+        category="Simple Ranged",
+        damage_dice="1d6",
+        damage_type="piercing",
+        cost="25 gp",
+        weight=2.0,
+        properties=["ammunition", "two-handed"],
+        range_normal=80,
+        range_long=320,
+    )
+
+    assert weapon.properties == ["ammunition", "two-handed"]
+    assert weapon.range_normal == 80
+    assert weapon.range_long == 320
+
+
+def test_armor_model() -> None:
+    """Test Armor model."""
+    armor = Armor(
+        name="Chain Mail",
+        slug="chain-mail",
+        category="Heavy",
+        base_ac=16,
+        cost="75 gp",
+        weight=55.0,
+        stealth_disadvantage=True,
+    )
+
+    assert armor.name == "Chain Mail"
+    assert armor.category == "Heavy"
+    assert armor.base_ac == 16
+    assert armor.stealth_disadvantage is True
