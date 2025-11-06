@@ -32,7 +32,7 @@ async def lookup_spell(
         List of spell dictionaries with full spell data
 
     Raises:
-        APIError: If the API request fails
+        ApiError: If the API request fails
     """
     client = Open5eV2Client()
 
