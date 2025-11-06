@@ -194,3 +194,55 @@ class Dnd5eApiClient(BaseHttpClient):
             return result if isinstance(result, list) else result.get("results", [])
         finally:
             self.cache_ttl = original_ttl
+
+    async def get_skills(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get skills from D&D 5e API.
+
+        Returns:
+            List of skill dictionaries (18 skills)
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        original_ttl = self.cache_ttl
+        self.cache_ttl = self.REFERENCE_DATA_TTL
+
+        try:
+            result = await self.make_request(
+                "/skills/",
+                use_entity_cache=True,
+                entity_type="skills",
+                params=params,
+            )
+            return result if isinstance(result, list) else result.get("results", [])
+        finally:
+            self.cache_ttl = original_ttl
+
+    async def get_ability_scores(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get ability scores from D&D 5e API.
+
+        Returns:
+            List of ability score dictionaries (6 scores)
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        original_ttl = self.cache_ttl
+        self.cache_ttl = self.REFERENCE_DATA_TTL
+
+        try:
+            result = await self.make_request(
+                "/ability-scores/",
+                use_entity_cache=True,
+                entity_type="ability_scores",
+                params=params,
+            )
+            return result if isinstance(result, list) else result.get("results", [])
+        finally:
+            self.cache_ttl = original_ttl

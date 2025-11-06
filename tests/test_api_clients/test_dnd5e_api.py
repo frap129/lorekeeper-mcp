@@ -174,3 +174,49 @@ async def test_get_weapon_properties(dnd5e_client: Dnd5eApiClient) -> None:
 
     assert len(properties) == 2
     assert properties[0]["name"] == "Finesse"
+
+
+@respx.mock
+async def test_get_skills(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching skills."""
+    respx.get("https://www.dnd5eapi.co/api/2014/skills/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "index": "acrobatics",
+                        "name": "Acrobatics",
+                        "url": "/api/2014/skills/acrobatics",
+                    },
+                    {"index": "stealth", "name": "Stealth", "url": "/api/2014/skills/stealth"},
+                ]
+            },
+        )
+    )
+
+    skills = await dnd5e_client.get_skills()
+
+    assert len(skills) == 2
+    assert skills[0]["name"] == "Acrobatics"
+
+
+@respx.mock
+async def test_get_ability_scores(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching ability scores."""
+    respx.get("https://www.dnd5eapi.co/api/2014/ability-scores/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {"index": "str", "name": "STR", "url": "/api/2014/ability-scores/str"},
+                    {"index": "dex", "name": "DEX", "url": "/api/2014/ability-scores/dex"},
+                ]
+            },
+        )
+    )
+
+    ability_scores = await dnd5e_client.get_ability_scores()
+
+    assert len(ability_scores) == 2
+    assert ability_scores[0]["name"] == "STR"
