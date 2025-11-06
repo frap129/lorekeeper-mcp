@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
-from lorekeeper_mcp.cache.db import get_cached, set_cached
+from lorekeeper_mcp.cache.db import get_cached, query_cached_entities, set_cached
 
 logger = logging.getLogger(__name__)
 
@@ -176,6 +176,26 @@ class BaseHttpClient:
 
         # Should not reach here
         raise NetworkError("Max retries exceeded")
+
+    async def _query_cache_parallel(
+        self,
+        entity_type: str,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Query cache for entities in parallel.
+
+        Args:
+            entity_type: Type of entities to query
+            **filters: Filter parameters
+
+        Returns:
+            List of cached entities, or empty list on error
+        """
+        try:
+            return await query_cached_entities(entity_type, **filters)
+        except Exception as e:
+            logger.warning(f"Cache query failed: {e}")
+            return []
 
     async def close(self) -> None:
         """Close the HTTP client."""

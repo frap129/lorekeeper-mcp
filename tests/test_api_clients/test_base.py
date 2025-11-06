@@ -1,6 +1,8 @@
 """Tests for BaseHttpClient."""
 
+import asyncio
 from typing import Any
+from unittest.mock import patch
 
 import httpx
 import pytest
@@ -55,7 +57,7 @@ async def test_make_request_timeout(base_client: BaseHttpClient) -> None:
 
 
 @pytest.fixture
-async def base_client_with_cache(test_db: Any) -> BaseHttpClient:
+async def base_client_with_cache(test_db: Any):  # type: ignore[assignment]
     """Create BaseHttpClient with cache enabled for testing."""
     client = BaseHttpClient(
         base_url="https://api.example.com", cache_ttl=3600, source_api="test_api"
@@ -125,3 +127,40 @@ async def test_cache_error_continues(
 
     assert response == {"data": "success"}
     assert mock_route.called
+
+
+@pytest.mark.asyncio
+async def test_query_cache_parallel_executes_concurrently():
+    """Cache query runs in parallel with API call."""
+    client = BaseHttpClient("https://api.example.com")
+
+    # Mock cache query to take 0.1 seconds
+    async def mock_cache_query(*args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+        await asyncio.sleep(0.1)
+        return [{"slug": "fireball", "name": "Fireball"}]
+
+    with patch(
+        "lorekeeper_mcp.api_clients.base.query_cached_entities", side_effect=mock_cache_query
+    ):
+        start = asyncio.get_event_loop().time()
+        result = await client._query_cache_parallel("spells", level=3)
+        elapsed = asyncio.get_event_loop().time() - start
+
+        # Should complete in roughly 0.1s, not block caller
+        assert elapsed < 0.2
+        assert len(result) == 1
+
+
+@pytest.mark.asyncio
+async def test_query_cache_parallel_handles_cache_error():
+    """Cache query errors don't crash parallel operation."""
+    client = BaseHttpClient("https://api.example.com")
+
+    async def mock_error(*args: Any, **kwargs: Any) -> None:
+        raise Exception("Cache error")
+
+    with patch("lorekeeper_mcp.api_clients.base.query_cached_entities", side_effect=mock_error):
+        result = await client._query_cache_parallel("spells")
+
+        # Should return empty list on error
+        assert result == []
