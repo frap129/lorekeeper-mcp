@@ -353,3 +353,91 @@ async def test_make_request_cache_first_refreshes_background(client_with_db):
     assert result1[0]["name"] == "Fireball (old)"
     # Background task should have updated cache
     # (In practice this requires the background task to complete)
+
+
+@pytest.mark.asyncio
+async def test_cache_first_prevents_redundant_refreshes(client_with_db):
+    """Cache_first prevents redundant background refreshes for identical requests."""
+    # Pre-populate cache
+    entities = [{"slug": "fireball", "name": "Fireball"}]
+    await bulk_cache_entities(entities, "spells")
+
+    api_call_count = 0
+
+    # Mock API that tracks call count
+    async def mock_api(*args, **kwargs):
+        nonlocal api_call_count
+        api_call_count += 1
+        await asyncio.sleep(0.1)  # Simulate slow API
+        return {"results": [{"slug": "fireball", "name": "Fireball (updated)"}]}
+
+    with patch.object(client_with_db, "_make_request", side_effect=mock_api):
+        # Make 3 identical cache_first requests in quick succession
+        result1 = await client_with_db.make_request(
+            "/spells",
+            entity_type="spells",
+            use_entity_cache=True,
+            cache_first=True,
+        )
+        result2 = await client_with_db.make_request(
+            "/spells",
+            entity_type="spells",
+            use_entity_cache=True,
+            cache_first=True,
+        )
+        result3 = await client_with_db.make_request(
+            "/spells",
+            entity_type="spells",
+            use_entity_cache=True,
+            cache_first=True,
+        )
+
+        # Wait for background tasks to complete
+        await asyncio.sleep(0.2)
+
+    # All three requests should return cached data immediately
+    assert result1 == entities
+    assert result2 == entities
+    assert result3 == entities
+
+    # API should only be called once (first request triggers background refresh)
+    # Subsequent identical requests should NOT spawn new refresh tasks
+    assert api_call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_cache_first_allows_different_refreshes(client_with_db):
+    """Cache_first allows separate refreshes for different requests."""
+    # Pre-populate cache
+    spell_entities = [{"slug": "fireball", "name": "Fireball"}]
+    await bulk_cache_entities(spell_entities, "spells")
+
+    api_call_count = 0
+
+    # Mock API that tracks call count
+    async def mock_api(*args, **kwargs):
+        nonlocal api_call_count
+        api_call_count += 1
+        return {"results": []}
+
+    with patch.object(client_with_db, "_make_request", side_effect=mock_api):
+        # Make different cache_first requests
+        await client_with_db.make_request(
+            "/spells",
+            entity_type="spells",
+            use_entity_cache=True,
+            cache_first=True,
+        )
+        await client_with_db.make_request(
+            "/spells",
+            entity_type="spells",
+            use_entity_cache=True,
+            cache_first=True,
+            cache_filters={"level": 3},  # Different filters
+        )
+
+        # Wait for background tasks to complete
+        await asyncio.sleep(0.2)
+
+    # Should spawn 2 separate refreshes for different requests
+    assert api_call_count == 2

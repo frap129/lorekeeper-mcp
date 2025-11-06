@@ -47,6 +47,7 @@ class BaseHttpClient:
         self.source_api = source_api
         self._client: httpx.AsyncClient | None = None
         self._background_tasks: set[asyncio.Task[Any]] = set()
+        self._in_flight_refreshes: set[str] = set()
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create async HTTP client."""
@@ -129,20 +130,28 @@ class BaseHttpClient:
             # Query cache immediately
             cached_entities = await self._query_cache_parallel(entity_type, **cache_filters)
 
-            # Start background refresh task
-            async def background_refresh() -> None:
-                try:
-                    response = await self._make_request(endpoint, method, **kwargs)
-                    entities = self._extract_entities(response, entity_type)
-                    await self._cache_api_entities(entities, entity_type)
-                    logger.debug(f"Background refresh completed for {entity_type}")
-                except Exception as e:
-                    logger.warning(f"Background refresh failed: {e}")
+            # Create unique key for this refresh to prevent redundant refreshes
+            refresh_key = f"{entity_type}:{endpoint}:{sorted(cache_filters.items())!s}"
 
-            # Fire and forget (store reference to prevent premature garbage collection)
-            task = asyncio.create_task(background_refresh())
-            self._background_tasks.add(task)
-            task.add_done_callback(self._background_tasks.discard)
+            # Only start background refresh if not already in progress
+            if refresh_key not in self._in_flight_refreshes:
+                # Start background refresh task
+                async def background_refresh() -> None:
+                    self._in_flight_refreshes.add(refresh_key)
+                    try:
+                        response = await self._make_request(endpoint, method, **kwargs)
+                        entities = self._extract_entities(response, entity_type)
+                        await self._cache_api_entities(entities, entity_type)
+                        logger.debug(f"Background refresh completed for {entity_type}")
+                    except Exception as e:
+                        logger.warning(f"Background refresh failed: {e}")
+                    finally:
+                        self._in_flight_refreshes.discard(refresh_key)
+
+                # Fire and forget (store reference to prevent premature garbage collection)
+                task = asyncio.create_task(background_refresh())
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
 
             return cached_entities
 
