@@ -1,5 +1,9 @@
 """Cache schema definitions for entity-based tables."""
 
+from pathlib import Path
+
+import aiosqlite
+
 SCHEMA_VERSION = 1
 
 ENTITY_TYPES = [
@@ -85,3 +89,52 @@ def get_create_table_sql(entity_type: str) -> str:
     created_at REAL NOT NULL,
     updated_at REAL NOT NULL{fields_sql}
 )"""
+
+
+def get_index_sql(entity_type: str) -> list[str]:
+    """Generate CREATE INDEX statements for entity type.
+
+    Args:
+        entity_type: Type of entity (spells, monsters, etc.)
+
+    Returns:
+        List of CREATE INDEX SQL statements
+    """
+    indexed_fields = INDEXED_FIELDS.get(entity_type, [])
+    indexes = []
+
+    for field_name, _field_type in indexed_fields:
+        index_name = f"idx_{entity_type}_{field_name}"
+        sql = f"CREATE INDEX IF NOT EXISTS {index_name} ON {entity_type}({field_name})"
+        indexes.append(sql)
+
+    return indexes
+
+
+async def init_entity_cache(db_path: str) -> None:
+    """Initialize entity cache tables and indexes.
+
+    Creates all entity tables defined in ENTITY_TYPES with their indexed fields,
+    enables WAL mode for concurrent access, and creates indexes for efficient filtering.
+
+    Args:
+        db_path: Path to SQLite database file
+    """
+    # Ensure parent directory exists
+    path = Path(db_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    async with aiosqlite.connect(db_path) as db:
+        # Enable WAL mode for concurrent access
+        await db.execute("PRAGMA journal_mode=WAL")
+
+        # Create all entity tables
+        for entity_type in ENTITY_TYPES:
+            table_sql = get_create_table_sql(entity_type)
+            await db.execute(table_sql)
+
+            # Create indexes for this table
+            for index_sql in get_index_sql(entity_type):
+                await db.execute(index_sql)
+
+        await db.commit()

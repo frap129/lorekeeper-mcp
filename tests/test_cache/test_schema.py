@@ -1,10 +1,18 @@
 """Tests for cache schema definitions."""
 
+import tempfile
+from pathlib import Path
+
+import aiosqlite
+import pytest
+
 from lorekeeper_mcp.cache.schema import (
     ENTITY_TYPES,
     SCHEMA_VERSION,
     get_create_table_sql,
+    get_index_sql,
     get_table_name,
+    init_entity_cache,
 )
 
 
@@ -69,3 +77,68 @@ def test_get_create_table_sql_with_empty_indexed_fields():
     assert "updated_at REAL NOT NULL" in sql
     # Should not have any indexed fields
     assert "background" not in sql.lower()[sql.lower().find("updated_at") :]
+
+
+@pytest.mark.asyncio
+async def test_init_entity_cache_creates_tables():
+    """Initialize creates all entity tables."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+
+        await init_entity_cache(str(db_path))
+
+        # Verify database exists
+        assert db_path.exists()
+
+        # Verify tables created
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = {row[0] for row in await cursor.fetchall()}
+
+            assert "spells" in tables
+            assert "monsters" in tables
+            assert "weapons" in tables
+            assert "armor" in tables
+
+
+@pytest.mark.asyncio
+async def test_init_entity_cache_creates_indexes():
+    """Initialize creates indexes on filtered fields."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+
+        await init_entity_cache(str(db_path))
+
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.execute("SELECT name FROM sqlite_master WHERE type='index'")
+            indexes = {row[0] for row in await cursor.fetchall()}
+
+            # Check for spell indexes
+            assert "idx_spells_level" in indexes
+            assert "idx_spells_school" in indexes
+
+            # Check for monster indexes
+            assert "idx_monsters_challenge_rating" in indexes
+            assert "idx_monsters_type" in indexes
+
+
+@pytest.mark.asyncio
+async def test_init_entity_cache_enables_wal_mode():
+    """Initialize enables WAL mode for concurrent access."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+
+        await init_entity_cache(str(db_path))
+
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.execute("PRAGMA journal_mode")
+            mode = (await cursor.fetchone())[0]
+            assert mode.lower() == "wal"
+
+
+def test_get_index_sql():
+    """Index SQL generated correctly."""
+    indexes = get_index_sql("spells")
+    assert len(indexes) > 0
+    assert any("idx_spells_level" in sql for sql in indexes)
+    assert any("ON spells(level)" in sql for sql in indexes)
