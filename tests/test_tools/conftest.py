@@ -64,6 +64,7 @@ def mock_open5e_v1_client():
     client.get_monsters = AsyncMock(return_value=[monster_obj])
     client.get_classes = AsyncMock(return_value={"count": 0, "results": []})
     client.get_races = AsyncMock(return_value={"count": 0, "results": []})
+    client.get_magic_items = AsyncMock(return_value={"count": 0, "results": []})
     return client
 
 
