@@ -30,6 +30,43 @@ class Dnd5eApiClient(BaseHttpClient):
             **kwargs,
         )
 
+    def _extract_entities(
+        self,
+        response: dict[str, Any],
+        entity_type: str,
+    ) -> list[dict[str, Any]]:
+        """Extract entities from API response.
+
+        Handles both paginated responses with 'results' and direct entities.
+        Normalizes 'index' field to 'slug' for D&D5e API compatibility.
+
+        Args:
+            response: API response dictionary
+            entity_type: Type of entities
+
+        Returns:
+            List of entity dictionaries with 'slug' field
+        """
+        entities: list[dict[str, Any]] = []
+
+        # Check if paginated response
+        if "results" in response and isinstance(response["results"], list):
+            entities = response["results"]
+        # Check if direct entity (has slug or index)
+        elif "slug" in response or "index" in response:
+            entities = [response]
+        # Unknown format
+        else:
+            return []
+
+        # Normalize 'index' field to 'slug' for D&D5e API entities
+        for entity in entities:
+            if isinstance(entity, dict) and "index" in entity and "slug" not in entity:
+                entity["slug"] = entity["index"]
+
+        # Filter out entities without slug
+        return [e for e in entities if isinstance(e, dict) and "slug" in e]
+
     async def get_rules(
         self,
         section: str | None = None,
@@ -54,10 +91,14 @@ class Dnd5eApiClient(BaseHttpClient):
 
         params = {k: v for k, v in filters.items() if v is not None}
 
-        # Make request without entity cache (will implement proper caching in cache integration tests)
-        response = await self._make_request(endpoint, params=params)
+        # Make request with entity cache
+        result = await self.make_request(
+            endpoint,
+            use_entity_cache=True,
+            entity_type="rules",
+            cache_filters={},
+            params=params,
+        )
 
-        # Handle both paginated and single entity responses
-        if "results" in response and isinstance(response["results"], list):
-            return response["results"]
-        return [response]
+        # Result is already a list due to entity caching extraction
+        return result if isinstance(result, list) else [result]
