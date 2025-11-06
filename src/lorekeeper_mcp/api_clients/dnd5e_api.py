@@ -246,3 +246,55 @@ class Dnd5eApiClient(BaseHttpClient):
             return result if isinstance(result, list) else result.get("results", [])
         finally:
             self.cache_ttl = original_ttl
+
+    async def get_magic_schools(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get magic schools from D&D 5e API.
+
+        Returns:
+            List of magic school dictionaries (8 schools)
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        original_ttl = self.cache_ttl
+        self.cache_ttl = self.REFERENCE_DATA_TTL
+
+        try:
+            result = await self.make_request(
+                "/magic-schools/",
+                use_entity_cache=True,
+                entity_type="magic_schools",
+                params=params,
+            )
+            return result if isinstance(result, list) else result.get("results", [])
+        finally:
+            self.cache_ttl = original_ttl
+
+    async def get_languages(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get languages from D&D 5e API.
+
+        Returns:
+            List of language dictionaries (16 languages)
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        original_ttl = self.cache_ttl
+        self.cache_ttl = self.REFERENCE_DATA_TTL
+
+        try:
+            result = await self.make_request(
+                "/languages/",
+                use_entity_cache=True,
+                entity_type="languages",
+                params=params,
+            )
+            return result if isinstance(result, list) else result.get("results", [])
+        finally:
+            self.cache_ttl = original_ttl

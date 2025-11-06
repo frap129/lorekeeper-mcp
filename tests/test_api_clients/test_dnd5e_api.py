@@ -220,3 +220,53 @@ async def test_get_ability_scores(dnd5e_client: Dnd5eApiClient) -> None:
 
     assert len(ability_scores) == 2
     assert ability_scores[0]["name"] == "STR"
+
+
+@respx.mock
+async def test_get_magic_schools(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching magic schools."""
+    respx.get("https://www.dnd5eapi.co/api/2014/magic-schools/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "index": "evocation",
+                        "name": "Evocation",
+                        "url": "/api/2014/magic-schools/evocation",
+                    },
+                    {
+                        "index": "abjuration",
+                        "name": "Abjuration",
+                        "url": "/api/2014/magic-schools/abjuration",
+                    },
+                ]
+            },
+        )
+    )
+
+    schools = await dnd5e_client.get_magic_schools()
+
+    assert len(schools) == 2
+    assert schools[0]["name"] == "Evocation"
+
+
+@respx.mock
+async def test_get_languages(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching languages."""
+    respx.get("https://www.dnd5eapi.co/api/2014/languages/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {"index": "common", "name": "Common", "url": "/api/2014/languages/common"},
+                    {"index": "elvish", "name": "Elvish", "url": "/api/2014/languages/elvish"},
+                ]
+            },
+        )
+    )
+
+    languages = await dnd5e_client.get_languages()
+
+    assert len(languages) == 2
+    assert languages[0]["name"] == "Common"
