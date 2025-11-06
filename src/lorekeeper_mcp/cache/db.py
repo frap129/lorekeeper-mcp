@@ -7,7 +7,7 @@ from typing import Any, cast
 
 import aiosqlite
 
-from lorekeeper_mcp.cache.schema import INDEXED_FIELDS, get_table_name
+from lorekeeper_mcp.cache.schema import ENTITY_TYPES, INDEXED_FIELDS, get_table_name
 from lorekeeper_mcp.config import settings
 
 
@@ -72,7 +72,11 @@ async def bulk_cache_entities(
     if not entities:
         return 0
 
-    db_path_str: str = str(db_path or settings.db_path)
+    # Validate entity_type to prevent SQL injection
+    if entity_type not in ENTITY_TYPES:
+        raise ValueError(f"Invalid entity type: {entity_type}")
+
+    db_path_obj = Path(db_path or settings.db_path)
     table_name = get_table_name(entity_type)
     indexed_fields = INDEXED_FIELDS.get(entity_type, [])
 
@@ -89,22 +93,31 @@ async def bulk_cache_entities(
         VALUES ({placeholders})
     """
 
-    async with aiosqlite.connect(db_path_str) as db:
+    async with aiosqlite.connect(db_path_obj) as db:
         now = time.time()
 
-        rows = []
+        # Fetch all existing timestamps in a single query to prevent N+1
+        slugs_to_check = [e.get("slug") for e in entities if e.get("slug")]
+        existing_timestamps: dict[str, float] = {}
+
+        if slugs_to_check:
+            placeholders_for_select = ",".join("?" * len(slugs_to_check))
+            cursor = await db.execute(
+                f"SELECT slug, created_at FROM {table_name} WHERE slug IN ({placeholders_for_select})",
+                slugs_to_check,
+            )
+            existing_rows = await cursor.fetchall()
+            existing_timestamps = {row[0]: row[1] for row in existing_rows}
+
+        rows: list[list[Any]] = []
         for entity in entities:
             slug = entity.get("slug")
             name = entity.get("name", "")
             if not slug:
                 continue  # Skip entities without slug
 
-            # Check if entity already exists to preserve created_at
-            cursor = await db.execute(
-                f"SELECT created_at FROM {table_name} WHERE slug = ?", (slug,)
-            )
-            existing = await cursor.fetchone()
-            created_at = existing[0] if existing else now
+            # Get created_at from pre-fetched timestamps
+            created_at = existing_timestamps.get(slug, now)
 
             # Build row with base columns
             row = [
@@ -143,10 +156,14 @@ async def get_cached_entity(
     Returns:
         Entity data dictionary or None if not found
     """
-    db_path_str: str = str(db_path or settings.db_path)
+    # Validate entity_type to prevent SQL injection
+    if entity_type not in ENTITY_TYPES:
+        raise ValueError(f"Invalid entity type: {entity_type}")
+
+    db_path_obj = Path(db_path or settings.db_path)
     table_name = get_table_name(entity_type)
 
-    async with aiosqlite.connect(db_path_str) as db:
+    async with aiosqlite.connect(db_path_obj) as db:
         db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(f"SELECT data FROM {table_name} WHERE slug = ?", (slug,))
