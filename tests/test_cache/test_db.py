@@ -1,12 +1,21 @@
 """Tests for database cache layer."""
 
 import json
+import tempfile
 import time
+from pathlib import Path
 
 import aiosqlite
 import pytest
 
-from lorekeeper_mcp.cache.db import cleanup_expired, get_cached, set_cached
+from lorekeeper_mcp.cache.db import (
+    bulk_cache_entities,
+    cleanup_expired,
+    get_cached,
+    get_cached_entity,
+    set_cached,
+)
+from lorekeeper_mcp.cache.schema import init_entity_cache
 
 
 @pytest.mark.asyncio
@@ -210,3 +219,98 @@ async def test_cleanup_expired_removes_old_entries(test_db):
 
     # Should have fewer entries after cleanup
     assert total_after <= total_before
+
+
+# ============================================================================
+# Task 1.3: Entity Storage Operations Tests
+# ============================================================================
+
+
+@pytest.fixture
+async def entity_test_db():
+    """Create a test database with entity schema."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        await init_entity_cache(str(db_path))
+        yield str(db_path)
+
+
+@pytest.mark.asyncio
+async def test_bulk_cache_entities_inserts_new(entity_test_db):
+    """Bulk cache inserts new entities."""
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+        {"slug": "magic-missile", "name": "Magic Missile", "level": 1, "school": "Evocation"},
+    ]
+
+    count = await bulk_cache_entities(entities, "spells", entity_test_db, "open5e")
+
+    assert count == 2
+
+
+@pytest.mark.asyncio
+async def test_get_cached_entity_retrieves_by_slug(entity_test_db):
+    """Get cached entity retrieves by slug."""
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+    ]
+    await bulk_cache_entities(entities, "spells", entity_test_db, "open5e")
+
+    entity = await get_cached_entity("spells", "fireball", entity_test_db)
+
+    assert entity is not None
+    assert entity["slug"] == "fireball"
+    assert entity["name"] == "Fireball"
+    assert entity["level"] == 3
+    assert entity["school"] == "Evocation"
+
+
+@pytest.mark.asyncio
+async def test_get_cached_entity_returns_none_for_missing(entity_test_db):
+    """Get cached entity returns None for non-existent slug."""
+    entity = await get_cached_entity("spells", "nonexistent", entity_test_db)
+
+    assert entity is None
+
+
+@pytest.mark.asyncio
+async def test_bulk_cache_entities_handles_upsert(entity_test_db):
+    """Bulk cache updates existing entities."""
+    # Insert initial entity
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+    ]
+    await bulk_cache_entities(entities, "spells", entity_test_db, "open5e")
+
+    # Update with new data
+    updated_entities = [
+        {"slug": "fireball", "name": "Fireball (Updated)", "level": 3, "school": "Evocation"},
+    ]
+    count = await bulk_cache_entities(updated_entities, "spells", entity_test_db, "open5e")
+
+    assert count == 1
+
+    # Verify updated
+    entity = await get_cached_entity("spells", "fireball", entity_test_db)
+    assert entity["name"] == "Fireball (Updated)"
+
+
+@pytest.mark.asyncio
+async def test_bulk_cache_entities_extracts_indexed_fields(entity_test_db):
+    """Bulk cache extracts indexed fields from entity data."""
+    entities = [
+        {
+            "slug": "goblin",
+            "name": "Goblin",
+            "type": "humanoid",
+            "size": "Small",
+            "challenge_rating": 0.25,
+        },
+    ]
+
+    await bulk_cache_entities(entities, "monsters", entity_test_db, "open5e")
+
+    entity = await get_cached_entity("monsters", "goblin", entity_test_db)
+    assert entity["type"] == "humanoid"
+    assert entity["size"] == "Small"
+    assert entity["challenge_rating"] == 0.25

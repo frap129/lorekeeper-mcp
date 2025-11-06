@@ -1,4 +1,4 @@
-"""Database cache layer for API responses using SQLite."""
+"""Database cache layer for entity-based caching using SQLite."""
 
 import json
 import time
@@ -7,24 +7,31 @@ from typing import Any, cast
 
 import aiosqlite
 
+from lorekeeper_mcp.cache.schema import INDEXED_FIELDS, get_table_name
 from lorekeeper_mcp.config import settings
 
 
 async def init_db() -> None:
     """Initialize the database schema.
 
-    Creates the api_cache table with indexes if it doesn't exist.
-    Also ensures the parent directory exists and enables WAL mode.
+    Creates both entity cache tables and legacy api_cache table for backward compatibility.
+    Enables WAL mode for concurrent access.
     """
+    from lorekeeper_mcp.cache.schema import init_entity_cache
+
     # Ensure parent directory exists
     db_path = Path(settings.db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    async with aiosqlite.connect(db_path) as db:
+    # Initialize entity cache tables
+    await init_entity_cache(str(settings.db_path))
+
+    # Also create legacy api_cache table for backward compatibility
+    async with aiosqlite.connect(settings.db_path) as db:
         # Enable WAL mode for better concurrent access
         await db.execute("PRAGMA journal_mode=WAL")
 
-        # Create schema
+        # Create legacy schema
         await db.execute(
             """
             CREATE TABLE IF NOT EXISTS api_cache (
@@ -45,8 +52,115 @@ async def init_db() -> None:
         await db.commit()
 
 
+async def bulk_cache_entities(
+    entities: list[dict[str, Any]],
+    entity_type: str,
+    db_path: str | None = None,
+    source_api: str = "unknown",
+) -> int:
+    """Bulk insert or update entities in cache.
+
+    Args:
+        entities: List of entity dictionaries
+        entity_type: Type of entities (spells, monsters, etc.)
+        db_path: Optional database path (defaults to settings.db_path)
+        source_api: Source API identifier
+
+    Returns:
+        Number of entities processed
+    """
+    if not entities:
+        return 0
+
+    db_path_str: str = str(db_path or settings.db_path)
+    table_name = get_table_name(entity_type)
+    indexed_fields = INDEXED_FIELDS.get(entity_type, [])
+
+    # Build INSERT OR REPLACE query
+    base_columns = ["slug", "name", "data", "source_api", "created_at", "updated_at"]
+    # Extract just field names from indexed_fields tuples
+    field_names = [field_name for field_name, _ in indexed_fields]
+    all_columns = base_columns + field_names
+    placeholders = ", ".join(["?"] * len(all_columns))
+    columns_str = ", ".join(all_columns)
+
+    sql = f"""
+        INSERT OR REPLACE INTO {table_name} ({columns_str})
+        VALUES ({placeholders})
+    """
+
+    async with aiosqlite.connect(db_path_str) as db:
+        now = time.time()
+
+        rows = []
+        for entity in entities:
+            slug = entity.get("slug")
+            name = entity.get("name", "")
+            if not slug:
+                continue  # Skip entities without slug
+
+            # Check if entity already exists to preserve created_at
+            cursor = await db.execute(
+                f"SELECT created_at FROM {table_name} WHERE slug = ?", (slug,)
+            )
+            existing = await cursor.fetchone()
+            created_at = existing[0] if existing else now
+
+            # Build row with base columns
+            row = [
+                slug,
+                name,
+                json.dumps(entity),  # Full entity as JSON
+                source_api,
+                created_at,
+                now,  # updated_at
+            ]
+
+            # Add indexed field values
+            for field_name, _ in indexed_fields:
+                row.append(entity.get(field_name))
+
+            rows.append(row)
+
+        await db.executemany(sql, rows)
+        await db.commit()
+
+        return len(rows)
+
+
+async def get_cached_entity(
+    entity_type: str,
+    slug: str,
+    db_path: str | None = None,
+) -> dict[str, Any] | None:
+    """Retrieve a single cached entity by slug.
+
+    Args:
+        entity_type: Type of entity
+        slug: Entity slug
+        db_path: Optional database path
+
+    Returns:
+        Entity data dictionary or None if not found
+    """
+    db_path_str: str = str(db_path or settings.db_path)
+    table_name = get_table_name(entity_type)
+
+    async with aiosqlite.connect(db_path_str) as db:
+        db.row_factory = aiosqlite.Row
+
+        cursor = await db.execute(f"SELECT data FROM {table_name} WHERE slug = ?", (slug,))
+        row = await cursor.fetchone()
+
+        if row is None:
+            return None
+
+        return cast(dict[str, Any], json.loads(row["data"]))
+
+
+# Keep existing functions for backward compatibility
 async def get_cached(key: str) -> dict[str, Any] | None:
-    """Retrieve cached data if not expired.
+    """Retrieve cached data if not expired (legacy URL-based cache).
 
     Args:
         key: Cache key to look up
@@ -82,7 +196,7 @@ async def set_cached(
     ttl_seconds: int,
     source_api: str = "unknown",
 ) -> None:
-    """Store data in cache with TTL.
+    """Store data in cache with TTL (legacy URL-based cache).
 
     Args:
         key: Cache key for the data
