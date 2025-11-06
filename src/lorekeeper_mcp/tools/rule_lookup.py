@@ -26,20 +26,100 @@ async def lookup_rule(
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
-    Look up game rules, conditions, and reference information.
+    Look up D&D 5e game rules, conditions, and reference information.
+
+    This comprehensive reference tool provides access to core rules, special conditions,
+    damage types, skills, and game mechanics. Essential for resolving rules questions
+    during play or character building. All data is sourced from official D&D 5e materials.
+
+    Examples:
+        - lookup_rule(rule_type="condition", name="grappled") - Find grappled condition rules
+        - lookup_rule(rule_type="skill", name="stealth") - Find stealth skill details
+        - lookup_rule(rule_type="damage-type", name="fire") - Find fire damage rules
+        - lookup_rule(rule_type="rule", section="combat") - Find all combat rules
+        - lookup_rule(rule_type="ability-score") - Get all ability score info
+        - lookup_rule(rule_type="alignment") - Find alignment descriptions
+        - lookup_rule(rule_type="magic-school", name="evocation") - Find evocation school info
 
     Args:
-        rule_type: Rule type (rule, condition, damage-type, etc.) - REQUIRED
-        name: Name or partial name search
-        section: For rules - section name (combat, spellcasting, etc.)
-        limit: Maximum number of results (default 20)
+        rule_type: **REQUIRED.** Type of game reference to lookup. Must be one of:
+            - "rule": Core game rules and mechanics (combat, spellcasting, movement, etc.)
+            - "condition": Status effects (grappled, stunned, poisoned, unconscious, etc.)
+            - "damage-type": Damage categories (acid, bludgeoning, cold, fire, force,
+              lightning, necrotic, piercing, poison, psychic, radiant, slashing, thunder)
+            - "weapon-property": Weapon special properties (finesse, heavy, light, reach,
+              two-handed, versatile, ammunition, loading, thrown, etc.)
+            - "skill": Ability-based skills (Acrobatics, Animal Handling, Arcana, Athletics,
+              Deception, History, Insight, Intimidation, Investigation, Medicine, Nature,
+              Perception, Performance, Persuasion, Religion, Sleight of Hand, Stealth, Survival)
+            - "ability-score": Core abilities (Strength, Dexterity, Constitution, Intelligence,
+              Wisdom, Charisma) and their uses
+            - "magic-school": Schools of magic (Abjuration, Conjuration, Divination, Enchantment,
+              Evocation, Illusion, Necromancy, Transmutation)
+            - "language": Languages available in D&D (Common, Dwarvish, Elvish, Giant, Gnomish,
+              Goblin, Orc, Primordial, Sylvan, Undercommon, Celestial, Draconic, Deep Speech, Infernal)
+            - "proficiency": Character proficiency types (armor, weapon, tool, saving throw, skill)
+            - "alignment": Character alignment axes (Lawful/Chaotic, Good/Evil, Neutral options)
+        name: Optional name or partial name search for filtering results. Matches entries
+            containing this substring. Case-insensitive matching.
+            Examples: "grappled" for conditions, "fire" for damage types, "stealth" for skills
+        section: For rule_type="rule" only. Filter rules by section/chapter.
+            Examples: "combat", "spellcasting", "movement", "actions-in-combat"
+            Ignored for other rule types.
+        limit: Maximum number of results to return. Default 20 for performance.
+            Examples: 1, 10, 50
 
     Returns:
-        List of rule/reference dictionaries
+        List of rule/reference dictionaries. Structure varies by rule_type:
+
+        For rule_type="rule":
+            - name: Rule name/title
+            - desc: Full rule description and examples
+            - section: Section/chapter this rule belongs to
+
+        For rule_type="condition":
+            - name: Condition name
+            - desc: Effects and duration of this condition
+
+        For rule_type="damage-type":
+            - name: Damage type name
+            - desc: Description of damage type and uses
+
+        For rule_type="weapon-property":
+            - name: Property name
+            - desc: How the property affects weapon use
+
+        For rule_type="skill":
+            - name: Skill name
+            - ability_score: Associated ability (STR, DEX, CON, INT, WIS, CHA)
+            - desc: How skill is used and common checks
+
+        For rule_type="ability-score":
+            - name: Ability name
+            - desc: What ability represents and how it's used
+            - skills: Related skills
+
+        For rule_type="magic-school":
+            - name: School name
+            - desc: Philosophy and types of spells in this school
+
+        For rule_type="language":
+            - name: Language name
+            - type: Language type (common, exotic, etc.)
+            - script: Writing system if any
+
+        For rule_type="proficiency":
+            - name: Proficiency type
+            - class: What type of proficiency (class, background, race)
+            - desc: Details about this proficiency type
+
+        For rule_type="alignment":
+            - name: Alignment
+            - desc: Alignment description and common character types
 
     Raises:
-        ValueError: If rule_type is not valid
-        APIError: If the API request fails
+        ValueError: If rule_type is not one of the valid options
+        APIError: If the API request fails due to network issues or server errors
     """
     valid_types = {
         "rule",

@@ -18,22 +18,76 @@ async def lookup_equipment(
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
-    Look up weapons, armor, and magic items.
+    Search and retrieve D&D 5e weapons, armor, and magic items.
+
+    This tool provides comprehensive equipment lookup across weapons, armor, and magical
+    items. Filter by rarity, damage potential, complexity, or attunement requirements.
+    Automatically retrieves and caches data from multiple sources for reliability.
+
+    Examples:
+        - lookup_equipment(type="weapon", name="longsword") - Find longsword variants
+        - lookup_equipment(type="armor", is_simple=True) - Find light/medium armor
+        - lookup_equipment(type="magic-item", rarity="rare") - Find rare magical items
+        - lookup_equipment(type="all", name="chain") - Find chain weapons, armor, and items
+        - lookup_equipment(type="weapon", damage_dice="1d8", is_simple=True) - Find simple 1d8 weapons
 
     Args:
-        type: Equipment type (weapon, armor, magic-item, all)
-        name: Item name or partial name search
-        rarity: Magic item rarity (common, uncommon, rare, very rare, legendary, artifact)
-        damage_dice: Weapon damage dice filter (e.g., "1d8", "2d6")
-        is_simple: Filter for simple weapons only
-        requires_attunement: Attunement requirement filter
-        limit: Maximum number of results per type (default 20)
+        type: Equipment type to search. Default "all" searches all types. Options:
+            - "weapon": Melee weapons (longsword, dagger, etc.) and ranged weapons (bow, crossbow)
+            - "armor": Protective gear (leather armor, chain mail, plate, etc.)
+            - "magic-item": Magical items (Bag of Holding, Wand of Fireballs, etc.)
+            - "all": Search all equipment types simultaneously (may return many results)
+        name: Item name or partial name search. Matches items containing this substring.
+            Case-insensitive. Examples: "longsword", "chain", "bag", "wand"
+        rarity: Magic item rarity filter (weapon/armor types don't use this).
+            Valid values: common, uncommon, rare, very rare, legendary, artifact
+            Example: "rare" for high-value magical items
+        damage_dice: Weapon damage dice filter to find weapons dealing specific damage.
+            Examples: "1d4" (dagger), "1d8" (longsword), "2d6" (greataxe), "1d12" (greatsword)
+        is_simple: Filter for simple weapons (True) or martial weapons (False).
+            Simple weapons: club, dagger, greatclub, handaxe, javelin, light hammer, mace,
+            quarterstaff, sickle, spear
+            Martial weapons: all other melee and ranged weapons
+            Example: True for low-complexity options
+        requires_attunement: Magic item attunement filter. Some powerful items require
+            attunement to a character. Examples: "yes", "no", or specific requirements
+        limit: Maximum number of results to return. Default 20. For type="all" with many
+            matches, limit applies to total results. Examples: 5, 20, 100
 
     Returns:
-        List of equipment dictionaries (structure varies by type)
+        List of equipment dictionaries. Structure varies by type:
+
+        For type="weapon":
+            - name: Weapon name
+            - damage_dice: Damage expression (e.g., "1d8")
+            - damage_type: Type of damage (slashing, piercing, bludgeoning)
+            - weight: Weight in pounds
+            - is_simple: Whether this is a simple weapon
+            - range: Range for ranged weapons (e.g., "20/60 feet")
+            - properties: Weapon properties (finesse, heavy, reach, two-handed, etc.)
+            - rarity: Equipment rarity
+
+        For type="armor":
+            - name: Armor name
+            - armor_class: AC provided by this armor
+            - armor_class_dex: Whether DEX bonus applies (light/medium)
+            - armor_class_strength: Whether STR requirement applies (heavy)
+            - weight: Weight in pounds
+            - armor_category: Light/Medium/Heavy classification
+            - rarity: Equipment rarity
+
+        For type="magic-item":
+            - name: Item name
+            - description: What the item does and its powers
+            - rarity: Rarity level (common through artifact)
+            - requires_attunement: Attunement requirements
+            - wondrous: Whether item is wondrous (non-weapon/armor)
+            - weight: Weight if applicable
+            - armor_class: AC bonus if armor
+            - damage: Damage if weapon
 
     Raises:
-        APIError: If the API request fails
+        APIError: If the API request fails due to network issues or server errors
     """
     results: list[dict[str, Any]] = []
 
