@@ -17,21 +17,80 @@ class Open5eV1Client(BaseHttpClient):
         """
         super().__init__(base_url="https://api.open5e.com/v1", **kwargs)
 
-    async def get_monsters(self, **filters: Any) -> list[Monster]:
-        """Get monsters with optional filters.
+    async def get_monsters(
+        self,
+        challenge_rating: str | None = None,
+        **filters: Any,
+    ) -> list[Monster]:
+        """Get monsters from Open5e API v1.
 
         Args:
-            name: Filter by monster name
-            challenge_rating: Filter by CR
-            type: Filter by creature type
-            size: Filter by size
-            **filters: Additional filter parameters
+            challenge_rating: Filter by CR (e.g., "1/4", "5")
+            **filters: Additional API parameters
 
         Returns:
-            List of Monster objects
+            List of monster dictionaries
+        """
+        # Build cache filters for indexed fields
+        cache_filters = {}
+        if challenge_rating:
+            cache_filters["challenge_rating"] = challenge_rating
+
+        # Include challenge_rating in API params if provided
+        params = {k: v for k, v in filters.items() if v is not None}
+        if challenge_rating:
+            params["challenge_rating"] = challenge_rating
+
+        result = await self.make_request(
+            "/monsters/",
+            use_entity_cache=True,
+            entity_type="monsters",
+            cache_filters=cache_filters,
+            params=params,
+        )
+
+        # Handle both list and dict response formats
+        entities = result if isinstance(result, list) else result.get("results", [])
+
+        # Convert dictionaries to Monster objects
+        return [Monster(**monster_data) for monster_data in entities]
+
+    async def get_classes(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get character classes from Open5e API v1.
+
+        Returns:
+            List of class dictionaries
         """
         params = {k: v for k, v in filters.items() if v is not None}
-        response = await self.make_request("/monsters/", params=params)
-        response_dict = cast(dict[str, Any], response)
-        results = response_dict.get("results", [])
-        return [Monster(**monster_data) for monster_data in results]
+
+        result = await self.make_request(
+            "/classes/",
+            use_entity_cache=True,
+            entity_type="classes",
+            params=params,
+        )
+
+        if isinstance(result, list):
+            return result
+
+        return cast(list[dict[str, Any]], result.get("results", []))
+
+    async def get_races(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get character races from Open5e API v1.
+
+        Returns:
+            List of race dictionaries
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/races/",
+            use_entity_cache=True,
+            entity_type="races",
+            params=params,
+        )
+
+        if isinstance(result, list):
+            return result
+
+        return cast(list[dict[str, Any]], result.get("results", []))
