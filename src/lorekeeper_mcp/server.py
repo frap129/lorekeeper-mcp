@@ -6,6 +6,13 @@ from contextlib import asynccontextmanager
 from fastmcp import FastMCP
 
 from lorekeeper_mcp.cache.db import init_db
+from lorekeeper_mcp.tools import (
+    lookup_character_option,
+    lookup_creature,
+    lookup_equipment,
+    lookup_rule,
+    lookup_spell,
+)
 
 
 @asynccontextmanager
@@ -26,5 +33,9 @@ mcp = FastMCP(
     lifespan=lifespan,
 )
 
-
-# Tools will be registered here in future tasks
+# Register tools with FastMCP
+mcp.tool()(lookup_spell)
+mcp.tool()(lookup_creature)
+mcp.tool()(lookup_character_option)
+mcp.tool()(lookup_equipment)
+mcp.tool()(lookup_rule)
