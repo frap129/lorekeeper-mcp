@@ -74,7 +74,6 @@ def function(input):
 
 # Steps
 
-1. Call the skills_writing_plans tool.
-2. Read `openspec/changes/$1/tasks.md`.
-3. Draft `openspec/changes/$1/plan.md`, using the concepts from the writing plans skill to develop a detailed plan.
-4. Ask the user if they would like to proceed with implementation.
+1. Read `openspec/changes/$1/tasks.md`, `proposal.md`, and the associated specs.
+2. Draft `openspec/changes/$1/plan.md`, using the concepts outlined above.
+3. Ask the user if they would like to proceed with implementation.
