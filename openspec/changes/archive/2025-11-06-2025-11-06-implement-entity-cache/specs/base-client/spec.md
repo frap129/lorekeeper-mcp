@@ -1,6 +1,6 @@
 # base-client Specification Changes
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Parallel cache queries with API calls
 
@@ -73,8 +73,6 @@ The base HTTP client MUST cache individual entities from API responses instead o
 **And** created_at timestamp is set to current time for new entities
 **And** updated_at is set to current time
 **And** slug is extracted from entity for primary key
-
-## ADDED Requirements
 
 ### Requirement: Cache-first query option for offline-preferred mode
 
