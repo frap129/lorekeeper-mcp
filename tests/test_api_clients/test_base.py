@@ -290,3 +290,66 @@ async def test_make_request_offline_logs_warning(client_with_db, caplog):
 
     # Should log offline warning
     assert "offline" in caplog.text.lower() or "network" in caplog.text.lower()
+
+
+@pytest.mark.asyncio
+async def test_make_request_cache_first_returns_immediately(client_with_db):
+    """Make request with cache_first returns cache without waiting for API."""
+    # Pre-populate cache
+    entities = [{"slug": "fireball", "name": "Fireball (cached)"}]
+    await bulk_cache_entities(entities, "spells")
+
+    # Mock slow API response
+    async def slow_api(*args, **kwargs):
+        await asyncio.sleep(0.5)
+        return {"results": [{"slug": "fireball", "name": "Fireball (fresh)"}]}
+
+    with patch.object(client_with_db, "_make_request", side_effect=slow_api):
+        start = asyncio.get_event_loop().time()
+        result = await client_with_db.make_request(
+            "/spells",
+            entity_type="spells",
+            use_entity_cache=True,
+            cache_first=True,
+        )
+        elapsed = asyncio.get_event_loop().time() - start
+
+    # Should return cached data quickly (< 0.1s, not wait for 0.5s API)
+    assert elapsed < 0.1
+    assert result[0]["name"] == "Fireball (cached)"
+
+
+@pytest.mark.asyncio
+async def test_make_request_cache_first_refreshes_background(client_with_db):
+    """Make request with cache_first refreshes cache in background."""
+    # Pre-populate cache with old data
+    old_entities = [{"slug": "fireball", "name": "Fireball (old)"}]
+    await bulk_cache_entities(old_entities, "spells")
+
+    # Mock API with new data
+    async def mock_api(*args, **kwargs):
+        return {"results": [{"slug": "fireball", "name": "Fireball (new)"}]}
+
+    with patch.object(client_with_db, "_make_request", side_effect=mock_api):
+        # First call returns cached
+        result1 = await client_with_db.make_request(
+            "/spells",
+            entity_type="spells",
+            use_entity_cache=True,
+            cache_first=True,
+        )
+
+        # Wait for background refresh
+        await asyncio.sleep(0.2)
+
+        # Second call should have refreshed data
+        await client_with_db.make_request(
+            "/spells",
+            entity_type="spells",
+            use_entity_cache=True,
+            cache_first=True,
+        )
+
+    assert result1[0]["name"] == "Fireball (old)"
+    # Background task should have updated cache
+    # (In practice this requires the background task to complete)

@@ -46,6 +46,7 @@ class BaseHttpClient:
         self.cache_ttl = cache_ttl
         self.source_api = source_api
         self._client: httpx.AsyncClient | None = None
+        self._background_tasks: set[asyncio.Task[Any]] = set()
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create async HTTP client."""
@@ -98,6 +99,7 @@ class BaseHttpClient:
         use_entity_cache: bool = False,
         entity_type: str | None = None,
         cache_filters: dict[str, Any] | None = None,
+        cache_first: bool = False,
         **kwargs: Any,
     ) -> dict[str, Any] | list[dict[str, Any]]:
         """Make HTTP request with caching and retry logic.
@@ -109,6 +111,7 @@ class BaseHttpClient:
             use_entity_cache: Whether to use entity-based cache
             entity_type: Type of entities for entity cache
             cache_filters: Filters for cache query
+            cache_first: Return cache immediately, refresh in background
             **kwargs: Additional arguments for httpx request
 
         Returns:
@@ -120,6 +123,28 @@ class BaseHttpClient:
         """
         url = f"{self.base_url}{endpoint}"
         cache_filters = cache_filters or {}
+
+        # Cache-first mode: return cache immediately, refresh async
+        if cache_first and use_entity_cache and entity_type:
+            # Query cache immediately
+            cached_entities = await self._query_cache_parallel(entity_type, **cache_filters)
+
+            # Start background refresh task
+            async def background_refresh() -> None:
+                try:
+                    response = await self._make_request(endpoint, method, **kwargs)
+                    entities = self._extract_entities(response, entity_type)
+                    await self._cache_api_entities(entities, entity_type)
+                    logger.debug(f"Background refresh completed for {entity_type}")
+                except Exception as e:
+                    logger.warning(f"Background refresh failed: {e}")
+
+            # Fire and forget (store reference to prevent premature garbage collection)
+            task = asyncio.create_task(background_refresh())
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
+
+            return cached_entities
 
         # Start parallel cache query if entity cache enabled
         cache_task = None
