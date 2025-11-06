@@ -95,40 +95,90 @@ class BaseHttpClient:
         endpoint: str,
         method: str = "GET",
         use_cache: bool = True,
+        use_entity_cache: bool = False,
+        entity_type: str | None = None,
+        cache_filters: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | list[dict[str, Any]]:
         """Make HTTP request with caching and retry logic.
 
         Args:
             endpoint: API endpoint path
             method: HTTP method
-            use_cache: Whether to use cache for this request
+            use_cache: Whether to use legacy URL-based cache (deprecated)
+            use_entity_cache: Whether to use entity-based cache
+            entity_type: Type of entities for entity cache
+            cache_filters: Filters for cache query
             **kwargs: Additional arguments for httpx request
 
         Returns:
-            Parsed JSON response
+            Parsed JSON response or list of entities
 
         Raises:
-            NetworkError: For network-related failures
+            NetworkError: For network-related failures (when not using offline fallback)
             ApiError: For API error responses (4xx/5xx)
         """
         url = f"{self.base_url}{endpoint}"
+        cache_filters = cache_filters or {}
 
-        # Check cache first
-        if use_cache and method == "GET":
+        # Start parallel cache query if entity cache enabled
+        cache_task = None
+        if use_entity_cache and entity_type:
+            cache_task = asyncio.create_task(
+                self._query_cache_parallel(entity_type, **cache_filters)
+            )
+
+        # Legacy URL-based cache check
+        if use_cache and method == "GET" and not use_entity_cache:
             cached = await self._get_cached_response(url)
             if cached is not None:
                 logger.debug(f"Cache hit: {url}")
                 return cached
 
-        # Make request (delegates to _make_request)
-        response = await self._make_request(endpoint, method, **kwargs)
+        # Make API request
+        try:
+            response = await self._make_request(endpoint, method, **kwargs)
 
-        # Cache successful response
-        if use_cache and method == "GET":
-            await self._cache_response(url, response)
+            # Extract and cache entities if using entity cache
+            if use_entity_cache and entity_type:
+                entities = self._extract_entities(response, entity_type)
+                await self._cache_api_entities(entities, entity_type)
 
-        return response
+                # Merge with cache results if available
+                if cache_task:
+                    try:
+                        cached_entities = await cache_task
+                        # For now, API takes precedence, just return API results
+                        # (merging logic can be enhanced later)
+                        return entities
+                    except Exception:
+                        return entities
+
+                return entities
+
+            # Legacy URL-based cache storage
+            if use_cache and method == "GET":
+                await self._cache_response(url, response)
+
+            return response
+
+        except NetworkError as e:
+            # Offline fallback: return cached entities
+            if use_entity_cache and entity_type and cache_task:
+                logger.warning(f"Network error, falling back to cache: {e}")
+                try:
+                    cached_entities = await cache_task
+                    if cached_entities:
+                        logger.info(f"Returning {len(cached_entities)} cached {entity_type}")
+                        return cached_entities
+                    logger.warning(f"No cached {entity_type} available for offline mode")
+                    return []
+                except Exception as cache_error:
+                    logger.error(f"Cache fallback failed: {cache_error}")
+                    return []
+
+            # No fallback available, re-raise
+            raise
 
     async def _make_request(
         self,

@@ -1,6 +1,6 @@
 """Client for Open5e API v1 (monsters, classes, races, magic items)."""
 
-from typing import Any
+from typing import Any, cast
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
 from lorekeeper_mcp.api_clients.models.monster import Monster
@@ -32,5 +32,6 @@ class Open5eV1Client(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
         response = await self.make_request("/monsters/", params=params)
-        results = response.get("results", [])
+        response_dict = cast(dict[str, Any], response)
+        results = response_dict.get("results", [])
         return [Monster(**monster_data) for monster_data in results]

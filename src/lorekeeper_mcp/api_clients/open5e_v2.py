@@ -1,6 +1,6 @@
 """Client for Open5e API v2 (spells, weapons, armor, etc.)."""
 
-from typing import Any
+from typing import Any, cast
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
 from lorekeeper_mcp.api_clients.models.equipment import Armor, Weapon
@@ -37,7 +37,8 @@ class Open5eV2Client(BaseHttpClient):
         response = await self.make_request("/spells/", params=params)
 
         # Parse results
-        results = response.get("results", [])
+        response_dict = cast(dict[str, Any], response)
+        results = response_dict.get("results", [])
         return [Spell(**spell_data) for spell_data in results]
 
     async def get_weapons(self, **filters: Any) -> list[Weapon]:
@@ -53,7 +54,8 @@ class Open5eV2Client(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
         response = await self.make_request("/weapons/", params=params)
-        results = response.get("results", [])
+        response_dict = cast(dict[str, Any], response)
+        results = response_dict.get("results", [])
         return [Weapon(**weapon_data) for weapon_data in results]
 
     async def get_armor(self, **filters: Any) -> list[Armor]:
@@ -69,5 +71,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
         response = await self.make_request("/armor/", params=params)
-        results = response.get("results", [])
+        response_dict = cast(dict[str, Any], response)
+        results = response_dict.get("results", [])
         return [Armor(**armor_data) for armor_data in results]

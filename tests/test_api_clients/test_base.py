@@ -12,7 +12,7 @@ import respx
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
-from lorekeeper_mcp.cache.db import get_cached, get_cached_entity, set_cached
+from lorekeeper_mcp.cache.db import bulk_cache_entities, get_cached, get_cached_entity, set_cached
 from lorekeeper_mcp.cache.schema import init_entity_cache
 
 
@@ -233,3 +233,60 @@ async def test_extract_entities_handles_non_paginated(client_with_db):
 
     assert len(entities) == 1
     assert entities[0]["slug"] == "fireball"
+
+
+@pytest.mark.asyncio
+async def test_make_request_offline_fallback_returns_cache(client_with_db):
+    """Make request falls back to cache on network error."""
+    # Pre-populate cache
+    entities = [{"slug": "fireball", "name": "Fireball", "level": 3}]
+    await bulk_cache_entities(entities, "spells")
+
+    # Mock network error
+    with (
+        patch.object(client_with_db, "_make_request", side_effect=NetworkError("Network down")),
+        patch.object(client_with_db, "_query_cache_parallel", return_value=entities),
+    ):
+        result = await client_with_db.make_request(
+            "/spells",
+            entity_type="spells",
+            use_entity_cache=True,
+        )
+
+    # Should return cached data instead of raising
+    assert result == entities
+
+
+@pytest.mark.asyncio
+async def test_make_request_offline_with_no_cache_returns_empty(client_with_db):
+    """Make request with network error and no cache returns empty."""
+    # Mock network error with empty cache
+    with (
+        patch.object(client_with_db, "_make_request", side_effect=NetworkError("Network down")),
+        patch.object(client_with_db, "_query_cache_parallel", return_value=[]),
+    ):
+        result = await client_with_db.make_request(
+            "/spells",
+            entity_type="spells",
+            use_entity_cache=True,
+        )
+
+    # Should return empty list
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_make_request_offline_logs_warning(client_with_db, caplog):
+    """Make request logs warning in offline mode."""
+    with (
+        patch.object(client_with_db, "_make_request", side_effect=NetworkError("Network down")),
+        patch.object(client_with_db, "_query_cache_parallel", return_value=[]),
+    ):
+        await client_with_db.make_request(
+            "/spells",
+            entity_type="spells",
+            use_entity_cache=True,
+        )
+
+    # Should log offline warning
+    assert "offline" in caplog.text.lower() or "network" in caplog.text.lower()
