@@ -124,3 +124,53 @@ async def test_get_rule_sections_by_name(dnd5e_client: Dnd5eApiClient) -> None:
     assert len(sections) == 1
     assert sections[0]["name"] == "Grappling"
     assert sections[0]["desc"] == "When you want to grab a creature..."
+
+
+@respx.mock
+async def test_get_damage_types(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching damage types."""
+    respx.get("https://www.dnd5eapi.co/api/2014/damage-types/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {"index": "fire", "name": "Fire", "url": "/api/2014/damage-types/fire"},
+                    {"index": "cold", "name": "Cold", "url": "/api/2014/damage-types/cold"},
+                ]
+            },
+        )
+    )
+
+    damage_types = await dnd5e_client.get_damage_types()
+
+    assert len(damage_types) == 2
+    assert damage_types[0]["name"] == "Fire"
+
+
+@respx.mock
+async def test_get_weapon_properties(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching weapon properties."""
+    respx.get("https://www.dnd5eapi.co/api/2014/weapon-properties/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "index": "finesse",
+                        "name": "Finesse",
+                        "url": "/api/2014/weapon-properties/finesse",
+                    },
+                    {
+                        "index": "versatile",
+                        "name": "Versatile",
+                        "url": "/api/2014/weapon-properties/versatile",
+                    },
+                ]
+            },
+        )
+    )
+
+    properties = await dnd5e_client.get_weapon_properties()
+
+    assert len(properties) == 2
+    assert properties[0]["name"] == "Finesse"

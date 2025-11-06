@@ -8,6 +8,9 @@ from lorekeeper_mcp.api_clients.base import BaseHttpClient
 class Dnd5eApiClient(BaseHttpClient):
     """Client for D&D 5e API endpoints."""
 
+    # Reference data TTL: 30 days (static data)
+    REFERENCE_DATA_TTL = 2592000
+
     def __init__(
         self,
         base_url: str = "https://www.dnd5eapi.co/api/2014",
@@ -137,3 +140,57 @@ class Dnd5eApiClient(BaseHttpClient):
 
         # Result is already a list due to entity caching extraction
         return result if isinstance(result, list) else [result]
+
+    async def get_damage_types(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get damage types from D&D 5e API.
+
+        Returns:
+            List of damage type dictionaries (13 types)
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        # Override cache TTL for reference data
+        original_ttl = self.cache_ttl
+        self.cache_ttl = self.REFERENCE_DATA_TTL
+
+        try:
+            result = await self.make_request(
+                "/damage-types/",
+                use_entity_cache=True,
+                entity_type="damage_types",
+                params=params,
+            )
+            return result if isinstance(result, list) else result.get("results", [])
+        finally:
+            self.cache_ttl = original_ttl
+
+    async def get_weapon_properties(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get weapon properties from D&D 5e API.
+
+        Returns:
+            List of weapon property dictionaries (11 properties)
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        # Override cache TTL for reference data
+        original_ttl = self.cache_ttl
+        self.cache_ttl = self.REFERENCE_DATA_TTL
+
+        try:
+            result = await self.make_request(
+                "/weapon-properties/",
+                use_entity_cache=True,
+                entity_type="weapon_properties",
+                params=params,
+            )
+            return result if isinstance(result, list) else result.get("results", [])
+        finally:
+            self.cache_ttl = original_ttl
