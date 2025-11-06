@@ -106,3 +106,23 @@ async def test_lookup_all_equipment_types(mock_open5e_v1_client, mock_open5e_v2_
     assert "Chain Whip" in names
     assert "Chain Mail" in names
     assert "Chain of Binding" in names
+
+
+@pytest.mark.asyncio
+async def test_lookup_equipment_parse_error(mock_open5e_v2_client):
+    """Test equipment lookup handles malformed responses."""
+    from lorekeeper_mcp.api_clients.exceptions import ParseError
+    from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
+
+    mock_open5e_v2_client.get_weapons.side_effect = ParseError(
+        "Invalid JSON response", raw_data="<html>Error</html>"
+    )
+
+    with (
+        patch(
+            "lorekeeper_mcp.tools.equipment_lookup.Open5eV2Client",
+            return_value=mock_open5e_v2_client,
+        ),
+        pytest.raises(ParseError, match="Invalid JSON response"),
+    ):
+        await lookup_equipment(type="weapon", name="Sword")

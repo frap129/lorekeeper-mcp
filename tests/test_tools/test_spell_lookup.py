@@ -78,3 +78,21 @@ async def test_lookup_spell_api_error(mock_open5e_v2_client):
         pytest.raises(ApiError, match="API unavailable"),
     ):
         await lookup_spell(name="Fireball")
+
+
+@pytest.mark.asyncio
+async def test_lookup_spell_network_error(mock_open5e_v2_client):
+    """Test spell lookup handles network errors."""
+    from lorekeeper_mcp.api_clients.exceptions import NetworkError
+    from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+    mock_open5e_v2_client.get_spells.side_effect = NetworkError("Connection timeout")
+
+    with (
+        patch(
+            "lorekeeper_mcp.tools.spell_lookup.Open5eV2Client",
+            return_value=mock_open5e_v2_client,
+        ),
+        pytest.raises(NetworkError, match="Connection timeout"),
+    ):
+        await lookup_spell(name="Fireball")

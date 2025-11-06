@@ -84,3 +84,21 @@ async def test_lookup_creature_empty_results(mock_open5e_v1_client):
         result = await lookup_creature(name="Nonexistent")
 
     assert result == []
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_timeout(mock_open5e_v1_client):
+    """Test creature lookup handles timeouts."""
+    from lorekeeper_mcp.api_clients.exceptions import NetworkError
+    from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+    mock_open5e_v1_client.get_monsters.side_effect = NetworkError("Request timeout")
+
+    with (
+        patch(
+            "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
+            return_value=mock_open5e_v1_client,
+        ),
+        pytest.raises(NetworkError),
+    ):
+        await lookup_creature(name="Dragon")
