@@ -7,7 +7,12 @@ from typing import Any
 import httpx
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
-from lorekeeper_mcp.cache.db import get_cached, query_cached_entities, set_cached
+from lorekeeper_mcp.cache.db import (
+    bulk_cache_entities,
+    get_cached,
+    query_cached_entities,
+    set_cached,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -196,6 +201,58 @@ class BaseHttpClient:
         except Exception as e:
             logger.warning(f"Cache query failed: {e}")
             return []
+
+    def _extract_entities(
+        self,
+        response: dict[str, Any],
+        entity_type: str,
+    ) -> list[dict[str, Any]]:
+        """Extract entities from API response.
+
+        Handles both paginated responses with 'results' and direct entities.
+
+        Args:
+            response: API response dictionary
+            entity_type: Type of entities
+
+        Returns:
+            List of entity dictionaries
+        """
+        # Check if paginated response
+        if "results" in response and isinstance(response["results"], list):
+            return response["results"]
+
+        # Check if direct entity (has slug)
+        if "slug" in response:
+            return [response]
+
+        # Unknown format
+        return []
+
+    async def _cache_api_entities(
+        self,
+        entities: list[dict[str, Any]],
+        entity_type: str,
+    ) -> None:
+        """Cache entities from API response.
+
+        Args:
+            entities: List of entity dictionaries
+            entity_type: Type of entities
+        """
+        if not entities:
+            return
+
+        try:
+            await bulk_cache_entities(
+                entities,
+                entity_type,
+                source_api=self.source_api,
+            )
+            logger.debug(f"Cached {len(entities)} {entity_type}")
+        except Exception as e:
+            logger.warning(f"Failed to cache entities: {e}")
+            # Non-fatal - continue without caching
 
     async def close(self) -> None:
         """Close the HTTP client."""

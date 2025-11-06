@@ -1,6 +1,8 @@
 """Tests for BaseHttpClient."""
 
 import asyncio
+import tempfile
+from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
@@ -10,7 +12,8 @@ import respx
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
-from lorekeeper_mcp.cache.db import get_cached, set_cached
+from lorekeeper_mcp.cache.db import get_cached, get_cached_entity, set_cached
+from lorekeeper_mcp.cache.schema import init_entity_cache
 
 
 @pytest.fixture
@@ -164,3 +167,69 @@ async def test_query_cache_parallel_handles_cache_error():
 
         # Should return empty list on error
         assert result == []
+
+
+@pytest.fixture
+async def client_with_db():
+    """Create client with test database."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        await init_entity_cache(str(db_path))
+
+        # Temporarily override settings
+        import lorekeeper_mcp.config
+
+        original_path = lorekeeper_mcp.config.settings.db_path
+        lorekeeper_mcp.config.settings.db_path = db_path
+
+        client = BaseHttpClient("https://api.example.com")
+
+        yield client
+
+        # Restore
+        lorekeeper_mcp.config.settings.db_path = original_path
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_cache_api_entities_stores_entities(client_with_db):
+    """Cache API entities stores each entity."""
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3},
+        {"slug": "magic-missile", "name": "Magic Missile", "level": 1},
+    ]
+
+    await client_with_db._cache_api_entities(entities, "spells")
+
+    # Verify entities cached
+    cached = await get_cached_entity("spells", "fireball")
+    assert cached is not None
+    assert cached["name"] == "Fireball"
+
+
+@pytest.mark.asyncio
+async def test_extract_entities_from_paginated_response(client_with_db):
+    """Extract entities handles paginated API response."""
+    response = {
+        "count": 2,
+        "results": [
+            {"slug": "fireball", "name": "Fireball"},
+            {"slug": "magic-missile", "name": "Magic Missile"},
+        ],
+    }
+
+    entities = client_with_db._extract_entities(response, "spells")
+
+    assert len(entities) == 2
+    assert entities[0]["slug"] == "fireball"
+
+
+@pytest.mark.asyncio
+async def test_extract_entities_handles_non_paginated(client_with_db):
+    """Extract entities handles direct entity response."""
+    response = {"slug": "fireball", "name": "Fireball"}
+
+    entities = client_with_db._extract_entities(response, "spells")
+
+    assert len(entities) == 1
+    assert entities[0]["slug"] == "fireball"
