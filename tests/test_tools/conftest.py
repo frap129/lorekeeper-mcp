@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from lorekeeper_mcp.api_clients.models import Spell
+
 
 @pytest.fixture
 def mock_spell_response():
@@ -71,13 +73,32 @@ def mock_open5e_v1_client(mock_creature_response):
 @pytest.fixture
 def mock_open5e_v2_client(mock_spell_response):
     """Mock Open5eV2Client."""
+    # Convert dict response to Spell models for get_spells
+    spell_obj = Spell(
+        name="Fireball",
+        slug="fireball",
+        level=3,
+        school="evocation",
+        casting_time="1 action",
+        range="150 feet",
+        components="V,S,M",
+        material="a tiny ball of bat guano and sulfur",
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A bright streak flashes...",
+        document_url="https://example.com/fireball",
+        higher_level="When you cast this spell...",
+        damage_type=None,
+    )
+
     client = MagicMock()
-    client.get_spells = AsyncMock(return_value=mock_spell_response)
-    client.get_backgrounds = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_feats = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_weapons = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_armor = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_conditions = AsyncMock(return_value={"count": 0, "results": []})
+    client.get_spells = AsyncMock(return_value=[spell_obj])
+    client.get_backgrounds = AsyncMock(return_value=[])
+    client.get_feats = AsyncMock(return_value=[])
+    client.get_weapons = AsyncMock(return_value=[])
+    client.get_armor = AsyncMock(return_value=[])
+    client.get_conditions = AsyncMock(return_value=[])
     return client
 
 
