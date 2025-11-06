@@ -2,7 +2,6 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 import httpx
 import pytest
@@ -48,8 +47,8 @@ async def test_get_spells_basic(v2_client: Open5eV2Client) -> None:
     spells = await v2_client.get_spells(name="fireball")
 
     assert len(spells) == 1
-    assert spells[0]["name"] == "Fireball"
-    assert spells[0]["level"] == 3
+    assert spells[0].name == "Fireball"
+    assert spells[0].level == 3
 
 
 @respx.mock
@@ -89,8 +88,8 @@ async def test_get_weapons(v2_client: Open5eV2Client) -> None:
     weapons = await v2_client.get_weapons(name="longsword")
 
     assert len(weapons) == 1
-    assert weapons[0]["name"] == "Longsword"
-    assert weapons[0]["damage_dice"] == "1d8"
+    assert weapons[0].name == "Longsword"
+    assert weapons[0].damage_dice == "1d8"
 
 
 @respx.mock
@@ -118,8 +117,8 @@ async def test_get_armor(v2_client: Open5eV2Client) -> None:
     armors = await v2_client.get_armor(name="chain-mail")
 
     assert len(armors) == 1
-    assert armors[0]["name"] == "Chain Mail"
-    assert armors[0]["base_ac"] == 16
+    assert armors[0].name == "Chain Mail"
+    assert armors[0].base_ac == 16
 
 
 @pytest.fixture
@@ -141,112 +140,158 @@ async def v2_client_with_cache():
         await client.close()
 
 
-@pytest.mark.asyncio
+@respx.mock
 async def test_get_spells_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
     """Get spells caches entities."""
-    mock_response = {
-        "results": [
-            {
-                "slug": "fireball",
-                "name": "Fireball",
-                "level": 3,
-                "school": "Evocation",
-                "casting_time": "1 action",
-                "range": "150 feet",
-                "components": "V, S, M",
-                "duration": "Instantaneous",
-            }
-        ]
-    }
+    respx.get("https://api.open5e.com/v2/spells/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "fireball",
+                        "name": "Fireball",
+                        "level": 3,
+                        "school": "Evocation",
+                        "casting_time": "1 action",
+                        "range": "150 feet",
+                        "components": "V, S, M",
+                        "duration": "Instantaneous",
+                    }
+                ]
+            },
+        )
+    )
 
-    with patch.object(v2_client_with_cache, "_make_request", return_value=mock_response):
-        await v2_client_with_cache.get_spells()
+    spells = await v2_client_with_cache.get_spells()
+    # Verify we got Pydantic models
+    assert len(spells) == 1
+    assert spells[0].name == "Fireball"
+    assert spells[0].level == 3
 
+    # Verify caching worked
     cached = await get_cached_entity("spells", "fireball")
     assert cached is not None
     assert cached["level"] == 3
 
 
+@respx.mock
 @pytest.mark.asyncio
 async def test_get_weapons_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
-    """Get weapons caches entities."""
-    mock_response = {
-        "results": [
-            {
-                "slug": "longsword",
-                "name": "Longsword",
-                "category": "martial",
-                "damage_dice": "1d8",
-                "damage_type": "slashing",
-                "cost": "15 gp",
-                "weight": 3.0,
-            }
-        ]
-    }
+    """Get weapons caches entities and returns Pydantic models."""
+    respx.get("https://api.open5e.com/v2/weapons/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "longsword",
+                        "name": "Longsword",
+                        "category": "martial",
+                        "damage_dice": "1d8",
+                        "damage_type": "slashing",
+                        "cost": "15 gp",
+                        "weight": 3.0,
+                    }
+                ]
+            },
+        )
+    )
 
-    with patch.object(v2_client_with_cache, "_make_request", return_value=mock_response):
-        await v2_client_with_cache.get_weapons()
+    weapons = await v2_client_with_cache.get_weapons()
+    assert len(weapons) == 1
+    assert weapons[0].name == "Longsword"
 
     cached = await get_cached_entity("weapons", "longsword")
     assert cached is not None
 
 
+@respx.mock
 @pytest.mark.asyncio
 async def test_get_armor_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
-    """Get armor caches entities."""
-    mock_response = {
-        "results": [
-            {
-                "slug": "plate-armor",
-                "name": "Plate Armor",
-                "category": "Heavy",
-                "base_ac": 18,
-                "cost": "1500 gp",
-                "weight": 65.0,
-            }
-        ]
-    }
+    """Get armor caches entities and returns Pydantic models."""
+    respx.get("https://api.open5e.com/v2/armor/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "plate-armor",
+                        "name": "Plate Armor",
+                        "category": "Heavy",
+                        "base_ac": 18,
+                        "cost": "1500 gp",
+                        "weight": 65.0,
+                    }
+                ]
+            },
+        )
+    )
 
-    with patch.object(v2_client_with_cache, "_make_request", return_value=mock_response):
-        await v2_client_with_cache.get_armor()
+    armors = await v2_client_with_cache.get_armor()
+    assert len(armors) == 1
+    assert armors[0].name == "Plate Armor"
 
     cached = await get_cached_entity("armor", "plate-armor")
     assert cached is not None
 
 
+@respx.mock
 @pytest.mark.asyncio
 async def test_get_backgrounds_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
     """Get backgrounds caches entities."""
-    mock_response = {
-        "results": [{"slug": "acolyte", "name": "Acolyte", "desc": "You have always been..."}]
-    }
+    respx.get("https://api.open5e.com/v2/backgrounds/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {"slug": "acolyte", "name": "Acolyte", "desc": "You have always been..."}
+                ]
+            },
+        )
+    )
 
-    with patch.object(v2_client_with_cache, "_make_request", return_value=mock_response):
-        await v2_client_with_cache.get_backgrounds()
+    backgrounds = await v2_client_with_cache.get_backgrounds()
+    assert len(backgrounds) == 1
+    assert backgrounds[0]["name"] == "Acolyte"
 
     cached = await get_cached_entity("backgrounds", "acolyte")
     assert cached is not None
 
 
+@respx.mock
 @pytest.mark.asyncio
 async def test_get_feats_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
     """Get feats caches entities."""
-    mock_response = {"results": [{"slug": "alert", "name": "Alert", "desc": "Always vigilant..."}]}
+    respx.get("https://api.open5e.com/v2/feats/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "alert", "name": "Alert", "desc": "Always vigilant..."}]},
+        )
+    )
 
-    with patch.object(v2_client_with_cache, "_make_request", return_value=mock_response):
-        await v2_client_with_cache.get_feats()
+    feats = await v2_client_with_cache.get_feats()
+    assert len(feats) == 1
+    assert feats[0]["name"] == "Alert"
 
     cached = await get_cached_entity("feats", "alert")
     assert cached is not None
 
 
+@respx.mock
 @pytest.mark.asyncio
 async def test_get_conditions_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
     """Get conditions caches entities."""
-    mock_response = {"results": [{"slug": "blinded", "name": "Blinded", "desc": "A blinded..."}]}
+    respx.get("https://api.open5e.com/v2/conditions/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "blinded", "name": "Blinded", "desc": "A blinded..."}]},
+        )
+    )
 
-    with patch.object(v2_client_with_cache, "_make_request", return_value=mock_response):
-        await v2_client_with_cache.get_conditions()
+    conditions = await v2_client_with_cache.get_conditions()
+    assert len(conditions) == 1
+    assert conditions[0]["name"] == "Blinded"
 
     cached = await get_cached_entity("conditions", "blinded")
     assert cached is not None

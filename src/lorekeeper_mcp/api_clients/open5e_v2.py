@@ -3,6 +3,7 @@
 from typing import Any
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
+from lorekeeper_mcp.api_clients.models import Armor, Spell, Weapon
 
 
 class Open5eV2Client(BaseHttpClient):
@@ -21,7 +22,7 @@ class Open5eV2Client(BaseHttpClient):
         level: int | None = None,
         school: str | None = None,
         **kwargs: Any,
-    ) -> list[dict[str, Any]]:
+    ) -> list[Spell]:
         """Get spells from Open5e API v2.
 
         Args:
@@ -30,7 +31,7 @@ class Open5eV2Client(BaseHttpClient):
             **kwargs: Additional API parameters
 
         Returns:
-            List of spell dictionaries
+            List of Spell models
         """
         cache_filters: dict[str, Any] = {}
         params: dict[str, Any] = {}
@@ -53,12 +54,13 @@ class Open5eV2Client(BaseHttpClient):
             params=params,
         )
 
-        if isinstance(result, list):
-            return result
+        spell_dicts: list[dict[str, Any]] = (
+            result if isinstance(result, list) else result.get("results", [])
+        )
 
-        return result.get("results", [])  # type: ignore[no-any-return]
+        return [Spell.model_validate(spell) for spell in spell_dicts]
 
-    async def get_weapons(self, **kwargs: Any) -> list[dict[str, Any]]:
+    async def get_weapons(self, **kwargs: Any) -> list[Weapon]:
         """Get weapons from Open5e API v2."""
         result = await self.make_request(
             "/weapons/",
@@ -67,12 +69,13 @@ class Open5eV2Client(BaseHttpClient):
             params=kwargs,
         )
 
-        if isinstance(result, list):
-            return result
+        weapon_dicts: list[dict[str, Any]] = (
+            result if isinstance(result, list) else result.get("results", [])
+        )
 
-        return result.get("results", [])  # type: ignore[no-any-return]
+        return [Weapon.model_validate(weapon) for weapon in weapon_dicts]
 
-    async def get_armor(self, **kwargs: Any) -> list[dict[str, Any]]:
+    async def get_armor(self, **kwargs: Any) -> list[Armor]:
         """Get armor from Open5e API v2."""
         result = await self.make_request(
             "/armor/",
@@ -81,10 +84,11 @@ class Open5eV2Client(BaseHttpClient):
             params=kwargs,
         )
 
-        if isinstance(result, list):
-            return result
+        armor_dicts: list[dict[str, Any]] = (
+            result if isinstance(result, list) else result.get("results", [])
+        )
 
-        return result.get("results", [])  # type: ignore[no-any-return]
+        return [Armor.model_validate(armor) for armor in armor_dicts]
 
     async def get_backgrounds(self, **kwargs: Any) -> list[dict[str, Any]]:
         """Get character backgrounds."""
