@@ -304,3 +304,29 @@ async def cleanup_expired() -> int:
         deleted_count = cursor.rowcount
         await db.commit()
         return deleted_count
+
+
+async def get_entity_count(
+    entity_type: str,
+    db_path: str | None = None,
+) -> int:
+    """Get count of cached entities for a type.
+
+    Args:
+        entity_type: Type of entities to count
+        db_path: Optional database path
+
+    Returns:
+        Number of cached entities, or 0 if table doesn't exist
+    """
+    db_path_obj = Path(db_path or settings.db_path)
+    table_name = get_table_name(entity_type)
+
+    try:
+        async with aiosqlite.connect(db_path_obj) as db:
+            cursor = await db.execute(f"SELECT COUNT(*) FROM {table_name}")
+            row = await cursor.fetchone()
+            return row[0] if row else 0
+    except aiosqlite.OperationalError:
+        # Table doesn't exist
+        return 0

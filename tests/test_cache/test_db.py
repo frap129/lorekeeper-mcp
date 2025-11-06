@@ -13,6 +13,7 @@ from lorekeeper_mcp.cache.db import (
     cleanup_expired,
     get_cached,
     get_cached_entity,
+    get_entity_count,
     query_cached_entities,
     set_cached,
 )
@@ -427,3 +428,38 @@ async def test_query_cached_entities_accepts_valid_filter_keys(entity_test_db):
     results = await query_cached_entities("spells", entity_test_db, school="Abjuration")
     assert len(results) == 1
     assert results[0]["slug"] == "shield"
+
+
+# ============================================================================
+# Task 2.1: Entity Count Statistics Tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_entity_count_returns_count(entity_test_db):
+    """Get entity count returns correct count."""
+    entities = [
+        {"slug": "fireball", "name": "Fireball"},
+        {"slug": "magic-missile", "name": "Magic Missile"},
+    ]
+    await bulk_cache_entities(entities, "spells", entity_test_db, "open5e")
+
+    count = await get_entity_count("spells", entity_test_db)
+
+    assert count == 2
+
+
+@pytest.mark.asyncio
+async def test_get_entity_count_returns_zero_for_empty(entity_test_db):
+    """Get entity count returns 0 for empty table."""
+    count = await get_entity_count("spells", entity_test_db)
+
+    assert count == 0
+
+
+@pytest.mark.asyncio
+async def test_get_entity_count_handles_nonexistent_table(entity_test_db):
+    """Get entity count returns 0 for non-existent table."""
+    count = await get_entity_count("invalid_type", entity_test_db)
+
+    assert count == 0
