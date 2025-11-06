@@ -33,35 +33,7 @@ def mock_spell_response():
 
 
 @pytest.fixture
-def mock_creature_response():
-    """Mock Open5e v1 monster response."""
-    return {
-        "count": 1,
-        "results": [
-            {
-                "name": "Ancient Red Dragon",
-                "size": "Gargantuan",
-                "type": "dragon",
-                "alignment": "chaotic evil",
-                "armor_class": 22,
-                "hit_points": 546,
-                "hit_dice": "28d20+252",
-                "speed": {"walk": 40, "climb": 40, "fly": 80},
-                "strength": 30,
-                "dexterity": 10,
-                "constitution": 29,
-                "intelligence": 18,
-                "wisdom": 15,
-                "charisma": 23,
-                "challenge_rating": "24",
-                "document__slug": "srd",
-            }
-        ],
-    }
-
-
-@pytest.fixture
-def mock_open5e_v1_client(mock_creature_response):
+def mock_open5e_v1_client():
     """Mock Open5eV1Client."""
     # Convert dict response to Monster models for get_monsters
     monster_obj = Monster(

@@ -6,7 +6,7 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_by_name(mock_open5e_v1_client, mock_creature_response):
+async def test_lookup_creature_by_name(mock_open5e_v1_client):
     """Test looking up creature by exact name."""
     from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
