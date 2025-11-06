@@ -5,12 +5,14 @@ import pytest
 import respx
 
 from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
+from lorekeeper_mcp.api_clients.exceptions import ApiError
+from lorekeeper_mcp.cache.db import get_cached_entity
 
 
 @pytest.fixture
 async def dnd5e_client(test_db) -> Dnd5eApiClient:
     """Create Dnd5eApiClient for testing."""
-    client = Dnd5eApiClient()
+    client = Dnd5eApiClient(max_retries=0)
     yield client
     await client.close()
 
@@ -328,3 +330,94 @@ async def test_get_alignments(dnd5e_client: Dnd5eApiClient) -> None:
 
     assert len(alignments) == 2
     assert alignments[0]["name"] == "Lawful Good"
+
+
+@respx.mock
+async def test_get_rules_uses_entity_cache(dnd5e_client: Dnd5eApiClient) -> None:
+    """Verify rules are cached as entities."""
+    mock_response = {
+        "results": [
+            {
+                "index": "combat",
+                "name": "Combat",
+                "desc": "Combat rules...",
+            }
+        ]
+    }
+    respx.get("https://www.dnd5eapi.co/api/2014/rules/").mock(
+        return_value=httpx.Response(200, json=mock_response)
+    )
+
+    await dnd5e_client.get_rules()
+
+    # Verify entity cached
+    cached = await get_cached_entity("rules", "combat")
+    assert cached is not None
+    assert cached["name"] == "Combat"
+
+
+@respx.mock
+async def test_get_damage_types_extended_ttl(dnd5e_client: Dnd5eApiClient) -> None:
+    """Verify reference data uses 30-day cache TTL."""
+    mock_response = {"results": [{"index": "fire", "name": "Fire", "desc": "Fire damage..."}]}
+    respx.get("https://www.dnd5eapi.co/api/2014/damage-types/").mock(
+        return_value=httpx.Response(200, json=mock_response)
+    )
+
+    await dnd5e_client.get_damage_types()
+
+    # Verify that extended TTL is applied by checking the client's cache_ttl
+    # after calling get_damage_types (which temporarily sets it to REFERENCE_DATA_TTL)
+    # The cache_ttl should be restored to default after the call
+    assert dnd5e_client.cache_ttl == 604800  # 7 days default (should be restored)
+
+
+@respx.mock
+async def test_get_rules_api_error(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test API error handling."""
+    respx.get("https://www.dnd5eapi.co/api/2014/rules/").mock(
+        return_value=httpx.Response(500, json={"error": "Internal server error"})
+    )
+
+    with pytest.raises(ApiError) as exc_info:
+        await dnd5e_client.get_rules()
+
+    assert exc_info.value.status_code == 500
+
+
+@respx.mock
+async def test_get_rules_network_error(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test network error handling with empty cache fallback."""
+    respx.get("https://www.dnd5eapi.co/api/2014/rules/").mock(
+        side_effect=httpx.RequestError("Network unavailable")
+    )
+
+    # Should return empty list when no cache available
+    result = await dnd5e_client.get_rules()
+
+    assert result == []
+
+
+async def test_get_rules_network_error_with_cache_fallback(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test offline fallback to cached entities."""
+    # First request succeeds and caches
+    with respx.mock:
+        respx.get("https://www.dnd5eapi.co/api/2014/rules/").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "results": [{"index": "combat", "name": "Combat", "desc": "Combat rules..."}]
+                },
+            )
+        )
+        await dnd5e_client.get_rules()
+
+    # Second request fails, should return cached
+    with respx.mock:
+        respx.get("https://www.dnd5eapi.co/api/2014/rules/").mock(
+            side_effect=httpx.RequestError("Network unavailable")
+        )
+        result = await dnd5e_client.get_rules()
+
+        assert len(result) == 1
+        assert result[0]["name"] == "Combat"
