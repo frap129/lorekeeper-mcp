@@ -74,3 +74,53 @@ async def test_get_rules_by_section(dnd5e_client: Dnd5eApiClient) -> None:
     assert len(rules) == 1
     assert rules[0]["name"] == "Adventuring"
     assert rules[0]["desc"] == "Delving into dungeons..."
+
+
+@respx.mock
+async def test_get_rule_sections_all(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching all rule sections."""
+    respx.get("https://www.dnd5eapi.co/api/2014/rule-sections/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "index": "grappling",
+                        "name": "Grappling",
+                        "url": "/api/2014/rule-sections/grappling",
+                    },
+                    {
+                        "index": "opportunity-attacks",
+                        "name": "Opportunity Attacks",
+                        "url": "/api/2014/rule-sections/opportunity-attacks",
+                    },
+                ]
+            },
+        )
+    )
+
+    sections = await dnd5e_client.get_rule_sections()
+
+    assert len(sections) == 2
+    assert sections[0]["name"] == "Grappling"
+
+
+@respx.mock
+async def test_get_rule_sections_by_name(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching specific rule section."""
+    respx.get("https://www.dnd5eapi.co/api/2014/rule-sections/grappling").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "index": "grappling",
+                "name": "Grappling",
+                "desc": "When you want to grab a creature...",
+            },
+        )
+    )
+
+    sections = await dnd5e_client.get_rule_sections(name="grappling")
+
+    assert len(sections) == 1
+    assert sections[0]["name"] == "Grappling"
+    assert sections[0]["desc"] == "When you want to grab a creature..."

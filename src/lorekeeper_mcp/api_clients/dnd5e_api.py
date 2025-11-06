@@ -102,3 +102,38 @@ class Dnd5eApiClient(BaseHttpClient):
 
         # Result is already a list due to entity caching extraction
         return result if isinstance(result, list) else [result]
+
+    async def get_rule_sections(
+        self,
+        name: str | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Get rule sections from D&D 5e API.
+
+        Args:
+            name: Filter by rule section name (index)
+            **filters: Additional API parameters
+
+        Returns:
+            List of rule section dictionaries with detailed mechanics
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        # Build endpoint
+        endpoint = f"/rule-sections/{name}" if name else "/rule-sections/"
+
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        # Make request with entity cache
+        result = await self.make_request(
+            endpoint,
+            use_entity_cache=True,
+            entity_type="rule_sections",
+            cache_filters={},
+            params=params,
+        )
+
+        # Result is already a list due to entity caching extraction
+        return result if isinstance(result, list) else [result]
