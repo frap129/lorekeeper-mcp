@@ -18,7 +18,7 @@ from lorekeeper_mcp.cache.db import (
     query_cached_entities,
     set_cached,
 )
-from lorekeeper_mcp.cache.schema import init_entity_cache
+from lorekeeper_mcp.cache.schema import SCHEMA_VERSION, init_entity_cache
 
 
 @pytest.mark.asyncio
@@ -488,4 +488,6 @@ async def test_get_cache_stats_returns_complete_stats(entity_test_db):
     assert "db_size_bytes" in stats
     assert stats["db_size_bytes"] > 0
     assert "schema_version" in stats
+    assert stats["schema_version"] == SCHEMA_VERSION
     assert "table_count" in stats
+    assert stats["table_count"] >= 2  # At least spells and monsters tables
