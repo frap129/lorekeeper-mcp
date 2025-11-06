@@ -298,3 +298,55 @@ class Dnd5eApiClient(BaseHttpClient):
             return result if isinstance(result, list) else result.get("results", [])
         finally:
             self.cache_ttl = original_ttl
+
+    async def get_proficiencies(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get proficiencies from D&D 5e API.
+
+        Returns:
+            List of proficiency dictionaries (117 proficiencies)
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        original_ttl = self.cache_ttl
+        self.cache_ttl = self.REFERENCE_DATA_TTL
+
+        try:
+            result = await self.make_request(
+                "/proficiencies/",
+                use_entity_cache=True,
+                entity_type="proficiencies",
+                params=params,
+            )
+            return result if isinstance(result, list) else result.get("results", [])
+        finally:
+            self.cache_ttl = original_ttl
+
+    async def get_alignments(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get alignments from D&D 5e API.
+
+        Returns:
+            List of alignment dictionaries (9 alignments)
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        original_ttl = self.cache_ttl
+        self.cache_ttl = self.REFERENCE_DATA_TTL
+
+        try:
+            result = await self.make_request(
+                "/alignments/",
+                use_entity_cache=True,
+                entity_type="alignments",
+                params=params,
+            )
+            return result if isinstance(result, list) else result.get("results", [])
+        finally:
+            self.cache_ttl = original_ttl

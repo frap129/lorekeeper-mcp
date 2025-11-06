@@ -270,3 +270,61 @@ async def test_get_languages(dnd5e_client: Dnd5eApiClient) -> None:
 
     assert len(languages) == 2
     assert languages[0]["name"] == "Common"
+
+
+@respx.mock
+async def test_get_proficiencies(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching proficiencies."""
+    respx.get("https://www.dnd5eapi.co/api/2014/proficiencies/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "index": "light-armor",
+                        "name": "Light Armor",
+                        "url": "/api/2014/proficiencies/light-armor",
+                    },
+                    {
+                        "index": "longswords",
+                        "name": "Longswords",
+                        "url": "/api/2014/proficiencies/longswords",
+                    },
+                ]
+            },
+        )
+    )
+
+    proficiencies = await dnd5e_client.get_proficiencies()
+
+    assert len(proficiencies) == 2
+    assert proficiencies[0]["name"] == "Light Armor"
+
+
+@respx.mock
+async def test_get_alignments(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching alignments."""
+    respx.get("https://www.dnd5eapi.co/api/2014/alignments/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "index": "lawful-good",
+                        "name": "Lawful Good",
+                        "url": "/api/2014/alignments/lawful-good",
+                    },
+                    {
+                        "index": "chaotic-evil",
+                        "name": "Chaotic Evil",
+                        "url": "/api/2014/alignments/chaotic-evil",
+                    },
+                ]
+            },
+        )
+    )
+
+    alignments = await dnd5e_client.get_alignments()
+
+    assert len(alignments) == 2
+    assert alignments[0]["name"] == "Lawful Good"
