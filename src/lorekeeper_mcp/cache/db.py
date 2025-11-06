@@ -7,7 +7,7 @@ from typing import Any, cast
 
 import aiosqlite
 
-from lorekeeper_mcp.cache.schema import ENTITY_TYPES, INDEXED_FIELDS, get_table_name
+from lorekeeper_mcp.cache.schema import ENTITY_TYPES, INDEXED_FIELDS, SCHEMA_VERSION, get_table_name
 from lorekeeper_mcp.config import settings
 
 
@@ -330,3 +330,40 @@ async def get_entity_count(
     except aiosqlite.OperationalError:
         # Table doesn't exist
         return 0
+
+
+async def get_cache_stats(db_path: str | None = None) -> dict[str, Any]:
+    """Get comprehensive cache statistics.
+
+    Args:
+        db_path: Optional database path
+
+    Returns:
+        Dictionary with cache statistics
+    """
+    final_db_path: str = str(db_path or settings.db_path)
+
+    # Get entity counts per type
+    entity_counts = {}
+    for entity_type in ENTITY_TYPES:
+        count = await get_entity_count(entity_type, final_db_path)
+        entity_counts[entity_type] = count
+
+    # Get database file size
+    db_size = 0
+    path = Path(final_db_path)
+    if path.exists():
+        db_size = path.stat().st_size
+
+    # Get table count
+    async with aiosqlite.connect(final_db_path) as db:
+        cursor = await db.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
+        row = await cursor.fetchone()
+        table_count = row[0] if row else 0
+
+    return {
+        "entity_counts": entity_counts,
+        "db_size_bytes": db_size,
+        "schema_version": SCHEMA_VERSION,
+        "table_count": table_count,
+    }

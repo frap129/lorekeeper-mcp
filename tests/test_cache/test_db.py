@@ -11,6 +11,7 @@ import pytest
 from lorekeeper_mcp.cache.db import (
     bulk_cache_entities,
     cleanup_expired,
+    get_cache_stats,
     get_cached,
     get_cached_entity,
     get_entity_count,
@@ -463,3 +464,28 @@ async def test_get_entity_count_handles_nonexistent_table(entity_test_db):
     count = await get_entity_count("invalid_type", entity_test_db)
 
     assert count == 0
+
+
+# ============================================================================
+# Task 2.2: Comprehensive Cache Statistics Tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_cache_stats_returns_complete_stats(entity_test_db):
+    """Get cache stats returns comprehensive statistics."""
+    # Add some test data
+    spells = [{"slug": "fireball", "name": "Fireball"}]
+    monsters = [{"slug": "goblin", "name": "Goblin"}, {"slug": "dragon", "name": "Dragon"}]
+    await bulk_cache_entities(spells, "spells", entity_test_db, "open5e")
+    await bulk_cache_entities(monsters, "monsters", entity_test_db, "open5e")
+
+    stats = await get_cache_stats(entity_test_db)
+
+    assert "entity_counts" in stats
+    assert stats["entity_counts"]["spells"] == 1
+    assert stats["entity_counts"]["monsters"] == 2
+    assert "db_size_bytes" in stats
+    assert stats["db_size_bytes"] > 0
+    assert "schema_version" in stats
+    assert "table_count" in stats
