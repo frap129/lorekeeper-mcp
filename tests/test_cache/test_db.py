@@ -380,3 +380,50 @@ async def test_query_cached_entities_returns_empty_for_no_matches(entity_test_db
     results = await query_cached_entities("spells", entity_test_db, level=9)
 
     assert results == []
+
+
+@pytest.mark.asyncio
+async def test_query_cached_entities_rejects_invalid_filter_keys(entity_test_db):
+    """Query rejects filter keys that are not in the allowlist."""
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+    ]
+    await bulk_cache_entities(entities, "spells", entity_test_db, "open5e")
+
+    # Attempt to filter by invalid field should raise ValueError
+    with pytest.raises(ValueError, match="Invalid filter field"):
+        await query_cached_entities("spells", entity_test_db, invalid_field="value")
+
+
+@pytest.mark.asyncio
+async def test_query_cached_entities_rejects_sql_injection_in_filter_key(entity_test_db):
+    """Query rejects SQL injection attempts via filter keys."""
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+    ]
+    await bulk_cache_entities(entities, "spells", entity_test_db, "open5e")
+
+    # Attempt SQL injection via filter key should raise ValueError
+    malicious_filter = "name = 'fireball'; --"
+    with pytest.raises(ValueError, match="Invalid filter field"):
+        await query_cached_entities("spells", entity_test_db, **{malicious_filter: "dummy"})
+
+
+@pytest.mark.asyncio
+async def test_query_cached_entities_accepts_valid_filter_keys(entity_test_db):
+    """Query accepts all valid filter keys from INDEXED_FIELDS."""
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+        {"slug": "shield", "name": "Shield", "level": 1, "school": "Abjuration"},
+    ]
+    await bulk_cache_entities(entities, "spells", entity_test_db, "open5e")
+
+    # Valid filter keys should work
+    results = await query_cached_entities("spells", entity_test_db, level=3, school="Evocation")
+    assert len(results) == 1
+    assert results[0]["slug"] == "fireball"
+
+    # Another valid key combination
+    results = await query_cached_entities("spells", entity_test_db, school="Abjuration")
+    assert len(results) == 1
+    assert results[0]["slug"] == "shield"
