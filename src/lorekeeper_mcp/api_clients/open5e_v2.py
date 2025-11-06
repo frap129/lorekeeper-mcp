@@ -1,10 +1,8 @@
 """Client for Open5e API v2 (spells, weapons, armor, etc.)."""
 
-from typing import Any, cast
+from typing import Any
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
-from lorekeeper_mcp.api_clients.models.equipment import Armor, Weapon
-from lorekeeper_mcp.api_clients.models.spell import Spell
 
 
 class Open5eV2Client(BaseHttpClient):
@@ -18,59 +16,114 @@ class Open5eV2Client(BaseHttpClient):
         """
         super().__init__(base_url="https://api.open5e.com/v2", **kwargs)
 
-    async def get_spells(self, **filters: Any) -> list[Spell]:
-        """Get spells with optional filters.
+    async def get_spells(
+        self,
+        level: int | None = None,
+        school: str | None = None,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        """Get spells from Open5e API v2.
 
         Args:
-            name: Filter by spell name
-            level: Filter by spell level (0-9)
-            school: Filter by magic school
-            **filters: Additional filter parameters
+            level: Filter by spell level
+            school: Filter by spell school
+            **kwargs: Additional API parameters
 
         Returns:
-            List of Spell objects
+            List of spell dictionaries
         """
-        # Build query parameters
-        params = {k: v for k, v in filters.items() if v is not None}
+        cache_filters: dict[str, Any] = {}
+        params: dict[str, Any] = {}
 
-        # Make request
-        response = await self.make_request("/spells/", params=params)
+        if level is not None:
+            cache_filters["level"] = level
+            params["level"] = level
+        if school:
+            cache_filters["school"] = school
+            params["school"] = school
 
-        # Parse results
-        response_dict = cast(dict[str, Any], response)
-        results = response_dict.get("results", [])
-        return [Spell(**spell_data) for spell_data in results]
+        # Add any additional parameters
+        params.update(kwargs)
 
-    async def get_weapons(self, **filters: Any) -> list[Weapon]:
-        """Get weapons with optional filters.
+        result = await self.make_request(
+            "/spells/",
+            use_entity_cache=True,
+            entity_type="spells",
+            cache_filters=cache_filters,
+            params=params,
+        )
 
-        Args:
-            name: Filter by weapon name
-            category: Filter by weapon category
-            **filters: Additional filter parameters
+        if isinstance(result, list):
+            return result
 
-        Returns:
-            List of Weapon objects
-        """
-        params = {k: v for k, v in filters.items() if v is not None}
-        response = await self.make_request("/weapons/", params=params)
-        response_dict = cast(dict[str, Any], response)
-        results = response_dict.get("results", [])
-        return [Weapon(**weapon_data) for weapon_data in results]
+        return result.get("results", [])  # type: ignore[no-any-return]
 
-    async def get_armor(self, **filters: Any) -> list[Armor]:
-        """Get armor with optional filters.
+    async def get_weapons(self, **kwargs: Any) -> list[dict[str, Any]]:
+        """Get weapons from Open5e API v2."""
+        result = await self.make_request(
+            "/weapons/",
+            use_entity_cache=True,
+            entity_type="weapons",
+            params=kwargs,
+        )
 
-        Args:
-            name: Filter by armor name
-            category: Filter by armor category
-            **filters: Additional filter parameters
+        if isinstance(result, list):
+            return result
 
-        Returns:
-            List of Armor objects
-        """
-        params = {k: v for k, v in filters.items() if v is not None}
-        response = await self.make_request("/armor/", params=params)
-        response_dict = cast(dict[str, Any], response)
-        results = response_dict.get("results", [])
-        return [Armor(**armor_data) for armor_data in results]
+        return result.get("results", [])  # type: ignore[no-any-return]
+
+    async def get_armor(self, **kwargs: Any) -> list[dict[str, Any]]:
+        """Get armor from Open5e API v2."""
+        result = await self.make_request(
+            "/armor/",
+            use_entity_cache=True,
+            entity_type="armor",
+            params=kwargs,
+        )
+
+        if isinstance(result, list):
+            return result
+
+        return result.get("results", [])  # type: ignore[no-any-return]
+
+    async def get_backgrounds(self, **kwargs: Any) -> list[dict[str, Any]]:
+        """Get character backgrounds."""
+        result = await self.make_request(
+            "/backgrounds/",
+            use_entity_cache=True,
+            entity_type="backgrounds",
+            params=kwargs,
+        )
+
+        if isinstance(result, list):
+            return result
+
+        return result.get("results", [])  # type: ignore[no-any-return]
+
+    async def get_feats(self, **kwargs: Any) -> list[dict[str, Any]]:
+        """Get character feats."""
+        result = await self.make_request(
+            "/feats/",
+            use_entity_cache=True,
+            entity_type="feats",
+            params=kwargs,
+        )
+
+        if isinstance(result, list):
+            return result
+
+        return result.get("results", [])  # type: ignore[no-any-return]
+
+    async def get_conditions(self, **kwargs: Any) -> list[dict[str, Any]]:
+        """Get game conditions."""
+        result = await self.make_request(
+            "/conditions/",
+            use_entity_cache=True,
+            entity_type="conditions",
+            params=kwargs,
+        )
+
+        if isinstance(result, list):
+            return result
+
+        return result.get("results", [])  # type: ignore[no-any-return]
