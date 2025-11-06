@@ -204,7 +204,7 @@ This document defines the MCP tools for LoreKeeper, organized by domain.
 - **Reference Info**: D&D 5e API (damage-types, weapon-properties, skills, ability-scores, magic-schools, languages, proficiencies, alignments)
 
 **Parameters**:
-- `type` (string, required): One of: `rule`, `condition`, `damage-type`, `weapon-property`, `skill`, `ability-score`, `magic-school`, `language`, `proficiency`, `alignment`
+- `rule_type` (string, required): One of: `rule`, `condition`, `damage-type`, `weapon-property`, `skill`, `ability-score`, `magic-school`, `language`, `proficiency`, `alignment`
 - `name` (string, optional): Name or partial name to search
 - `section` (string, optional): For rules - section name (e.g., "combat", "spellcasting")
 - `limit` (integer, optional, default=20): Maximum results to return
@@ -235,11 +235,11 @@ This document defines the MCP tools for LoreKeeper, organized by domain.
 - Related game elements
 
 **Example Queries**:
-- "What does the Grappled condition do?" → `type="condition", name="grappled"`
-- "Explain opportunity attacks" → `type="rule", section="combat", name="opportunity attack"`
-- "What is radiant damage?" → `type="damage-type", name="radiant"`
-- "How does the Stealth skill work?" → `type="skill", name="stealth"`
-- "What are weapon properties?" → `type="weapon-property"`
+- "What does the Grappled condition do?" → `rule_type="condition", name="grappled"`
+- "Explain opportunity attacks" → `rule_type="rule", section="combat", name="opportunity attack"`
+- "What is radiant damage?" → `rule_type="damage-type", name="radiant"`
+- "How does the Stealth skill work?" → `rule_type="skill", name="stealth"`
+- "What are weapon properties?" → `rule_type="weapon-property"`
 
 ---
 

@@ -47,60 +47,15 @@ LOG_LEVEL=DEBUG uv run python -m lorekeeper_mcp
 
 ## Available Tools
 
-LoreKeeper provides five main lookup tools:
+LoreKeeper provides 5 MCP tools for querying D&D 5e game data:
 
-### `lookup_spell`
-Search and retrieve spell information from Open5e v2 API.
+1. **`lookup_spell`** - Search spells by name, level, school, class, and properties
+2. **`lookup_creature`** - Find monsters by name, CR, type, and size
+3. **`lookup_character_option`** - Get classes, races, backgrounds, and feats
+4. **`lookup_equipment`** - Search weapons, armor, and magic items
+5. **`lookup_rule`** - Look up game rules, conditions, and reference information
 
-**Parameters**:
-- `name` (string, optional): Spell name or partial name search
-- `level` (integer, optional): Spell level (0-9)
-- `school` (string, optional): Magic school (evocation, abjuration, etc.)
-- `class_key` (string, optional): Filter by class (wizard, cleric, etc.)
-- `concentration` (boolean, optional): Only concentration spells
-- `ritual` (boolean, optional): Only ritual spells
-- `casting_time` (string, optional): Casting time filter
-- `limit` (integer, optional, default=20): Maximum results
-
-### `lookup_creature`
-Search and retrieve monster/creature stat blocks from Open5e v1 API.
-
-**Parameters**:
-- `name` (string, optional): Creature name or partial name
-- `cr` (float, optional): Challenge rating (0.125-30)
-- `cr_min`/`cr_max` (float, optional): CR range
-- `type` (string, optional): Creature type (aberration, beast, etc.)
-- `size` (string, optional): Size category (Tiny to Gargantuan)
-- `limit` (integer, optional, default=20): Maximum results
-
-### `lookup_character_option`
-Get character creation and advancement options.
-
-**Parameters**:
-- `type` (string, required): `class`, `race`, `background`, or `feat`
-- `name` (string, optional): Name or partial name search
-- `limit` (integer, optional, default=20): Maximum results
-
-### `lookup_equipment`
-Search for weapons, armor, adventuring gear, and magic items.
-
-**Parameters**:
-- `type` (string, optional): `weapon`, `armor`, `magic-item`, or `all`
-- `name` (string, optional): Item name or partial name
-- `rarity` (string, optional): Magic item rarity
-- `damage_dice` (string, optional): Weapon damage dice
-- `is_simple` (boolean, optional): Simple weapons only
-- `requires_attunement` (string, optional): Attunement requirement
-- `limit` (integer, optional, default=20): Maximum results
-
-### `lookup_rule`
-Look up game rules, mechanics, conditions, and reference information.
-
-**Parameters**:
-- `type` (string, required): `rule`, `condition`, `damage-type`, etc.
-- `name` (string, optional): Name or partial name search
-- `section` (string, optional): Rule section (combat, spellcasting, etc.)
-- `limit` (integer, optional, default=20): Maximum results
+See [docs/tools.md](docs/tools.md) for detailed usage and examples.
 
 ## Configuration
 
