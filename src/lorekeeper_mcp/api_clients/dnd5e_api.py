@@ -29,3 +29,35 @@ class Dnd5eApiClient(BaseHttpClient):
             source_api=source_api,
             **kwargs,
         )
+
+    async def get_rules(
+        self,
+        section: str | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Get rules from D&D 5e API.
+
+        Args:
+            section: Filter by rule section (adventuring, combat, equipment,
+                     spellcasting, using-ability-scores, appendix)
+            **filters: Additional API parameters
+
+        Returns:
+            List of rule dictionaries with hierarchical organization
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        # Build endpoint
+        endpoint = f"/rules/{section}" if section else "/rules/"
+
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        # Make request without entity cache (will implement proper caching in cache integration tests)
+        response = await self._make_request(endpoint, params=params)
+
+        # Handle both paginated and single entity responses
+        if "results" in response and isinstance(response["results"], list):
+            return response["results"]
+        return [response]

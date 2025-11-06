@@ -1,6 +1,8 @@
 """Tests for Dnd5eApiClient."""
 
+import httpx
 import pytest
+import respx
 
 from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 
@@ -18,3 +20,57 @@ async def test_client_initialization(dnd5e_client: Dnd5eApiClient) -> None:
     assert dnd5e_client.base_url == "https://www.dnd5eapi.co/api/2014"
     assert dnd5e_client.source_api == "dnd5e_api"
     assert dnd5e_client.cache_ttl == 604800  # 7 days default
+
+
+@respx.mock
+async def test_get_rules_all(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching all rules."""
+    respx.get("https://www.dnd5eapi.co/api/2014/rules/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "index": "adventuring",
+                        "name": "Adventuring",
+                        "url": "/api/2014/rules/adventuring",
+                    },
+                    {
+                        "index": "combat",
+                        "name": "Combat",
+                        "url": "/api/2014/rules/combat",
+                    },
+                ]
+            },
+        )
+    )
+
+    rules = await dnd5e_client.get_rules()
+
+    assert len(rules) == 2
+    assert rules[0]["name"] == "Adventuring"
+    assert rules[1]["name"] == "Combat"
+
+
+@respx.mock
+async def test_get_rules_by_section(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching rules by section."""
+    respx.get("https://www.dnd5eapi.co/api/2014/rules/adventuring").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "index": "adventuring",
+                "name": "Adventuring",
+                "desc": "Delving into dungeons...",
+                "subsections": [
+                    {"index": "time", "name": "Time", "url": "/api/2014/rule-sections/time"}
+                ],
+            },
+        )
+    )
+
+    rules = await dnd5e_client.get_rules(section="adventuring")
+
+    assert len(rules) == 1
+    assert rules[0]["name"] == "Adventuring"
+    assert rules[0]["desc"] == "Delving into dungeons..."
