@@ -175,6 +175,51 @@ async def get_cached_entity(
         return cast(dict[str, Any], json.loads(row["data"]))
 
 
+async def query_cached_entities(
+    entity_type: str,
+    db_path: str | None = None,
+    **filters: Any,
+) -> list[dict[str, Any]]:
+    """Query cached entities with optional filters.
+
+    Args:
+        entity_type: Type of entities to query
+        db_path: Optional database path
+        **filters: Field filters (e.g., level=3, school="Evocation")
+
+    Returns:
+        List of matching entity dictionaries
+    """
+    # Validate entity_type to prevent SQL injection
+    if entity_type not in ENTITY_TYPES:
+        raise ValueError(f"Invalid entity type: {entity_type}")
+
+    db_path_obj = Path(db_path or settings.db_path)
+    table_name = get_table_name(entity_type)
+
+    # Build WHERE clause
+    where_clauses = []
+    params = []
+
+    for field, value in filters.items():
+        where_clauses.append(f"{field} = ?")
+        params.append(value)
+
+    where_sql = ""
+    if where_clauses:
+        where_sql = " WHERE " + " AND ".join(where_clauses)
+
+    query = f"SELECT data FROM {table_name}{where_sql}"
+
+    async with aiosqlite.connect(db_path_obj) as db:
+        db.row_factory = aiosqlite.Row
+
+        cursor = await db.execute(query, params)
+        rows = await cursor.fetchall()
+
+        return [cast(dict[str, Any], json.loads(row["data"])) for row in rows]
+
+
 # Keep existing functions for backward compatibility
 async def get_cached(key: str) -> dict[str, Any] | None:
     """Retrieve cached data if not expired (legacy URL-based cache).

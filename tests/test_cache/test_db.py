@@ -13,6 +13,7 @@ from lorekeeper_mcp.cache.db import (
     cleanup_expired,
     get_cached,
     get_cached_entity,
+    query_cached_entities,
     set_cached,
 )
 from lorekeeper_mcp.cache.schema import init_entity_cache
@@ -314,3 +315,68 @@ async def test_bulk_cache_entities_extracts_indexed_fields(entity_test_db):
     assert entity["type"] == "humanoid"
     assert entity["size"] == "Small"
     assert entity["challenge_rating"] == 0.25
+
+
+# ============================================================================
+# Task 1.4: Entity Query Operations Tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_query_cached_entities_returns_all(entity_test_db):
+    """Query without filters returns all entities."""
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+        {"slug": "magic-missile", "name": "Magic Missile", "level": 1, "school": "Evocation"},
+        {"slug": "cure-wounds", "name": "Cure Wounds", "level": 1, "school": "Necromancy"},
+    ]
+    await bulk_cache_entities(entities, "spells", entity_test_db, "open5e")
+
+    results = await query_cached_entities("spells", entity_test_db)
+
+    assert len(results) == 3
+
+
+@pytest.mark.asyncio
+async def test_query_cached_entities_filters_by_single_field(entity_test_db):
+    """Query filters by single field."""
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+        {"slug": "magic-missile", "name": "Magic Missile", "level": 1, "school": "Evocation"},
+        {"slug": "cure-wounds", "name": "Cure Wounds", "level": 1, "school": "Necromancy"},
+    ]
+    await bulk_cache_entities(entities, "spells", entity_test_db, "open5e")
+
+    results = await query_cached_entities("spells", entity_test_db, level=1)
+
+    assert len(results) == 2
+    assert all(e["level"] == 1 for e in results)
+
+
+@pytest.mark.asyncio
+async def test_query_cached_entities_filters_by_multiple_fields(entity_test_db):
+    """Query filters by multiple fields with AND logic."""
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+        {"slug": "magic-missile", "name": "Magic Missile", "level": 1, "school": "Evocation"},
+        {"slug": "cure-wounds", "name": "Cure Wounds", "level": 1, "school": "Necromancy"},
+    ]
+    await bulk_cache_entities(entities, "spells", entity_test_db, "open5e")
+
+    results = await query_cached_entities("spells", entity_test_db, level=1, school="Evocation")
+
+    assert len(results) == 1
+    assert results[0]["slug"] == "magic-missile"
+
+
+@pytest.mark.asyncio
+async def test_query_cached_entities_returns_empty_for_no_matches(entity_test_db):
+    """Query with no matches returns empty list."""
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+    ]
+    await bulk_cache_entities(entities, "spells", entity_test_db, "open5e")
+
+    results = await query_cached_entities("spells", entity_test_db, level=9)
+
+    assert results == []
