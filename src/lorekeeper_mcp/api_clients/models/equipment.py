@@ -1,22 +1,56 @@
 """Equipment models for weapons and armor."""
 
+from pydantic import BaseModel as PydanticBaseModel
 from pydantic import Field
 
 from lorekeeper_mcp.api_clients.models.base import BaseModel
 
 
+class DamageType(PydanticBaseModel):
+    """Damage type with metadata."""
+
+    name: str = Field(..., description="Damage type name (e.g., Piercing)")
+    key: str = Field(..., description="Damage type key (e.g., piercing)")
+    url: str = Field(..., description="API endpoint URL for damage type")
+
+
+class PropertyDetail(PydanticBaseModel):
+    """Weapon property metadata."""
+
+    name: str = Field(..., description="Property name (e.g., Finesse)")
+    type: str | None = Field(None, description="Property type (e.g., Mastery)")
+    url: str = Field(..., description="API endpoint URL for property")
+
+
+class WeaponProperty(PydanticBaseModel):
+    """Weapon property with optional detail."""
+
+    property: PropertyDetail = Field(..., description="Property metadata")
+    detail: str | None = Field(None, description="Property detail (e.g., versatile dice)")
+
+
 class Weapon(BaseModel):
     """Model representing a D&D 5e weapon."""
 
-    category: str = Field(..., description="Weapon category (Simple/Martial, Melee/Ranged)")
+    key: str = Field(..., description="Unique identifier for the weapon")
     damage_dice: str = Field(..., description="Damage dice (e.g., 1d8)")
-    damage_type: str = Field(..., description="Damage type (slashing, piercing, bludgeoning)")
-    cost: str = Field(..., description="Cost in gold pieces")
-    weight: float = Field(..., ge=0, description="Weight in pounds")
+    damage_type: DamageType = Field(..., description="Damage type object")
+    properties: list[WeaponProperty] = Field(
+        default_factory=list,
+        description="Weapon properties (complex objects)",
+    )
+    range: float = Field(..., ge=0, description="Normal range in distance units")
+    long_range: float = Field(..., ge=0, description="Long range in distance units")
+    distance_unit: str = Field(..., description="Unit of distance measurement")
+    is_simple: bool = Field(..., description="Whether weapon is Simple (vs Martial)")
+    is_improvised: bool = Field(..., description="Whether weapon is improvised")
 
-    properties: list[str] | None = Field(None, description="Weapon properties")
-    range_normal: int | None = Field(None, description="Normal range in feet")
-    range_long: int | None = Field(None, description="Long range in feet")
+    # Legacy/optional fields (not in API v2 but kept for compatibility)
+    category: str | None = Field(None, description="Weapon category (derived)")
+    cost: str | None = Field(None, description="Cost in gold pieces")
+    weight: float | None = Field(None, ge=0, description="Weight in pounds")
+    range_normal: int | None = Field(None, description="Normal range (legacy name)")
+    range_long: int | None = Field(None, description="Long range (legacy name)")
     versatile_dice: str | None = Field(None, description="Versatile damage dice")
 
 

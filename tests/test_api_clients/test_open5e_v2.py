@@ -72,13 +72,31 @@ async def test_get_weapons(v2_client: Open5eV2Client) -> None:
             json={
                 "results": [
                     {
+                        "url": "https://api.open5e.com/v2/weapons/srd-2024_longsword/",
+                        "key": "srd-2024_longsword",
                         "name": "Longsword",
                         "slug": "longsword",
-                        "category": "Martial Melee",
                         "damage_dice": "1d8",
-                        "damage_type": "slashing",
-                        "cost": "15 gp",
-                        "weight": 3.0,
+                        "damage_type": {
+                            "name": "Slashing",
+                            "key": "slashing",
+                            "url": "https://api.open5e.com/v2/damagetypes/slashing/",
+                        },
+                        "properties": [
+                            {
+                                "property": {
+                                    "name": "Versatile",
+                                    "type": None,
+                                    "url": "/v2/weaponproperties/versatile-wp/",
+                                },
+                                "detail": "1d10",
+                            }
+                        ],
+                        "range": 0.0,
+                        "long_range": 0.0,
+                        "distance_unit": "feet",
+                        "is_simple": False,
+                        "is_improvised": False,
                     }
                 ]
             },
@@ -185,13 +203,22 @@ async def test_get_weapons_uses_entity_cache(v2_client_with_cache: Open5eV2Clien
             json={
                 "results": [
                     {
+                        "url": "https://api.open5e.com/v2/weapons/srd-2024_longsword/",
+                        "key": "srd-2024_longsword",
                         "slug": "longsword",
                         "name": "Longsword",
-                        "category": "martial",
                         "damage_dice": "1d8",
-                        "damage_type": "slashing",
-                        "cost": "15 gp",
-                        "weight": 3.0,
+                        "damage_type": {
+                            "name": "Slashing",
+                            "key": "slashing",
+                            "url": "https://api.open5e.com/v2/damagetypes/slashing/",
+                        },
+                        "properties": [],
+                        "range": 0.0,
+                        "long_range": 0.0,
+                        "distance_unit": "feet",
+                        "is_simple": False,
+                        "is_improvised": False,
                     }
                 ]
             },

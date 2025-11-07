@@ -131,7 +131,11 @@ async def bulk_cache_entities(
 
             # Add indexed field values
             for field_name, _ in indexed_fields:
-                row.append(entity.get(field_name))
+                value = entity.get(field_name)
+                # Handle nested damage_type object (weapons)
+                if field_name == "damage_type" and isinstance(value, dict):
+                    value = value.get("key")
+                row.append(value)
 
             rows.append(row)
 
