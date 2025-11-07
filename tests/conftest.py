@@ -119,6 +119,12 @@ def cache_stats() -> CacheStats:
 async def clear_cache(live_db: str) -> AsyncGenerator[None]:
     """Clear cache before test execution."""
     from lorekeeper_mcp.cache.db import cleanup_expired
+    from lorekeeper_mcp.tools.creature_lookup import clear_creature_cache
+    from lorekeeper_mcp.tools.spell_lookup import clear_spell_cache
+
+    # Clear in-memory caches
+    clear_spell_cache()
+    clear_creature_cache()
 
     # Clean up any expired entries
     await cleanup_expired()
