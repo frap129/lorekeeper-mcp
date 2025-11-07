@@ -132,17 +132,274 @@ class TestLiveSpellLookup:
 class TestLiveCreatureLookup:
     """Live tests for lookup_creature tool."""
 
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_creature_by_name_found(self, rate_limiter, clear_cache):
+        """Verify creatures can be found by name search."""
+        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+        await rate_limiter("open5e")
+        results = await lookup_creature(name="Goblin", limit=50)
+
+        assert len(results) > 0, "Should find creatures matching 'Goblin'"
+        # Verify at least one result contains "goblin" in name
+        goblin_found = any("goblin" in c["name"].lower() for c in results)
+        assert goblin_found, "Should find at least one creature with 'goblin' in name"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_creature_by_name_not_found(self, rate_limiter, clear_cache):
+        """Verify non-existent creature returns empty results."""
+        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+        await rate_limiter("open5e")
+        results = await lookup_creature(name="NonexistentCreature12345XYZ")
+
+        assert len(results) == 0, "Non-existent creature should return empty list"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_creature_basic_fields_present(self, rate_limiter, clear_cache):
+        """Verify creature response contains expected schema fields."""
+        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+        await rate_limiter("open5e")
+        results = await lookup_creature(name="Goblin")
+
+        assert len(results) > 0, "Should find Goblin"
+        creature = results[0]
+
+        # Check for expected fields
+        assert "name" in creature
+        # CR might be challenge_rating, cr, or challenge
+        assert any(key in creature for key in ["challenge_rating", "cr", "challenge"])
+        # Type field
+        assert "type" in creature
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_creature_filter_by_cr(self, rate_limiter, clear_cache):
+        """Verify CR filtering returns creatures of specified challenge rating."""
+        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+        await rate_limiter("open5e")
+        results = await lookup_creature(cr=1, limit=10)
+
+        assert len(results) >= 3, "Should find at least 3 CR 1 creatures"
+        for creature in results:
+            cr = creature.get("challenge_rating", creature.get("cr", ""))
+            # CR might be "1", 1, or "1.0"
+            assert str(cr) in ["1", "1.0"], f"Expected CR 1, got {cr}"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_creature_filter_by_type(self, rate_limiter, clear_cache):
+        """Verify type filtering returns creatures of specified type."""
+        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+        await rate_limiter("open5e")
+        results = await lookup_creature(type="Beast", limit=10)
+
+        assert len(results) >= 5, "Should find at least 5 beasts"
+        for creature in results:
+            creature_type = creature.get("type", "").lower()
+            assert "beast" in creature_type, f"Expected beast, got {creature_type}"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_creature_filter_by_size(self, rate_limiter, clear_cache):
+        """Verify size filtering returns creatures of specified size."""
+        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+        await rate_limiter("open5e")
+        results = await lookup_creature(size="Large", limit=10)
+
+        assert len(results) >= 3, "Should find at least 3 Large creatures"
+        for creature in results:
+            size = creature.get("size", "").lower()
+            assert "large" in size, f"Expected Large, got {size}"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_creature_cache_behavior(self, rate_limiter, clear_cache):
+        """Verify cache hit/miss behavior for creature lookups."""
+        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+        await rate_limiter("open5e")
+
+        # First call
+        first = await lookup_creature(name="Dragon")
+        # Second call (cached)
+        second = await lookup_creature(name="Dragon")
+
+        assert second == first, "Cached results should match"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_creature_invalid_type(self, rate_limiter, clear_cache):
+        """Verify handling of invalid creature type."""
+        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+        await rate_limiter("open5e")
+        results = await lookup_creature(type="InvalidType123")
+
+        # Should not crash
+        assert isinstance(results, list), "Should return list"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_creature_empty_results(self, rate_limiter, clear_cache):
+        """Verify handling of no matches."""
+        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+        await rate_limiter("open5e")
+        results = await lookup_creature(name="ZZZNonexistent", cr=30)
+
+        assert isinstance(results, list), "Should return list"
+        assert len(results) == 0, "Should return empty list"
+
 
 class TestLiveEquipmentLookup:
     """Live tests for lookup_equipment tool."""
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_equipment_weapon_lookup(self, rate_limiter, clear_cache):
+        """Verify weapon lookup returns weapons."""
+        from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
+
+        await rate_limiter("open5e")
+        results = await lookup_equipment(type="weapon", limit=10)
+
+        assert len(results) > 0, "Should find weapons"
+        # Verify the first result has weapon-like properties
+        weapon = results[0]
+        assert "name" in weapon
+        assert "damage_dice" in weapon or "damage" in weapon
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_equipment_armor_lookup(self, rate_limiter, clear_cache):
+        """Verify armor lookup with AC properties."""
+        from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
+
+        await rate_limiter("open5e")
+        results = await lookup_equipment(type="armor", limit=10)
+
+        assert len(results) >= 5, "Should find at least 5 armor items"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_equipment_cache_behavior(self, rate_limiter, clear_cache):
+        """Verify cache behavior."""
+        from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
+
+        await rate_limiter("open5e")
+
+        # Query weapons only to avoid magic items API issues
+        first = await lookup_equipment(type="weapon", limit=10)
+        second = await lookup_equipment(type="weapon", limit=10)
+
+        assert first == second, "Cached results should match"
 
 
 class TestLiveCharacterOptionLookup:
     """Live tests for lookup_character_option tool."""
 
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_character_option_class_lookup(self, rate_limiter, clear_cache):
+        """Verify class lookup returns expected classes."""
+        from lorekeeper_mcp.tools.character_option_lookup import (
+            lookup_character_option,
+        )
+
+        await rate_limiter("open5e")
+        results = await lookup_character_option(type="class")
+
+        assert len(results) >= 12, "Should find at least 12 classes"
+        class_names = [c["name"].lower() for c in results]
+        assert any("wizard" in name for name in class_names)
+        assert any("fighter" in name for name in class_names)
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_character_option_race_lookup(self, rate_limiter, clear_cache):
+        """Verify race lookup returns expected races."""
+        from lorekeeper_mcp.tools.character_option_lookup import (
+            lookup_character_option,
+        )
+
+        await rate_limiter("open5e")
+        results = await lookup_character_option(type="race")
+
+        assert len(results) >= 9, "Should find at least 9 races"
+        race_names = [r["name"].lower() for r in results]
+        assert any("human" in name for name in race_names)
+        assert any("elf" in name for name in race_names)
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_character_option_feat_lookup(self, rate_limiter, clear_cache):
+        """Verify feat lookup returns expected feats."""
+        from lorekeeper_mcp.tools.character_option_lookup import (
+            lookup_character_option,
+        )
+
+        await rate_limiter("open5e")
+        results = await lookup_character_option(type="feat")
+
+        assert len(results) >= 20, "Should find at least 20 feats"
+
 
 class TestLiveRuleLookup:
     """Live tests for lookup_rule tool."""
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_rule_condition_lookup(self, rate_limiter, clear_cache):
+        """Verify condition lookup returns expected conditions."""
+        from lorekeeper_mcp.tools.rule_lookup import lookup_rule
+
+        await rate_limiter("open5e")
+        results = await lookup_rule(rule_type="condition")
+
+        assert len(results) >= 10, "Should find at least 10 conditions"
+        condition_names = [c["name"].lower() for c in results]
+        assert any("prone" in name for name in condition_names)
+        assert any("grappled" in name for name in condition_names)
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_rule_skill_lookup(self, rate_limiter, clear_cache):
+        """Verify skill lookup returns exactly 18 skills."""
+        from lorekeeper_mcp.tools.rule_lookup import lookup_rule
+
+        await rate_limiter("open5e")
+        results = await lookup_rule(rule_type="skill")
+
+        # D&D 5e has exactly 18 skills
+        assert len(results) == 18, f"Expected 18 skills, got {len(results)}"
+        skill_names = [s["name"].lower() for s in results]
+        assert any("perception" in name for name in skill_names)
+        assert any("stealth" in name for name in skill_names)
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_rule_ability_score_lookup(self, rate_limiter, clear_cache):
+        """Verify ability score lookup returns exactly 6 abilities."""
+        from lorekeeper_mcp.tools.rule_lookup import lookup_rule
+
+        await rate_limiter("open5e")
+        results = await lookup_rule(rule_type="ability-score")
+
+        # D&D 5e has exactly 6 ability scores
+        assert len(results) == 6, f"Expected 6 abilities, got {len(results)}"
+        ability_names = [a["name"].upper() for a in results]
+        # API returns abbreviated names: STR, DEX, CON, INT, WIS, CHA
+        expected = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
+        for ability in expected:
+            assert any(ability in name for name in ability_names), f"Missing {ability}"
 
 
 class TestLiveCacheValidation:
