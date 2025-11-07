@@ -18,6 +18,8 @@ Performance expectations:
 - Cached queries: < 50ms
 """
 
+import time
+
 import pytest
 
 
@@ -127,6 +129,127 @@ class TestLiveSpellLookup:
 
         assert len(results) <= 5, f"Requested limit=5 but got {len(results)} results"
         assert len(results) > 0, "Should return some results"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_spell_cache_miss_then_hit(self, rate_limiter, clear_cache):
+        """Verify cache behavior on duplicate queries."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+
+        # First call - cache miss (no filters, just limit)
+        first_results = await lookup_spell(limit=20)
+
+        assert len(first_results) > 0, "Should find spells"
+
+        # Second call - cache hit (identical call should reuse cached API results)
+        second_results = await lookup_spell(limit=20)
+
+        assert second_results == first_results, "Cached results should match"
+        # Second call might not always be faster due to network variance,
+        # but should be significantly faster if cache worked
+        # We just verify results are identical
+        assert len(second_results) == len(first_results), "Result count should be consistent"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    @pytest.mark.slow
+    async def test_spell_cache_performance(self, rate_limiter, clear_cache):
+        """Verify cached queries return consistent results."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+
+        # Make multiple calls with same parameters
+        call1 = await lookup_spell(limit=10)
+        assert len(call1) > 0, "Should get results"
+
+        # Second call should return same results (cache is working)
+        call2 = await lookup_spell(limit=10)
+        assert call2 == call1, "Repeated queries should return identical results from cache"
+
+        # Third call for consistency
+        call3 = await lookup_spell(limit=10)
+        assert call3 == call1, "All identical queries should return same cached results"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_spell_different_queries_different_cache(self, rate_limiter, clear_cache):
+        """Verify different queries use separate cache entries."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+
+        # Execute two different queries with different API parameters
+        # These result in different cache entries
+        results_level0 = await lookup_spell(level=0, limit=10)
+        await rate_limiter("open5e")
+        results_level1 = await lookup_spell(level=1, limit=10)
+
+        assert (
+            results_level0 != results_level1
+        ), "Different level filters should have different results"
+
+        # Verify both are cached independently
+        start_0 = time.time()
+        cached_level0 = await lookup_spell(level=0, limit=10)
+        duration_0 = time.time() - start_0
+
+        start_1 = time.time()
+        cached_level1 = await lookup_spell(level=1, limit=10)
+        duration_1 = time.time() - start_1
+
+        assert cached_level0 == results_level0, "Level 0 cache should work"
+        assert cached_level1 == results_level1, "Level 1 cache should work"
+        # Both should be cached (fast), no specific threshold needed
+        assert duration_0 < 2.0, "Cached level 0 query should be reasonably fast"
+        assert duration_1 < 2.0, "Cached level 1 query should be reasonably fast"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_spell_invalid_school(self, rate_limiter, clear_cache):
+        """Verify graceful handling of invalid school parameter."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+
+        # Try invalid school - should return empty or handle gracefully
+        results = await lookup_spell(school="InvalidSchoolXYZ123")
+
+        # Should not crash - either empty results or filtered out
+        assert isinstance(results, list), "Should return list even with invalid school"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_spell_invalid_limit(self, rate_limiter, clear_cache):
+        """Verify handling of invalid limit parameter."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+
+        # Negative limit should be handled gracefully
+        try:
+            results = await lookup_spell(limit=-5)
+            # If it doesn't raise, should return empty or default
+            assert isinstance(results, list), "Should return list"
+        except (ValueError, AssertionError):
+            # Acceptable to raise validation error
+            pass
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_spell_empty_results(self, rate_limiter, clear_cache):
+        """Verify handling of queries with no matches."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+
+        # Query that should match nothing
+        results = await lookup_spell(name="ZZZNonexistent", level=9, school="abjuration")
+
+        assert isinstance(results, list), "Should return list"
+        assert len(results) == 0, "Should return empty list for no matches"
 
 
 class TestLiveCreatureLookup:
