@@ -72,9 +72,9 @@ async def lookup_spell(
     client = Open5eV2Client()
 
     # Build query parameters
-    params: dict[str, Any] = {"limit": limit}
-    if name is not None:
-        params["search"] = name
+    # Note: name/search filtering happens client-side since the API doesn't filter by search
+    # When searching by name, fetch more results to ensure we find matches
+    params: dict[str, Any] = {"limit": limit * 25 if name else limit}
     if level is not None:
         params["level"] = level
     if school is not None:
@@ -89,4 +89,13 @@ async def lookup_spell(
         params["casting_time"] = casting_time
 
     spells = await client.get_spells(**params)
+
+    # Client-side filtering by name (the API search parameter doesn't actually filter)
+    if name:
+        name_lower = name.lower()
+        spells = [spell for spell in spells if name_lower in spell.name.lower()]
+
+    # Limit results to requested count
+    spells = spells[:limit]
+
     return [spell.model_dump() for spell in spells]
