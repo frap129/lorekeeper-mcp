@@ -96,3 +96,26 @@ async def test_lookup_spell_network_error(mock_open5e_v2_client):
         pytest.raises(NetworkError, match="Connection timeout"),
     ):
         await lookup_spell(name="Fireball")
+
+
+@pytest.mark.asyncio
+async def test_spell_search_parameter():
+    """Test that spell lookup uses 'search' parameter instead of 'name'"""
+    from unittest.mock import AsyncMock, patch
+
+    from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+    # Mock the API client to verify parameter usage
+    with patch("lorekeeper_mcp.tools.spell_lookup.Open5eV2Client") as mock_client:
+        mock_instance = AsyncMock()
+        mock_instance.get_spells.return_value = []
+        mock_client.return_value = mock_instance
+
+        # Call the spell lookup function
+        await lookup_spell(name="fireball")
+
+        # Verify the API was called with search parameter, not name
+        mock_instance.get_spells.assert_called_once()
+        call_args = mock_instance.get_spells.call_args
+        assert "search" in call_args.kwargs
+        assert call_args.kwargs["search"] == "fireball"

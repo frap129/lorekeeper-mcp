@@ -74,7 +74,7 @@ async def lookup_spell(
     # Build query parameters
     params: dict[str, Any] = {"limit": limit}
     if name is not None:
-        params["name"] = name
+        params["search"] = name
     if level is not None:
         params["level"] = level
     if school is not None:
