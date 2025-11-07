@@ -528,6 +528,85 @@ class TestLiveRuleLookup:
 class TestLiveCacheValidation:
     """Cross-cutting cache behavior validation."""
 
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_cache_isolation_across_tools(self, rate_limiter, clear_cache):
+        """Verify different tools use separate cache entries."""
+        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+
+        # Call both tools
+        spells = await lookup_spell(name="Fire")
+        await rate_limiter("open5e")
+        creatures = await lookup_creature(name="Fire")
+
+        # Should get different results (spells vs creatures)
+        assert spells != creatures, "Different tools should have different results"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_cache_key_uniqueness(self, rate_limiter, clear_cache):
+        """Verify different parameters create different cache keys."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+
+        # Different level parameters should be cached separately
+        level0 = await lookup_spell(level=0, limit=5)
+        await rate_limiter("open5e")
+        level1 = await lookup_spell(level=1, limit=5)
+
+        assert level0 != level1, "Different parameters should yield different results"
+
+        # Both should be cached
+        start = time.time()
+        cached0 = await lookup_spell(level=0, limit=5)
+        duration0 = time.time() - start
+
+        start = time.time()
+        cached1 = await lookup_spell(level=1, limit=5)
+        duration1 = time.time() - start
+
+        assert cached0 == level0, "Level 0 cache should work"
+        assert cached1 == level1, "Level 1 cache should work"
+        assert duration0 < 0.05 and duration1 < 0.05, "Both should be fast"
+
 
 class TestLivePerformance:
     """Performance benchmarks for live API calls."""
+
+    @pytest.mark.live
+    @pytest.mark.slow
+    @pytest.mark.asyncio
+    async def test_uncached_call_performance(self, rate_limiter, clear_cache):
+        """Verify API calls complete within time limit."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+
+        start = time.time()
+        results = await lookup_spell(name="Detect Magic")
+        duration = time.time() - start
+
+        assert len(results) > 0, "Should find spell"
+        assert duration < 3.0, f"API call took {duration:.2f}s, expected <3s"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_cached_call_performance(self, rate_limiter, clear_cache):
+        """Verify cached calls are fast."""
+        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+        await rate_limiter("open5e")
+
+        # Prime cache
+        await lookup_creature(name="Goblin")
+
+        # Measure cached performance
+        start = time.time()
+        await lookup_creature(name="Goblin")
+        duration = time.time() - start
+
+        assert duration < 0.05, f"Cached call took {duration:.3f}s, expected <0.05s"
