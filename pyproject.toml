@@ -148,6 +148,10 @@ ignore_missing_imports = true
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "live: marks tests as live API tests requiring internet (deselect with '-m \"not live\"')",
+    "slow: marks tests as slow running (>1 second)",
+]
 
 [dependency-groups]
 dev = [
