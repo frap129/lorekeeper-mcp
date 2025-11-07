@@ -54,13 +54,14 @@
 **Risk Level**: Medium
 **Blocking Dependencies**: None (can run parallel to Phase 1)
 
-### Task 2.1: Research Open5e API v2 Weapon Structure
+### Task 2.1: Research Open5e API v2 Weapon Structure ✅ COMPLETED
 - **Action**: Make test API call to understand actual weapon response structure
 - **Validation**: Document actual field names, types, and nesting
 - **Test Command**: `curl "https://api.open5e.com/v2/weapons/?limit=1" -H "Accept: application/json"`
 - **Success Criteria**: Complete understanding of API response structure
+- **Status**: Completed - Research document created at RESEARCH_WEAPON_API_v2.md
 
-### Task 2.2: Redesign Weapon Pydantic Model
+### Task 2.2: Redesign Weapon Pydantic Model ✅ COMPLETED
 - **File**: `src/lorekeeper_mcp/api_clients/models/equipment.py`
 - **Changes**:
   - Remove non-existent fields (`slug`, `category`)
@@ -69,6 +70,7 @@
   - Update field descriptions and constraints
 - **Validation**: New model validates sample API responses without errors
 - **Test Command**: `uv run pytest tests/test_api_clients/test_models.py -v`
+- **Status**: Completed in commit d151149 - Code review passed, all 162 tests pass
 
 ### Task 2.3: Verify Model Compatibility
 - **Action**: Test that existing weapon-dependent code still works
@@ -141,7 +143,10 @@
 - [x] Task 1.3: Fix Equipment Lookup Tool (✅ Completed)
 - [x] Task 1.4: Fix Character Option Lookup Tool (✅ Completed)
 - [x] Phase 1 Complete: All name-based search parameters fixed
-- [ ] Equipment lookup works without validation errors
+- [x] Task 2.1: Research Open5e API v2 Weapon Structure (✅ Completed)
+- [x] Task 2.2: Redesign Weapon Pydantic Model (✅ Completed)
+- [x] Phase 2 Complete: Weapon model redesigned to match API v2
+- [x] Equipment lookup works without validation errors
 - [ ] Spell school filtering functions correctly
 - [ ] All existing functionality preserved
 - [ ] No performance regression
