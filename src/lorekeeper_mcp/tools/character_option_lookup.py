@@ -89,7 +89,7 @@ async def lookup_character_option(
 
     params: dict[str, Any] = {"limit": limit}
     if name is not None:
-        params["name"] = name
+        params["search"] = name
 
     # Route to appropriate client and endpoint
     if type == "class":
