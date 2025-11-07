@@ -4,6 +4,15 @@ from typing import Any
 
 from lorekeeper_mcp.api_clients.open5e_v1 import Open5eV1Client
 
+# Simple in-memory cache for creature lookups (max 128 entries)
+_creature_cache: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+_creature_cache_maxsize = 128
+
+
+def clear_creature_cache() -> None:
+    """Clear the in-memory creature cache."""
+    _creature_cache.clear()
+
 
 async def lookup_creature(
     name: str | None = None,
@@ -70,6 +79,11 @@ async def lookup_creature(
     Raises:
         APIError: If the API request fails due to network issues or server errors
     """
+    # Check in-memory cache first
+    cache_key = (name, cr, cr_min, cr_max, type, size, limit)
+    if cache_key in _creature_cache:
+        return _creature_cache[cache_key]
+
     client = Open5eV1Client()
 
     # Build query parameters
@@ -90,4 +104,12 @@ async def lookup_creature(
     response = await client.get_monsters(**params)
 
     # Convert Monster objects to dictionaries
-    return [creature.model_dump() for creature in response]
+    result = [creature.model_dump() for creature in response]
+
+    # Cache the result in memory
+    if len(_creature_cache) >= _creature_cache_maxsize:
+        # Simple FIFO eviction
+        _creature_cache.pop(next(iter(_creature_cache)))
+    _creature_cache[cache_key] = result
+
+    return result

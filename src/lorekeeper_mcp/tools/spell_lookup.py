@@ -4,6 +4,15 @@ from typing import Any
 
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
+# Simple in-memory cache for spell lookups (max 128 entries)
+_spell_cache: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+_spell_cache_maxsize = 128
+
+
+def clear_spell_cache() -> None:
+    """Clear the in-memory spell cache."""
+    _spell_cache.clear()
+
 
 async def lookup_spell(
     name: str | None = None,
@@ -69,12 +78,18 @@ async def lookup_spell(
     Raises:
         ApiError: If the API request fails due to network issues or server errors
     """
+    # Check in-memory cache first
+    cache_key = (name, level, school, class_key, concentration, ritual, casting_time, limit)
+    if cache_key in _spell_cache:
+        return _spell_cache[cache_key]
+
     client = Open5eV2Client()
 
     # Build query parameters
     # Note: name/search filtering happens client-side since the API doesn't filter by search
     # When searching by name, fetch more results to ensure we find matches
-    params: dict[str, Any] = {"limit": limit * 25 if name else limit}
+    # Use multiplier of 11 to balance finding matches with performance (~2.5s for 220 results)
+    params: dict[str, Any] = {"limit": limit * 11 if name else limit}
     if level is not None:
         params["level"] = level
     if school is not None:
@@ -98,4 +113,12 @@ async def lookup_spell(
     # Limit results to requested count
     spells = spells[:limit]
 
-    return [spell.model_dump() for spell in spells]
+    result = [spell.model_dump() for spell in spells]
+
+    # Cache the result in memory
+    if len(_spell_cache) >= _spell_cache_maxsize:
+        # Simple FIFO eviction
+        _spell_cache.pop(next(iter(_spell_cache)))
+    _spell_cache[cache_key] = result
+
+    return result
