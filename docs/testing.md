@@ -768,3 +768,97 @@ repos:
 ```
 
 This comprehensive testing guide ensures high-quality, reliable code for the LoreKeeper MCP project.
+
+---
+
+## Live API Testing
+
+### Overview
+
+Live tests validate LoreKeeper MCP tools against real Open5e and D&D 5e APIs. These tests are marked with `@pytest.mark.live` and are skipped by default.
+
+### Running Live Tests
+
+**Run all live tests:**
+```bash
+uv run pytest -m live -v
+```
+
+**Run live tests for specific tool:**
+```bash
+uv run pytest -m live -k spell -v
+```
+
+**Skip live tests (default for unit testing):**
+```bash
+uv run pytest -m "not live"
+```
+
+### Requirements
+
+- Internet connection
+- Working Open5e API (https://api.open5e.com)
+- Working D&D 5e API (https://www.dnd5eapi.co)
+
+### Performance Expectations
+
+- **Uncached queries**: < 3 seconds
+- **Cached queries**: < 50 ms
+- **Rate limiting**: 100ms minimum delay between API calls
+
+### Test Coverage
+
+Live tests validate:
+- ✅ Basic queries (name lookup)
+- ✅ Filtering (level, CR, type, school, etc.)
+- ✅ Cache behavior (hit/miss, performance)
+- ✅ Error handling (invalid params, empty results)
+- ✅ Response schema validation
+- ✅ Cross-cutting concerns (cache isolation, performance)
+
+### Troubleshooting
+
+**Tests fail with network errors:**
+- Check internet connection
+- Verify API endpoints are accessible
+- Check for API outages
+
+**Tests fail with rate limiting:**
+- Increase delay in `rate_limiter` fixture (tests/conftest.py)
+- Run tests with `--maxfail=1` to stop on first failure
+
+**Cache tests fail:**
+- Ensure `clear_cache` fixture is used
+- Check cache database is writable
+- Verify TTL settings in cache configuration
+
+**Performance tests fail:**
+- Network latency may vary - adjust thresholds if needed
+- Ensure no other processes are using database
+- Try running tests individually
+
+### When to Run Live Tests
+
+- Before releases
+- After API client changes
+- When investigating cache issues
+- After modifying API endpoints
+- Periodically (weekly/monthly) to catch API changes
+
+### Adding New Live Tests
+
+1. Mark test with `@pytest.mark.live`
+2. Mark slow tests with `@pytest.mark.slow`
+3. Use `rate_limiter` fixture to prevent throttling
+4. Use `clear_cache` fixture to ensure clean state
+5. Follow existing patterns in `tests/test_tools/test_live_mcp.py`
+
+Example:
+```python
+@pytest.mark.live
+@pytest.mark.asyncio
+async def test_new_feature(self, rate_limiter, clear_cache):
+    """Test description."""
+    await rate_limiter("open5e")
+    # Test code here
+```
