@@ -94,7 +94,7 @@ async def lookup_equipment(
     # Build base params
     base_params: dict[str, Any] = {"limit": limit}
     if name is not None:
-        base_params["name"] = name
+        base_params["search"] = name
 
     # Query weapons
     if type in ("weapon", "all"):

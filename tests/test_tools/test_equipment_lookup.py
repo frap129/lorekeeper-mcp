@@ -126,3 +126,26 @@ async def test_lookup_equipment_parse_error(mock_open5e_v2_client):
         pytest.raises(ParseError, match="Invalid JSON response"),
     ):
         await lookup_equipment(type="weapon", name="Sword")
+
+
+@pytest.mark.asyncio
+async def test_equipment_search_parameter():
+    """Test that equipment lookup uses 'search' parameter instead of 'name'"""
+    from unittest.mock import AsyncMock, patch
+
+    from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
+
+    # Mock the API client to verify parameter usage
+    with patch("lorekeeper_mcp.tools.equipment_lookup.Open5eV2Client") as mock_client:
+        mock_instance = AsyncMock()
+        mock_instance.get_weapons.return_value = []
+        mock_client.return_value = mock_instance
+
+        # Call the equipment lookup function
+        await lookup_equipment(type="weapon", name="longsword")
+
+        # Verify the API was called with search parameter, not name
+        mock_instance.get_weapons.assert_called_once()
+        call_args = mock_instance.get_weapons.call_args
+        assert "search" in call_args.kwargs
+        assert call_args.kwargs["search"] == "longsword"
