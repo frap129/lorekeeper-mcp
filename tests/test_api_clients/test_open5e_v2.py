@@ -53,8 +53,12 @@ async def test_get_spells_basic(v2_client: Open5eV2Client) -> None:
 
 @respx.mock
 async def test_get_spells_with_filters(v2_client: Open5eV2Client) -> None:
-    """Test spell lookup with multiple filters."""
-    respx.get("https://api.open5e.com/v2/spells/?level=3&school=Evocation").mock(
+    """Test spell lookup with level and school filters.
+
+    School filtering is done client-side (not supported by API),
+    so only level is sent to the API.
+    """
+    respx.get("https://api.open5e.com/v2/spells/?level=3").mock(
         return_value=httpx.Response(200, json={"results": []})
     )
 
@@ -322,3 +326,63 @@ async def test_get_conditions_uses_entity_cache(v2_client_with_cache: Open5eV2Cl
 
     cached = await get_cached_entity("conditions", "blinded")
     assert cached is not None
+
+
+@respx.mock
+async def test_spell_school_filtering(v2_client: Open5eV2Client) -> None:
+    """Test that get_spells filters by school on client side.
+
+    Open5e v2 API doesn't support server-side school filtering, so
+    client must filter results after retrieval.
+    """
+    # Mock the API call without school parameter - API returns all spells
+    respx.get("https://api.open5e.com/v2/spells/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "name": "Fireball",
+                        "slug": "fireball",
+                        "level": 3,
+                        "school": "Evocation",
+                        "casting_time": "1 action",
+                        "range": "150 feet",
+                        "components": "V, S, M",
+                        "duration": "Instantaneous",
+                        "desc": "A bright streak...",
+                    },
+                    {
+                        "name": "Magic Missile",
+                        "slug": "magic-missile",
+                        "level": 1,
+                        "school": "Evocation",
+                        "casting_time": "1 action",
+                        "range": "120 feet",
+                        "components": "V, S",
+                        "duration": "Instantaneous",
+                        "desc": "A missile of magical force...",
+                    },
+                    {
+                        "name": "Detect Magic",
+                        "slug": "detect-magic",
+                        "level": 1,
+                        "school": "Divination",
+                        "casting_time": "1 action",
+                        "range": "Self",
+                        "components": "V, S",
+                        "duration": "Concentration, up to 10 minutes",
+                        "desc": "For the spell's duration...",
+                    },
+                ]
+            },
+        )
+    )
+
+    # Request spells filtered by school
+    spells = await v2_client.get_spells(school="Evocation")
+
+    # Should only return evocation spells
+    assert len(spells) == 2
+    assert all(spell.school == "Evocation" for spell in spells)
+    assert {spell.name for spell in spells} == {"Fireball", "Magic Missile"}
