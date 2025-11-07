@@ -22,23 +22,26 @@
 - **Test Command**: `uv run pytest tests/test_tools/test_spell_lookup.py -v`
 - **Status**: Completed in commit 7628e3c - Code review passed with no critical issues
 
-### Task 1.2: Fix Creature Lookup Tool
+### Task 1.2: Fix Creature Lookup Tool ✅ COMPLETED
 - **File**: `src/lorekeeper_mcp/tools/creature_lookup.py`
 - **Change**: Line 78 - `params["name"] = name` → `params["search"] = name`
 - **Validation**: Run creature lookup with name parameter and verify results returned
 - **Test Command**: `uv run pytest tests/test_tools/test_creature_lookup.py -v`
+- **Status**: Completed in commit 0edb71d - Code review passed, all 157 tests pass
 
-### Task 1.3: Fix Equipment Lookup Tool
+### Task 1.3: Fix Equipment Lookup Tool ✅ COMPLETED
 - **File**: `src/lorekeeper_mcp/tools/equipment_lookup.py`
 - **Change**: Line 97 - `base_params["name"] = name` → `base_params["search"] = name`
 - **Validation**: Run equipment lookup with name parameter and verify results returned
 - **Test Command**: `uv run pytest tests/test_tools/test_equipment_lookup.py -v`
+- **Status**: Completed in commit c380be7 - Code review passed, all 158 tests pass
 
-### Task 1.4: Fix Character Option Lookup Tool
+### Task 1.4: Fix Character Option Lookup Tool ✅ COMPLETED
 - **File**: `src/lorekeeper_mcp/tools/character_option_lookup.py`
 - **Change**: Line 92 - `params["name"] = name` → `params["search"] = name`
 - **Validation**: Run character option lookup with name parameter and verify results returned
 - **Test Command**: `uv run pytest tests/test_tools/test_character_option_lookup.py -v`
+- **Status**: Completed in commit 3304376 - Code review passed, all 159 tests pass
 
 ### Task 1.5: Integration Testing for Issue #1
 - **Validation**: Run comprehensive test across all name-based search functionality
@@ -134,10 +137,10 @@
 ## Success Validation Checklist
 
 - [x] Task 1.1: Fix Spell Lookup Tool (✅ Completed)
-- [ ] Task 1.2: Fix Creature Lookup Tool
-- [ ] Task 1.3: Fix Equipment Lookup Tool
-- [ ] Task 1.4: Fix Character Option Lookup Tool
-- [ ] All name-based searches return results
+- [x] Task 1.2: Fix Creature Lookup Tool (✅ Completed)
+- [x] Task 1.3: Fix Equipment Lookup Tool (✅ Completed)
+- [x] Task 1.4: Fix Character Option Lookup Tool (✅ Completed)
+- [x] Phase 1 Complete: All name-based search parameters fixed
 - [ ] Equipment lookup works without validation errors
 - [ ] Spell school filtering functions correctly
 - [ ] All existing functionality preserved
