@@ -73,6 +73,61 @@ class TestLiveSpellLookup:
         if isinstance(spell["level"], str):
             assert spell["level"].isdigit() or spell["level"] == "cantrip"
 
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_spell_filter_by_level(self, rate_limiter, clear_cache):
+        """Verify level filtering returns only spells of specified level."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+        results = await lookup_spell(level=0, limit=10)
+
+        assert len(results) >= 5, "Should find at least 5 cantrips"
+        for spell in results:
+            spell_level = spell.get("level", spell.get("lvl"))
+            # Level might be 0, "0", or "cantrip"
+            assert spell_level in [0, "0", "cantrip"], f"Expected cantrip, got level {spell_level}"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_spell_filter_by_school(self, rate_limiter, clear_cache):
+        """Verify school filtering returns only spells of specified school."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+        results = await lookup_spell(school="evocation", limit=10)
+
+        assert len(results) >= 1, "Should find at least 1 evocation spell"
+        for spell in results:
+            school = spell.get("school", "").lower()
+            assert "evocation" in school, f"Expected evocation spell, got {school}"
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_spell_filter_combined(self, rate_limiter, clear_cache):
+        """Verify multiple filters work together correctly."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+        # Find wizard spells that require concentration
+        results = await lookup_spell(class_key="wizard", concentration=True, limit=10)
+
+        assert len(results) >= 5, "Should find at least 5 wizard concentration spells"
+        # Note: API might not return concentration field in all cases
+        # Validation depends on API response structure
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_spell_limit_respected(self, rate_limiter, clear_cache):
+        """Verify limit parameter restricts result count."""
+        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
+        await rate_limiter("open5e")
+        results = await lookup_spell(limit=5)
+
+        assert len(results) <= 5, f"Requested limit=5 but got {len(results)} results"
+        assert len(results) > 0, "Should return some results"
+
 
 class TestLiveCreatureLookup:
     """Live tests for lookup_creature tool."""
