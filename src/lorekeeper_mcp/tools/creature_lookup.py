@@ -75,7 +75,7 @@ async def lookup_creature(
     # Build query parameters
     params: dict[str, Any] = {"limit": limit}
     if name is not None:
-        params["name"] = name
+        params["search"] = name
     if cr is not None:
         params["cr"] = cr
     if cr_min is not None:

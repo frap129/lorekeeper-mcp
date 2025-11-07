@@ -102,3 +102,26 @@ async def test_lookup_creature_timeout(mock_open5e_v1_client):
         pytest.raises(NetworkError),
     ):
         await lookup_creature(name="Dragon")
+
+
+@pytest.mark.asyncio
+async def test_creature_search_parameter():
+    """Test that creature lookup uses 'search' parameter instead of 'name'"""
+    from unittest.mock import AsyncMock, patch
+
+    from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+
+    # Mock the API client to verify parameter usage
+    with patch("lorekeeper_mcp.tools.creature_lookup.Open5eV1Client") as mock_client:
+        mock_instance = AsyncMock()
+        mock_instance.get_monsters.return_value = []
+        mock_client.return_value = mock_instance
+
+        # Call the creature lookup function
+        await lookup_creature(name="dragon")
+
+        # Verify the API was called with search parameter, not name
+        mock_instance.get_monsters.assert_called_once()
+        call_args = mock_instance.get_monsters.call_args
+        assert "search" in call_args.kwargs
+        assert call_args.kwargs["search"] == "dragon"
