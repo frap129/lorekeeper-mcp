@@ -268,7 +268,7 @@ def test_weapon_model_real_api_dagger() -> None:
     weapon = Weapon(**weapon_data)
 
     assert weapon.name == "Dagger"
-    assert weapon.key == "srd-2024_dagger"
+    assert weapon.slug == "srd-2024_dagger"
     assert weapon.damage_dice == "1d4"
     assert weapon.damage_type.name == "Piercing"
     assert weapon.damage_type.key == "piercing"
@@ -321,7 +321,7 @@ def test_weapon_model_greatsword() -> None:
     weapon = Weapon(**weapon_data)
 
     assert weapon.name == "Greatsword"
-    assert weapon.key == "srd-2024_greatsword"
+    assert weapon.slug == "srd-2024_greatsword"
     assert weapon.damage_dice == "2d6"
     assert weapon.damage_type.name == "Slashing"
     assert weapon.is_simple is False

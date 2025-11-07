@@ -32,7 +32,8 @@ class WeaponProperty(PydanticBaseModel):
 class Weapon(BaseModel):
     """Model representing a D&D 5e weapon."""
 
-    key: str = Field(..., description="Unique identifier for the weapon")
+    # slug maps to "key" from the API
+    slug: str = Field(..., alias="key", description="Unique identifier for the weapon")
     damage_dice: str = Field(..., description="Damage dice (e.g., 1d8)")
     damage_type: DamageType = Field(..., description="Damage type object")
     properties: list[WeaponProperty] = Field(
@@ -57,10 +58,12 @@ class Weapon(BaseModel):
 class Armor(BaseModel):
     """Model representing D&D 5e armor."""
 
+    # slug maps to "key" from the API
+    slug: str = Field(..., alias="key", description="Unique identifier for the armor")
     category: str = Field(..., description="Armor category (Light, Medium, Heavy, Shield)")
-    base_ac: int = Field(..., ge=0, description="Base armor class")
-    cost: str = Field(..., description="Cost in gold pieces")
-    weight: float = Field(..., ge=0, description="Weight in pounds")
+    base_ac: int | None = Field(None, ge=0, description="Base armor class")
+    cost: str | None = Field(None, description="Cost in gold pieces")
+    weight: float | None = Field(None, ge=0, description="Weight in pounds")
 
     dex_bonus: bool | None = Field(None, description="Can add Dex bonus to AC")
     max_dex_bonus: int | None = Field(None, description="Maximum Dex bonus")
