@@ -386,3 +386,60 @@ async def test_spell_school_filtering(v2_client: Open5eV2Client) -> None:
     assert len(spells) == 2
     assert all(spell.school == "Evocation" for spell in spells)
     assert {spell.name for spell in spells} == {"Fireball", "Magic Missile"}
+
+
+@respx.mock
+async def test_spell_school_filtering_case_insensitive(
+    v2_client: Open5eV2Client,
+) -> None:
+    """Test that school filtering is case-insensitive.
+
+    The filtering should match spells regardless of the case of the
+    school parameter provided by the user.
+    """
+    respx.get("https://api.open5e.com/v2/spells/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "name": "Fireball",
+                        "slug": "fireball",
+                        "level": 3,
+                        "school": "Evocation",
+                        "casting_time": "1 action",
+                        "range": "150 feet",
+                        "components": "V, S, M",
+                        "duration": "Instantaneous",
+                        "desc": "A bright streak...",
+                    },
+                    {
+                        "name": "Detect Magic",
+                        "slug": "detect-magic",
+                        "level": 1,
+                        "school": "Divination",
+                        "casting_time": "1 action",
+                        "range": "Self",
+                        "components": "V, S",
+                        "duration": "Concentration, up to 10 minutes",
+                        "desc": "For the spell's duration...",
+                    },
+                ]
+            },
+        )
+    )
+
+    # Test with lowercase input
+    spells = await v2_client.get_spells(school="evocation")
+    assert len(spells) == 1
+    assert spells[0].name == "Fireball"
+
+    # Test with uppercase input
+    spells = await v2_client.get_spells(school="EVOCATION")
+    assert len(spells) == 1
+    assert spells[0].name == "Fireball"
+
+    # Test with mixed case input
+    spells = await v2_client.get_spells(school="EvOcAtIoN")
+    assert len(spells) == 1
+    assert spells[0].name == "Fireball"

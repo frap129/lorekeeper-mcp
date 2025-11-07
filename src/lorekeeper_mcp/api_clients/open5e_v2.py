@@ -64,7 +64,7 @@ class Open5eV2Client(BaseHttpClient):
 
         # Client-side filtering for school (not supported server-side)
         if school:
-            spells = [spell for spell in spells if spell.school == school]
+            spells = [spell for spell in spells if spell.school.lower() == school.lower()]
 
         return spells
 
