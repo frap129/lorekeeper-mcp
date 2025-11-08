@@ -12,6 +12,29 @@ This guide provides information for contributors to the LoreKeeper MCP project.
 - [Pull Request Process](#pull-request-process)
 - [Community Guidelines](#community-guidelines)
 
+## 📋 OpenSpec Workflow
+
+This project uses OpenSpec for specification-driven development:
+
+### Before Contributing
+1. **Review Specifications**: Check `openspec/specs/` for relevant specifications
+2. **Understand Context**: Read related design documents and existing change records
+3. **Follow Patterns**: Use existing specs as templates for structure and format
+
+### For New Features
+1. **Create Specification**: New features require a spec in `openspec/specs/`
+2. **Follow Template**: Use existing specs as templates for structure and format
+3. **Include Design**: Add design documents explaining architectural decisions
+4. **Plan Tasks**: Break down implementation into clear, trackable tasks
+
+### Change Management
+- All significant changes should be tracked in `openspec/changes/`
+- Use the established format: proposal → design → plan → tasks
+- Update specifications as implementations evolve
+- Archive completed changes with full context
+
+This ensures all development is well-documented, reviewed, and aligned with project goals.
+
 ## Getting Started
 
 ### Prerequisites

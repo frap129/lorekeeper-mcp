@@ -154,6 +154,23 @@ The project follows a strategic API assignment:
 
 See [docs/tools.md](docs/tools.md) for detailed API mapping and implementation notes.
 
+## 📋 OpenSpec Integration
+
+This project uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) as its core development tooling for specification management and change tracking. OpenSpec provides:
+
+- **Structured Specifications**: All features, APIs, and architectural changes are documented in detailed specs
+- **Change Management**: Comprehensive change tracking with proposals, designs, and implementation tasks
+- **Living Documentation**: Specifications evolve alongside the codebase, ensuring documentation stays current
+- **Development Workflow**: Integration between specs, implementation, and testing
+
+The `openspec/` directory contains:
+- Current specifications for all project components
+- Historical change records with full context
+- Design documents and implementation plans
+- Task breakdowns for development work
+
+When contributing, please review relevant specifications in `openspec/` and follow the established change management process.
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
