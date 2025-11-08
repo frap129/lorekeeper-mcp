@@ -4,11 +4,12 @@ from unittest.mock import patch
 
 import pytest
 
+from lorekeeper_mcp.tools.rule_lookup import lookup_rule
+
 
 @pytest.mark.asyncio
 async def test_lookup_condition(mock_open5e_v2_client):
     """Test looking up a condition."""
-    from lorekeeper_mcp.tools.rule_lookup import lookup_rule
 
     mock_open5e_v2_client.get_conditions.return_value = [
         {"name": "Grappled", "desc": "A grappled creature's speed..."}
@@ -28,7 +29,6 @@ async def test_lookup_condition(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_lookup_damage_type(mock_dnd5e_client):
     """Test looking up a damage type."""
-    from lorekeeper_mcp.tools.rule_lookup import lookup_rule
 
     mock_dnd5e_client.get_damage_types.return_value = [
         {"name": "Radiant", "desc": "Radiant damage..."}
@@ -48,7 +48,6 @@ async def test_lookup_damage_type(mock_dnd5e_client):
 @pytest.mark.asyncio
 async def test_lookup_skill(mock_dnd5e_client):
     """Test looking up a skill."""
-    from lorekeeper_mcp.tools.rule_lookup import lookup_rule
 
     mock_dnd5e_client.get_skills.return_value = [{"name": "Stealth", "ability_score": "dexterity"}]
 
@@ -65,7 +64,6 @@ async def test_lookup_skill(mock_dnd5e_client):
 @pytest.mark.asyncio
 async def test_lookup_rules_with_section(mock_dnd5e_client):
     """Test looking up rules with section filter."""
-    from lorekeeper_mcp.tools.rule_lookup import lookup_rule
 
     mock_dnd5e_client.get_rules.return_value = [{"name": "Combat", "desc": "Combat rules..."}]
 
@@ -82,7 +80,6 @@ async def test_lookup_rules_with_section(mock_dnd5e_client):
 @pytest.mark.asyncio
 async def test_lookup_all_reference_types(mock_dnd5e_client):
     """Test all valid reference types."""
-    from lorekeeper_mcp.tools.rule_lookup import lookup_rule
 
     mock_response = []
 
@@ -118,7 +115,6 @@ async def test_lookup_all_reference_types(mock_dnd5e_client):
 @pytest.mark.asyncio
 async def test_lookup_invalid_rule_type():
     """Test invalid rule type raises ValueError."""
-    from lorekeeper_mcp.tools.rule_lookup import lookup_rule
 
     with pytest.raises(ValueError, match="Invalid type"):
         await lookup_rule(rule_type="invalid-rule-type")

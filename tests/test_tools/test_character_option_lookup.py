@@ -5,11 +5,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from lorekeeper_mcp.tools.character_option_lookup import OptionType, lookup_character_option
+
 
 @pytest.mark.asyncio
 async def test_lookup_class(mock_open5e_v1_client):
     """Test looking up a class."""
-    from lorekeeper_mcp.tools.character_option_lookup import lookup_character_option
 
     mock_open5e_v1_client.get_classes.return_value = [{"name": "Paladin", "hit_dice": "1d10"}]
 
@@ -27,7 +28,6 @@ async def test_lookup_class(mock_open5e_v1_client):
 @pytest.mark.asyncio
 async def test_lookup_race(mock_open5e_v1_client):
     """Test looking up a race."""
-    from lorekeeper_mcp.tools.character_option_lookup import lookup_character_option
 
     mock_open5e_v1_client.get_races.return_value = [{"name": "Elf", "speed": 30}]
 
@@ -45,7 +45,6 @@ async def test_lookup_race(mock_open5e_v1_client):
 @pytest.mark.asyncio
 async def test_lookup_background(mock_open5e_v2_client):
     """Test looking up a background."""
-    from lorekeeper_mcp.tools.character_option_lookup import lookup_character_option
 
     mock_open5e_v2_client.get_backgrounds.return_value = [{"name": "Acolyte"}]
 
@@ -63,7 +62,6 @@ async def test_lookup_background(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_lookup_feat(mock_open5e_v2_client):
     """Test looking up a feat."""
-    from lorekeeper_mcp.tools.character_option_lookup import lookup_character_option
 
     mock_open5e_v2_client.get_feats.return_value = [{"name": "Sharpshooter"}]
 
@@ -81,10 +79,6 @@ async def test_lookup_feat(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_lookup_invalid_type():
     """Test invalid type parameter raises ValueError."""
-    from lorekeeper_mcp.tools.character_option_lookup import (
-        OptionType,
-        lookup_character_option,
-    )
 
     with pytest.raises(ValueError, match="Invalid type"):
         await lookup_character_option(type=cast(OptionType, cast(object, "invalid-type")))
@@ -93,7 +87,6 @@ async def test_lookup_invalid_type():
 @pytest.mark.asyncio
 async def test_character_option_search_parameter():
     """Test that character option lookup uses 'search' parameter instead of 'name'"""
-    from lorekeeper_mcp.tools.character_option_lookup import lookup_character_option
 
     # Test with class type using v1 client
     with patch("lorekeeper_mcp.tools.character_option_lookup.Open5eV1Client") as mock_client:

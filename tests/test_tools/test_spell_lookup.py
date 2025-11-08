@@ -1,14 +1,17 @@
 """Tests for spell lookup tool."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
+
+from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
+from lorekeeper_mcp.api_clients.models import Spell
+from lorekeeper_mcp.tools.spell_lookup import clear_spell_cache, lookup_spell
 
 
 @pytest.mark.asyncio
 async def test_lookup_spell_by_name(mock_open5e_v2_client):
     """Test looking up spell by exact name."""
-    from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
     with patch(
         "lorekeeper_mcp.tools.spell_lookup.Open5eV2Client",
@@ -26,7 +29,6 @@ async def test_lookup_spell_by_name(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_lookup_spell_with_filters(mock_open5e_v2_client):
     """Test spell lookup with multiple filters."""
-    from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
     with patch(
         "lorekeeper_mcp.tools.spell_lookup.Open5eV2Client",
@@ -49,7 +51,6 @@ async def test_lookup_spell_with_filters(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_lookup_spell_empty_results(mock_open5e_v2_client):
     """Test spell lookup with no results."""
-    from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
     mock_open5e_v2_client.get_spells.return_value = []
 
@@ -65,8 +66,6 @@ async def test_lookup_spell_empty_results(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_lookup_spell_api_error(mock_open5e_v2_client):
     """Test spell lookup handles API errors gracefully."""
-    from lorekeeper_mcp.api_clients.exceptions import ApiError
-    from lorekeeper_mcp.tools.spell_lookup import clear_spell_cache, lookup_spell
 
     clear_spell_cache()
     mock_open5e_v2_client.get_spells.side_effect = ApiError("API unavailable")
@@ -84,8 +83,6 @@ async def test_lookup_spell_api_error(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_lookup_spell_network_error(mock_open5e_v2_client):
     """Test spell lookup handles network errors."""
-    from lorekeeper_mcp.api_clients.exceptions import NetworkError
-    from lorekeeper_mcp.tools.spell_lookup import clear_spell_cache, lookup_spell
 
     clear_spell_cache()
     mock_open5e_v2_client.get_spells.side_effect = NetworkError("Connection timeout")
@@ -103,10 +100,6 @@ async def test_lookup_spell_network_error(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_spell_search_parameter():
     """Test that spell lookup filters by name client-side"""
-    from unittest.mock import AsyncMock, patch
-
-    from lorekeeper_mcp.api_clients.models import Spell
-    from lorekeeper_mcp.tools.spell_lookup import clear_spell_cache, lookup_spell
 
     clear_spell_cache()
 

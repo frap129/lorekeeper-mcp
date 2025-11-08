@@ -1,14 +1,16 @@
 """Tests for equipment lookup tool."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
+
+from lorekeeper_mcp.api_clients.exceptions import ParseError
+from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
 
 @pytest.mark.asyncio
 async def test_lookup_weapon(mock_open5e_v2_client):
     """Test looking up a weapon."""
-    from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
     mock_open5e_v2_client.get_weapons.return_value = {
         "count": 1,
@@ -29,7 +31,6 @@ async def test_lookup_weapon(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_lookup_armor(mock_open5e_v2_client):
     """Test looking up armor."""
-    from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
     mock_open5e_v2_client.get_armor.return_value = {
         "count": 1,
@@ -50,7 +51,6 @@ async def test_lookup_armor(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_lookup_simple_weapons(mock_open5e_v2_client):
     """Test filtering for simple weapons."""
-    from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
     mock_open5e_v2_client.get_weapons.return_value = {
         "count": 2,
@@ -73,7 +73,6 @@ async def test_lookup_simple_weapons(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_lookup_all_equipment_types(mock_open5e_v1_client, mock_open5e_v2_client):
     """Test looking up all equipment types."""
-    from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
     mock_open5e_v2_client.get_weapons.return_value = {
         "count": 1,
@@ -111,8 +110,6 @@ async def test_lookup_all_equipment_types(mock_open5e_v1_client, mock_open5e_v2_
 @pytest.mark.asyncio
 async def test_lookup_equipment_parse_error(mock_open5e_v2_client):
     """Test equipment lookup handles malformed responses."""
-    from lorekeeper_mcp.api_clients.exceptions import ParseError
-    from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
     mock_open5e_v2_client.get_weapons.side_effect = ParseError(
         "Invalid JSON response", raw_data="<html>Error</html>"
@@ -131,9 +128,6 @@ async def test_lookup_equipment_parse_error(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_equipment_search_parameter():
     """Test that equipment lookup uses 'search' parameter instead of 'name'"""
-    from unittest.mock import AsyncMock, patch
-
-    from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
     # Mock the API client to verify parameter usage
     with patch("lorekeeper_mcp.tools.equipment_lookup.Open5eV2Client") as mock_client:

@@ -1,5 +1,6 @@
 """Test live testing fixtures."""
 
+import time
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,6 @@ async def test_live_db_creates_temp_database(live_db, tmp_path):
 @pytest.mark.asyncio
 async def test_rate_limiter_tracks_calls(rate_limiter):
     """Verify rate_limiter fixture enforces delays between calls."""
-    import time
 
     # First call should complete immediately
     start = time.time()
@@ -36,7 +36,6 @@ async def test_rate_limiter_tracks_calls(rate_limiter):
 @pytest.mark.asyncio
 async def test_rate_limiter_separate_per_api(rate_limiter):
     """Verify rate_limiter tracks separate APIs independently."""
-    import time
 
     # Call first API
     await rate_limiter("api1", min_delay=0.1)

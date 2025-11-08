@@ -5,11 +5,18 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from lorekeeper_mcp.tools import (
+    lookup_character_option,
+    lookup_creature,
+    lookup_equipment,
+    lookup_rule,
+    lookup_spell,
+)
+
 
 @pytest.mark.asyncio
 async def test_full_spell_lookup_workflow(mock_open5e_v2_client, mock_spell_response):
     """Test complete spell lookup workflow."""
-    from lorekeeper_mcp.tools import lookup_spell
 
     with patch(
         "lorekeeper_mcp.tools.spell_lookup.Open5eV2Client",
@@ -34,7 +41,6 @@ async def test_full_spell_lookup_workflow(mock_open5e_v2_client, mock_spell_resp
 @pytest.mark.asyncio
 async def test_full_creature_lookup_workflow(mock_open5e_v1_client, mock_spell_response):
     """Test complete creature lookup workflow."""
-    from lorekeeper_mcp.tools import lookup_creature
 
     with patch(
         "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
@@ -61,13 +67,6 @@ async def test_full_creature_lookup_workflow(mock_open5e_v1_client, mock_spell_r
 @pytest.mark.asyncio
 async def test_all_tools_callable():
     """Verify all tools can be imported and called."""
-    from lorekeeper_mcp.tools import (
-        lookup_character_option,
-        lookup_creature,
-        lookup_equipment,
-        lookup_rule,
-        lookup_spell,
-    )
 
     # All should be async callables
     assert callable(lookup_spell)
@@ -87,7 +86,6 @@ async def test_all_tools_callable():
 @pytest.mark.asyncio
 async def test_character_option_lookup_workflow(mock_open5e_v1_client):
     """Test character option lookup workflow."""
-    from lorekeeper_mcp.tools import lookup_character_option
 
     mock_class = MagicMock()
     mock_class.name = "Wizard"
@@ -112,7 +110,6 @@ async def test_character_option_lookup_workflow(mock_open5e_v1_client):
 @pytest.mark.asyncio
 async def test_equipment_lookup_workflow(mock_open5e_v2_client):
     """Test equipment lookup workflow."""
-    from lorekeeper_mcp.tools import lookup_equipment
 
     mock_weapon = MagicMock()
     mock_weapon.name = "Longsword"
@@ -139,7 +136,6 @@ async def test_equipment_lookup_workflow(mock_open5e_v2_client):
 @pytest.mark.asyncio
 async def test_rule_lookup_workflow():
     """Test rule lookup workflow."""
-    from lorekeeper_mcp.tools import lookup_rule
 
     mock_condition = MagicMock()
     mock_condition.name = "Grappled"

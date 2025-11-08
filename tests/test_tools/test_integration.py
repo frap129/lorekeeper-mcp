@@ -1,9 +1,10 @@
 """Integration tests for MCP tool registration."""
 
+from lorekeeper_mcp.server import mcp
+
 
 def test_all_tools_registered():
     """Verify all 5 tools are registered with FastMCP."""
-    from lorekeeper_mcp.server import mcp
 
     # Get all registered tools from the tool manager
     tools = mcp._tool_manager._tools
@@ -22,7 +23,6 @@ def test_all_tools_registered():
 
 def test_tool_schemas_valid():
     """Verify tool schemas are properly defined."""
-    from lorekeeper_mcp.server import mcp
 
     tools = mcp._tool_manager._tools
 

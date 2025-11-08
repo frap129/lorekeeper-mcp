@@ -1,6 +1,11 @@
 """Rule lookup tool."""
 
-from typing import Any, Literal, assert_never
+from typing import Any, Literal
+
+try:
+    from typing import assert_never
+except ImportError:
+    from typing import assert_never
 
 from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client

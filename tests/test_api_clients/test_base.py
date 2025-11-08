@@ -10,6 +10,7 @@ import httpx
 import pytest
 import respx
 
+import lorekeeper_mcp.config
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
 from lorekeeper_mcp.cache.db import bulk_cache_entities, get_cached, get_cached_entity, set_cached
@@ -177,7 +178,6 @@ async def client_with_db():
         await init_entity_cache(str(db_path))
 
         # Temporarily override settings
-        import lorekeeper_mcp.config
 
         original_path = lorekeeper_mcp.config.settings.db_path
         lorekeeper_mcp.config.settings.db_path = db_path

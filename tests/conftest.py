@@ -8,9 +8,11 @@ from typing import Any
 
 import pytest
 
-from lorekeeper_mcp.cache.db import init_db
+from lorekeeper_mcp.cache.db import cleanup_expired, init_db
 from lorekeeper_mcp.config import settings
 from lorekeeper_mcp.server import mcp
+from lorekeeper_mcp.tools.creature_lookup import clear_creature_cache
+from lorekeeper_mcp.tools.spell_lookup import clear_spell_cache
 
 
 @pytest.fixture
@@ -118,9 +120,6 @@ def cache_stats() -> CacheStats:
 @pytest.fixture
 async def clear_cache(live_db: str) -> AsyncGenerator[None]:
     """Clear cache before test execution."""
-    from lorekeeper_mcp.cache.db import cleanup_expired
-    from lorekeeper_mcp.tools.creature_lookup import clear_creature_cache
-    from lorekeeper_mcp.tools.spell_lookup import clear_spell_cache
 
     # Clear in-memory caches
     clear_spell_cache()

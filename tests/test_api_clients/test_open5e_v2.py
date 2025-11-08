@@ -1,19 +1,21 @@
 """Tests for Open5eV2Client."""
 
 import tempfile
+from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import httpx
 import pytest
 import respx
 
+import lorekeeper_mcp.config
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.cache.db import get_cached_entity
 from lorekeeper_mcp.cache.schema import init_entity_cache
 
 
 @pytest.fixture
-async def v2_client(test_db) -> Open5eV2Client:
+async def v2_client(test_db) -> AsyncGenerator[Open5eV2Client]:
     """Create Open5eV2Client for testing."""
     client = Open5eV2Client()
     yield client
@@ -144,13 +146,11 @@ async def test_get_armor(v2_client: Open5eV2Client) -> None:
 
 
 @pytest.fixture
-async def v2_client_with_cache():
+async def v2_client_with_cache() -> AsyncGenerator[Open5eV2Client]:
     """Create V2 client with test cache."""
     with tempfile.TemporaryDirectory() as tmpdir:
         db_path = Path(tmpdir) / "test.db"
         await init_entity_cache(str(db_path))
-
-        import lorekeeper_mcp.config
 
         original = lorekeeper_mcp.config.settings.db_path
         lorekeeper_mcp.config.settings.db_path = db_path

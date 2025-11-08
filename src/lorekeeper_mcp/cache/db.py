@@ -7,7 +7,13 @@ from typing import Any, cast
 
 import aiosqlite
 
-from lorekeeper_mcp.cache.schema import ENTITY_TYPES, INDEXED_FIELDS, SCHEMA_VERSION, get_table_name
+from lorekeeper_mcp.cache.schema import (
+    ENTITY_TYPES,
+    INDEXED_FIELDS,
+    SCHEMA_VERSION,
+    get_table_name,
+    init_entity_cache,
+)
 from lorekeeper_mcp.config import settings
 
 
@@ -17,7 +23,6 @@ async def init_db() -> None:
     Creates both entity cache tables and legacy api_cache table for backward compatibility.
     Enables WAL mode for concurrent access.
     """
-    from lorekeeper_mcp.cache.schema import init_entity_cache
 
     # Ensure parent directory exists
     db_path = Path(settings.db_path)

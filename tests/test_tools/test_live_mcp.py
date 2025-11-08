@@ -22,6 +22,12 @@ import time
 
 import pytest
 
+from lorekeeper_mcp.tools.character_option_lookup import lookup_character_option
+from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
+from lorekeeper_mcp.tools.rule_lookup import lookup_rule
+from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+
 
 class TestLiveSpellLookup:
     """Live tests for lookup_spell tool."""
@@ -30,7 +36,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_by_name_found(self, rate_limiter, clear_cache):
         """Verify well-known spell can be found by name."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
         results = await lookup_spell(name="Magic Missile")
@@ -46,7 +51,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_by_name_not_found(self, rate_limiter, clear_cache):
         """Verify non-existent spell returns empty results."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
         results = await lookup_spell(name="NonexistentSpell12345XYZ")
@@ -57,7 +61,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_basic_fields_present(self, rate_limiter, clear_cache):
         """Verify spell response contains expected schema fields."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
         results = await lookup_spell(name="Fireball")
@@ -79,7 +82,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_filter_by_level(self, rate_limiter, clear_cache):
         """Verify level filtering returns only spells of specified level."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
         results = await lookup_spell(level=0, limit=10)
@@ -94,7 +96,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_filter_by_school(self, rate_limiter, clear_cache):
         """Verify school filtering returns only spells of specified school."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
         results = await lookup_spell(school="evocation", limit=10)
@@ -108,7 +109,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_filter_combined(self, rate_limiter, clear_cache):
         """Verify multiple filters work together correctly."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
         # Find wizard spells that require concentration
@@ -122,7 +122,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_limit_respected(self, rate_limiter, clear_cache):
         """Verify limit parameter restricts result count."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
         results = await lookup_spell(limit=5)
@@ -134,7 +133,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_cache_miss_then_hit(self, rate_limiter, clear_cache):
         """Verify cache behavior on duplicate queries."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
 
@@ -157,7 +155,6 @@ class TestLiveSpellLookup:
     @pytest.mark.slow
     async def test_spell_cache_performance(self, rate_limiter, clear_cache):
         """Verify cached queries return consistent results."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
 
@@ -177,7 +174,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_different_queries_different_cache(self, rate_limiter, clear_cache):
         """Verify different queries use separate cache entries."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
 
@@ -210,7 +206,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_invalid_school(self, rate_limiter, clear_cache):
         """Verify graceful handling of invalid school parameter."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
 
@@ -224,7 +219,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_invalid_limit(self, rate_limiter, clear_cache):
         """Verify handling of invalid limit parameter."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
 
@@ -241,7 +235,6 @@ class TestLiveSpellLookup:
     @pytest.mark.asyncio
     async def test_spell_empty_results(self, rate_limiter, clear_cache):
         """Verify handling of queries with no matches."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
 
@@ -259,7 +252,6 @@ class TestLiveCreatureLookup:
     @pytest.mark.asyncio
     async def test_creature_by_name_found(self, rate_limiter, clear_cache):
         """Verify creatures can be found by name search."""
-        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
         await rate_limiter("open5e")
         results = await lookup_creature(name="Goblin", limit=50)
@@ -273,7 +265,6 @@ class TestLiveCreatureLookup:
     @pytest.mark.asyncio
     async def test_creature_by_name_not_found(self, rate_limiter, clear_cache):
         """Verify non-existent creature returns empty results."""
-        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
         await rate_limiter("open5e")
         results = await lookup_creature(name="NonexistentCreature12345XYZ")
@@ -284,7 +275,6 @@ class TestLiveCreatureLookup:
     @pytest.mark.asyncio
     async def test_creature_basic_fields_present(self, rate_limiter, clear_cache):
         """Verify creature response contains expected schema fields."""
-        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
         await rate_limiter("open5e")
         results = await lookup_creature(name="Goblin")
@@ -303,7 +293,6 @@ class TestLiveCreatureLookup:
     @pytest.mark.asyncio
     async def test_creature_filter_by_cr(self, rate_limiter, clear_cache):
         """Verify CR filtering returns creatures of specified challenge rating."""
-        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
         await rate_limiter("open5e")
         results = await lookup_creature(cr=1, limit=10)
@@ -318,7 +307,6 @@ class TestLiveCreatureLookup:
     @pytest.mark.asyncio
     async def test_creature_filter_by_type(self, rate_limiter, clear_cache):
         """Verify type filtering returns creatures of specified type."""
-        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
         await rate_limiter("open5e")
         results = await lookup_creature(type="Beast", limit=10)
@@ -332,7 +320,6 @@ class TestLiveCreatureLookup:
     @pytest.mark.asyncio
     async def test_creature_filter_by_size(self, rate_limiter, clear_cache):
         """Verify size filtering returns creatures of specified size."""
-        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
         await rate_limiter("open5e")
         results = await lookup_creature(size="Large", limit=10)
@@ -346,7 +333,6 @@ class TestLiveCreatureLookup:
     @pytest.mark.asyncio
     async def test_creature_cache_behavior(self, rate_limiter, clear_cache):
         """Verify cache hit/miss behavior for creature lookups."""
-        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
         await rate_limiter("open5e")
 
@@ -361,7 +347,6 @@ class TestLiveCreatureLookup:
     @pytest.mark.asyncio
     async def test_creature_invalid_type(self, rate_limiter, clear_cache):
         """Verify handling of invalid creature type."""
-        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
         await rate_limiter("open5e")
         results = await lookup_creature(type="InvalidType123")
@@ -373,7 +358,6 @@ class TestLiveCreatureLookup:
     @pytest.mark.asyncio
     async def test_creature_empty_results(self, rate_limiter, clear_cache):
         """Verify handling of no matches."""
-        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
         await rate_limiter("open5e")
         results = await lookup_creature(name="ZZZNonexistent", cr=30)
@@ -389,7 +373,6 @@ class TestLiveEquipmentLookup:
     @pytest.mark.asyncio
     async def test_equipment_weapon_lookup(self, rate_limiter, clear_cache):
         """Verify weapon lookup returns weapons."""
-        from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
         await rate_limiter("open5e")
         results = await lookup_equipment(type="weapon", limit=10)
@@ -404,7 +387,6 @@ class TestLiveEquipmentLookup:
     @pytest.mark.asyncio
     async def test_equipment_armor_lookup(self, rate_limiter, clear_cache):
         """Verify armor lookup with AC properties."""
-        from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
         await rate_limiter("open5e")
         results = await lookup_equipment(type="armor", limit=10)
@@ -415,7 +397,6 @@ class TestLiveEquipmentLookup:
     @pytest.mark.asyncio
     async def test_equipment_cache_behavior(self, rate_limiter, clear_cache):
         """Verify cache behavior."""
-        from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
         await rate_limiter("open5e")
 
@@ -433,9 +414,6 @@ class TestLiveCharacterOptionLookup:
     @pytest.mark.asyncio
     async def test_character_option_class_lookup(self, rate_limiter, clear_cache):
         """Verify class lookup returns expected classes."""
-        from lorekeeper_mcp.tools.character_option_lookup import (
-            lookup_character_option,
-        )
 
         await rate_limiter("open5e")
         results = await lookup_character_option(type="class")
@@ -449,9 +427,6 @@ class TestLiveCharacterOptionLookup:
     @pytest.mark.asyncio
     async def test_character_option_race_lookup(self, rate_limiter, clear_cache):
         """Verify race lookup returns expected races."""
-        from lorekeeper_mcp.tools.character_option_lookup import (
-            lookup_character_option,
-        )
 
         await rate_limiter("open5e")
         results = await lookup_character_option(type="race")
@@ -465,9 +440,6 @@ class TestLiveCharacterOptionLookup:
     @pytest.mark.asyncio
     async def test_character_option_feat_lookup(self, rate_limiter, clear_cache):
         """Verify feat lookup returns expected feats."""
-        from lorekeeper_mcp.tools.character_option_lookup import (
-            lookup_character_option,
-        )
 
         await rate_limiter("open5e")
         results = await lookup_character_option(type="feat")
@@ -482,7 +454,6 @@ class TestLiveRuleLookup:
     @pytest.mark.asyncio
     async def test_rule_condition_lookup(self, rate_limiter, clear_cache):
         """Verify condition lookup returns expected conditions."""
-        from lorekeeper_mcp.tools.rule_lookup import lookup_rule
 
         await rate_limiter("open5e")
         results = await lookup_rule(rule_type="condition")
@@ -496,7 +467,6 @@ class TestLiveRuleLookup:
     @pytest.mark.asyncio
     async def test_rule_skill_lookup(self, rate_limiter, clear_cache):
         """Verify skill lookup returns exactly 18 skills."""
-        from lorekeeper_mcp.tools.rule_lookup import lookup_rule
 
         await rate_limiter("open5e")
         results = await lookup_rule(rule_type="skill")
@@ -511,7 +481,6 @@ class TestLiveRuleLookup:
     @pytest.mark.asyncio
     async def test_rule_ability_score_lookup(self, rate_limiter, clear_cache):
         """Verify ability score lookup returns exactly 6 abilities."""
-        from lorekeeper_mcp.tools.rule_lookup import lookup_rule
 
         await rate_limiter("open5e")
         results = await lookup_rule(rule_type="ability-score")
@@ -532,8 +501,6 @@ class TestLiveCacheValidation:
     @pytest.mark.asyncio
     async def test_cache_isolation_across_tools(self, rate_limiter, clear_cache):
         """Verify different tools use separate cache entries."""
-        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
 
@@ -549,7 +516,6 @@ class TestLiveCacheValidation:
     @pytest.mark.asyncio
     async def test_cache_key_uniqueness(self, rate_limiter, clear_cache):
         """Verify different parameters create different cache keys."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
 
@@ -582,7 +548,6 @@ class TestLivePerformance:
     @pytest.mark.asyncio
     async def test_uncached_call_performance(self, rate_limiter, clear_cache):
         """Verify API calls complete within time limit."""
-        from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 
         await rate_limiter("open5e")
 
@@ -597,7 +562,6 @@ class TestLivePerformance:
     @pytest.mark.asyncio
     async def test_cached_call_performance(self, rate_limiter, clear_cache):
         """Verify cached calls are fast."""
-        from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
         await rate_limiter("open5e")
 

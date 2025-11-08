@@ -1,14 +1,16 @@
 """Tests for creature lookup tool."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
+
+from lorekeeper_mcp.api_clients.exceptions import NetworkError
+from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
 
 @pytest.mark.asyncio
 async def test_lookup_creature_by_name(mock_open5e_v1_client):
     """Test looking up creature by exact name."""
-    from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
     with patch(
         "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
@@ -25,7 +27,6 @@ async def test_lookup_creature_by_name(mock_open5e_v1_client):
 @pytest.mark.asyncio
 async def test_lookup_creature_by_cr_and_type(mock_open5e_v1_client):
     """Test creature lookup with CR and type filters."""
-    from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
     with patch(
         "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
@@ -42,7 +43,6 @@ async def test_lookup_creature_by_cr_and_type(mock_open5e_v1_client):
 @pytest.mark.asyncio
 async def test_lookup_creature_fractional_cr(mock_open5e_v1_client):
     """Test creature lookup with fractional CR."""
-    from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
     with patch(
         "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
@@ -57,7 +57,6 @@ async def test_lookup_creature_fractional_cr(mock_open5e_v1_client):
 @pytest.mark.asyncio
 async def test_lookup_creature_cr_range(mock_open5e_v1_client):
     """Test creature lookup with CR range."""
-    from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
     with patch(
         "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
@@ -73,7 +72,6 @@ async def test_lookup_creature_cr_range(mock_open5e_v1_client):
 @pytest.mark.asyncio
 async def test_lookup_creature_empty_results(mock_open5e_v1_client):
     """Test creature lookup with no results."""
-    from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
     mock_open5e_v1_client.get_monsters.return_value = []
 
@@ -89,8 +87,6 @@ async def test_lookup_creature_empty_results(mock_open5e_v1_client):
 @pytest.mark.asyncio
 async def test_lookup_creature_timeout(mock_open5e_v1_client):
     """Test creature lookup handles timeouts."""
-    from lorekeeper_mcp.api_clients.exceptions import NetworkError
-    from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
     mock_open5e_v1_client.get_monsters.side_effect = NetworkError("Request timeout")
 
@@ -107,9 +103,6 @@ async def test_lookup_creature_timeout(mock_open5e_v1_client):
 @pytest.mark.asyncio
 async def test_creature_search_parameter():
     """Test that creature lookup uses 'search' parameter instead of 'name'"""
-    from unittest.mock import AsyncMock, patch
-
-    from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
     # Mock the API client to verify parameter usage
     with patch("lorekeeper_mcp.tools.creature_lookup.Open5eV1Client") as mock_client:
