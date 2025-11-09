@@ -48,7 +48,7 @@ async def test_rule_repository_search_damage_types(
     mock_cache.get_entities.return_value = [{"name": "Fire", "slug": "fire"}]
 
     repo = RuleRepository(client=mock_client, cache=mock_cache)
-    results = await repo.search(rule_type="damage_type")
+    results = await repo.search(rule_type="damage-type")
 
     assert len(results) == 1
     mock_client.get_damage_types.assert_not_called()

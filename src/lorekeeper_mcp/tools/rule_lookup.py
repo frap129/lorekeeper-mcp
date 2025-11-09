@@ -1,14 +1,8 @@
-"""Rule lookup tool."""
+"""Rule lookup tool with repository pattern."""
 
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
-try:
-    from typing import assert_never
-except ImportError:
-    from typing import assert_never
-
-from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
-from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+from lorekeeper_mcp.repositories.factory import RepositoryFactory
 
 RuleType = Literal[
     "rule",
@@ -29,6 +23,7 @@ async def lookup_rule(
     name: str | None = None,
     section: str | None = None,
     limit: int = 20,
+    repository: Any = None,
 ) -> list[dict[str, Any]]:
     """
     Look up D&D 5e game rules, conditions, and reference information.
@@ -36,6 +31,7 @@ async def lookup_rule(
     This comprehensive reference tool provides access to core rules, special conditions,
     damage types, skills, and game mechanics. Essential for resolving rules questions
     during play or character building. All data is sourced from official D&D 5e materials.
+    Uses the repository pattern with database caching for improved performance.
 
     Examples:
         - lookup_rule(rule_type="condition", name="grappled") - Find grappled condition rules
@@ -73,6 +69,8 @@ async def lookup_rule(
             Ignored for other rule types.
         limit: Maximum number of results to return. Default 20 for performance.
             Examples: 1, 10, 50
+        repository: Optional RuleRepository instance for dependency injection.
+            Defaults to RepositoryFactory.create_rule_repository()
 
     Returns:
         List of rule/reference dictionaries. Structure varies by rule_type:
@@ -143,42 +141,18 @@ async def lookup_rule(
             f"Invalid type '{rule_type}'. Must be one of: {', '.join(sorted(valid_types))}"
         )
 
-    params: dict[str, Any] = {}
+    # Use provided repository or create default
+    if repository is None:
+        repository = RepositoryFactory.create_rule_repository()
+
+    # Build query parameters for repository search
+    params: dict[str, Any] = {"rule_type": rule_type}
     if name is not None:
         params["name"] = name
     if limit is not None:
         params["limit"] = limit
-
-    # Route to appropriate client and endpoint
-    if rule_type == "condition":
-        client = Open5eV2Client()
-        return await client.get_conditions(**params)
-
-    # All other types use D&D 5e API
-    dnd5e_client = Dnd5eApiClient()
-
-    # Add section parameter for rules
     if rule_type == "rule" and section is not None:
         params["section"] = section
 
-    # Call appropriate method
-    if rule_type == "rule":
-        return await dnd5e_client.get_rules(**params)
-    if rule_type == "damage-type":
-        return await dnd5e_client.get_damage_types(**params)
-    if rule_type == "weapon-property":
-        return await dnd5e_client.get_weapon_properties(**params)
-    if rule_type == "skill":
-        return await dnd5e_client.get_skills(**params)
-    if rule_type == "ability-score":
-        return await dnd5e_client.get_ability_scores(**params)
-    if rule_type == "magic-school":
-        return await dnd5e_client.get_magic_schools(**params)
-    if rule_type == "language":
-        return await dnd5e_client.get_languages(**params)
-    if rule_type == "proficiency":
-        return await dnd5e_client.get_proficiencies(**params)
-    if rule_type == "alignment":
-        return await dnd5e_client.get_alignments(**params)
-
-    assert_never(rule_type)
+    # Fetch rules from repository with routing
+    return cast(list[dict[str, Any]], await repository.search(**params))

@@ -211,7 +211,7 @@ This task list outlines the concrete work items needed to implement the reposito
    - Update unit tests to use repository mocks
    - **Validation**: `uv run pytest tests/test_tools/test_creature_lookup.py -v`
 
-- [ ] **Task 3.3**: Migrate equipment_lookup tool
+- [x] **Task 3.3**: Migrate equipment_lookup tool
   - Add optional `repository` parameter to `lookup_equipment()`
   - Use `RepositoryFactory.create_equipment_repository()` as default
   - Remove direct client instantiation
@@ -219,7 +219,7 @@ This task list outlines the concrete work items needed to implement the reposito
   - Update unit tests to use repository mocks
   - **Validation**: `uv run pytest tests/test_tools/test_equipment_lookup.py -v`
 
-- [ ] **Task 3.4**: Migrate character_option_lookup tool
+- [x] **Task 3.4**: Migrate character_option_lookup tool
   - Add optional `repository` parameter to `lookup_character_option()`
   - Use `RepositoryFactory.create_character_option_repository()` as default
   - Remove direct client instantiation

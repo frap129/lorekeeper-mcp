@@ -137,23 +137,14 @@ async def test_equipment_lookup_workflow(mock_open5e_v2_client):
 async def test_rule_lookup_workflow():
     """Test rule lookup workflow."""
 
-    mock_condition = MagicMock()
-    mock_condition.name = "Grappled"
-    mock_condition.desc = "A grappled creature..."
+    mock_repository = MagicMock()
+    mock_repository.search = AsyncMock(
+        return_value=[{"name": "Grappled", "desc": "A grappled creature..."}]
+    )
 
-    mock_v2_client = MagicMock()
-    mock_v2_client.get_conditions = AsyncMock(return_value=[mock_condition])
-
-    with patch(
-        "lorekeeper_mcp.tools.rule_lookup.Open5eV2Client",
-        return_value=mock_v2_client,
-    ):
-        result = await lookup_rule(rule_type="condition", name="Grappled")
+    result = await lookup_rule(rule_type="condition", name="Grappled", repository=mock_repository)
 
     assert isinstance(result, list)
     assert len(result) == 1
     rule = result[0]
-    if hasattr(rule, "name"):
-        assert rule.name == "Grappled"
-    else:
-        assert rule["name"] == "Grappled"
+    assert rule["name"] == "Grappled"
