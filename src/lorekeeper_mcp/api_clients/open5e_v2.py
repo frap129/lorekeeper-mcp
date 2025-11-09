@@ -33,17 +33,13 @@ class Open5eV2Client(BaseHttpClient):
         Returns:
             List of Spell models
         """
-        cache_filters: dict[str, Any] = {}
         params: dict[str, Any] = {}
 
         if level is not None:
-            cache_filters["level"] = level
             params["level"] = level
 
         # Note: school parameter is not supported server-side by Open5e v2 API,
         # so we filter client-side below
-        if school:
-            cache_filters["school"] = school
 
         # Add any additional parameters
         params.update(kwargs)

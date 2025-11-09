@@ -41,7 +41,6 @@ class ClientFactory:
         Args:
             **kwargs: Configuration options for the client
                 base_url: Override base URL (default: https://www.dnd5eapi.co/api/2014)
-                cache_ttl: Override cache TTL (default: 604800 = 7 days)
                 timeout: Request timeout in seconds (default: 30.0)
                 max_retries: Maximum retry attempts (default: 5)
 

@@ -177,7 +177,7 @@ This task list outlines the concrete work items needed to implement the reposito
   - **Validation**: `uv run pytest tests/test_repositories/test_factory.py -v`
 
 ### Refactor BaseHttpClient
-- [ ] **Task 2.10**: Extract cache logic from BaseHttpClient
+- [x] **Task 2.10**: Extract cache logic from BaseHttpClient
   - Remove entity cache parameters from `make_request()`
   - Remove cache-related private methods
   - Update all client subclasses to remove entity cache calls
