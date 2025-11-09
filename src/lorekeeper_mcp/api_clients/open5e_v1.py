@@ -148,13 +148,24 @@ class Open5eV1Client(BaseHttpClient):
 
         return cast(list[dict[str, Any]], result.get("results", []))
 
-    async def get_planes(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_planes(
+        self,
+        name: str | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
         """Get planes from Open5e API v1.
+
+        Args:
+            name: Filter by plane name
+            **filters: Additional API parameters
 
         Returns:
             List of plane dictionaries
         """
+        # Build API params with all provided filters
         params = {k: v for k, v in filters.items() if v is not None}
+        if name is not None:
+            params["name"] = name
 
         result = await self.make_request(
             "/planes/",

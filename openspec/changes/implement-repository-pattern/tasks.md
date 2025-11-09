@@ -6,19 +6,19 @@ This task list outlines the concrete work items needed to implement the reposito
 **Goal**: Implement all missing API endpoints before introducing repository pattern.
 
 ### Open5e v1 Client Completion (Can parallelize with other API clients)
-- [ ] **Task 1.1**: Implement `get_magic_items()` method
+- [x] **Task 1.1**: Implement `get_magic_items()` method
   - Add method to `Open5eV1Client`
   - Support name, type, rarity, requires_attunement filtering
   - Use entity cache with 7-day TTL
   - Add unit tests with mock HTTP responses
   - **Validation**: `uv run pytest tests/test_api_clients/test_open5e_v1.py::test_get_magic_items -v`
 
-- [ ] **Task 1.2**: Implement `get_planes()` method
-  - Add method to `Open5eV1Client`
-  - Support name filtering
-  - Use entity cache with 7-day TTL
-  - Add unit tests
-  - **Validation**: `uv run pytest tests/test_api_clients/test_open5e_v1.py::test_get_planes -v`
+- [x] **Task 1.2**: Implement `get_planes()` method
+   - Add method to `Open5eV1Client`
+   - Support name filtering
+   - Use entity cache with 7-day TTL
+   - Add unit tests
+   - **Validation**: `uv run pytest tests/test_api_clients/test_open5e_v1.py::test_get_planes -v`
 
 - [ ] **Task 1.3**: Implement `get_sections()` method
   - Add method to `Open5eV1Client`
