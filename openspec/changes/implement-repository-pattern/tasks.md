@@ -114,13 +114,13 @@ This task list outlines the concrete work items needed to implement the reposito
 **Dependencies**: Phase 1 complete
 
 ### Cache Abstraction
-- [ ] **Task 2.1**: Create cache protocol
+- [x] **Task 2.1**: Create cache protocol
   - Create `src/lorekeeper_mcp/cache/protocol.py`
   - Define `CacheProtocol` with `get_entities()` and `store_entities()` methods
   - Add type hints and docstrings
   - **Validation**: `uv run mypy src/lorekeeper_mcp/cache/protocol.py`
 
-- [ ] **Task 2.2**: Implement SQLite cache wrapper
+- [x] **Task 2.2**: Implement SQLite cache wrapper
   - Create `src/lorekeeper_mcp/cache/sqlite.py`
   - Implement `SQLiteCache` class conforming to `CacheProtocol`
   - Wrap existing `query_cached_entities()` and `bulk_cache_entities()`
@@ -128,7 +128,7 @@ This task list outlines the concrete work items needed to implement the reposito
   - **Validation**: `uv run pytest tests/test_cache/test_sqlite.py -v`
 
 ### Repository Base
-- [ ] **Task 2.3**: Create repository base protocol
+- [x] **Task 2.3**: Create repository base protocol
   - Create `src/lorekeeper_mcp/repositories/__init__.py`
   - Create `src/lorekeeper_mcp/repositories/base.py`
   - Define `Repository[T]` protocol with `get_all()` and `search()` methods
