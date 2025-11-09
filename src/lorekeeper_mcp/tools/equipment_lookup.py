@@ -140,6 +140,33 @@ async def lookup_equipment(
         armors = armors[:limit]
         results.extend([a.model_dump() for a in armors])
 
+    # Query magic items
+    if type in ("magic-item", "all"):
+        # Build magic item filters
+        magic_item_filters: dict[str, Any] = {"item_type": "magic-item"}
+        if rarity is not None:
+            magic_item_filters["rarity"] = rarity
+        if requires_attunement is not None:
+            # Convert string "yes"/"no" to boolean for API
+            if requires_attunement.lower() in ("yes", "true", "1"):
+                magic_item_filters["requires_attunement"] = True
+            else:
+                magic_item_filters["requires_attunement"] = False
+
+        # Fetch magic items with filters
+        # When searching by name, fetch more results to ensure we find matches
+        fetch_limit = limit * 11 if name else limit
+        magic_items = await repository.search(limit=fetch_limit, **magic_item_filters)
+
+        # Client-side filtering by name
+        if name:
+            name_lower = name.lower()
+            magic_items = [m for m in magic_items if name_lower in m.name.lower()]
+
+        # Limit results to requested count
+        magic_items = magic_items[:limit]
+        results.extend([m.model_dump() for m in magic_items])
+
     # Apply overall limit if querying multiple types
     if type == "all" and len(results) > limit:
         results = results[:limit]

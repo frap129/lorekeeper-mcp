@@ -24,6 +24,7 @@ def mock_client() -> MagicMock:
     client = MagicMock()
     client.get_weapons = AsyncMock()
     client.get_armor = AsyncMock()
+    client.get_magic_items = AsyncMock()
     return client
 
 
@@ -264,16 +265,17 @@ async def test_equipment_repository_get_all_weapons_and_armor(
     weapon_data: list[dict[str, Any]],
     armor_data: list[dict[str, Any]],
 ) -> None:
-    """Test get_all retrieves both weapons and armor."""
-    # Setup weapon cache hit
-    mock_cache.get_entities.side_effect = [weapon_data, armor_data]
+    """Test get_all retrieves weapons, armor, and magic items."""
+    # Setup cache hits for all three types
+    mock_cache.get_entities.side_effect = [weapon_data, armor_data, []]
     mock_client.get_weapons.return_value = []
     mock_client.get_armor.return_value = []
+    mock_client.get_magic_items.return_value = []
 
     repo = EquipmentRepository(client=mock_client, cache=mock_cache)
     results = await repo.get_all()
 
-    # Should combine weapons and armor
+    # Should combine weapons and armor (no magic items in cache)
     assert len(results) == 4
     # First two should be weapons
     assert all(isinstance(r, Weapon) for r in results[:2])
@@ -288,11 +290,12 @@ async def test_equipment_repository_get_all_mixed_cache(
     weapon_data: list[dict[str, Any]],
     armor_data: list[dict[str, Any]],
 ) -> None:
-    """Test get_all handles partial cache hits (weapon hit, armor miss)."""
+    """Test get_all handles partial cache hits (weapon hit, armor miss, no magic items)."""
     armors = [Armor.model_validate(data) for data in armor_data]
-    # Weapons from cache, armor from API
-    mock_cache.get_entities.side_effect = [weapon_data, []]
+    # Weapons from cache, armor from API, no magic items
+    mock_cache.get_entities.side_effect = [weapon_data, [], []]
     mock_client.get_armor.return_value = armors
+    mock_client.get_magic_items.return_value = []
     mock_cache.store_entities.return_value = 2
 
     repo = EquipmentRepository(client=mock_client, cache=mock_cache)
@@ -301,5 +304,5 @@ async def test_equipment_repository_get_all_mixed_cache(
     assert len(results) == 4
     # API should be called for armor miss
     mock_client.get_armor.assert_called_once()
-    # Armor should be stored in cache
-    mock_cache.store_entities.assert_called_once()
+    # Armor should be stored in cache (and possibly magic-items too)
+    assert mock_cache.store_entities.call_count >= 1

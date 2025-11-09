@@ -93,17 +93,18 @@ class RepositoryFactory:
         """Create an EquipmentRepository instance.
 
         Args:
-            client: Optional custom client instance. Defaults to Open5eV2Client.
+            client: Optional custom client instance. Defaults to Open5eV1Client
+                (which includes magic items support).
             cache: Optional custom cache instance. Defaults to shared SQLiteCache.
 
         Returns:
             A configured EquipmentRepository instance.
         """
         if client is None:
-            client = Open5eV2Client()
+            client = Open5eV1Client()
         if cache is None:
             cache = RepositoryFactory._get_cache()
-        return EquipmentRepository(client=client, cache=cache)
+        return EquipmentRepository(client=client, cache=cache)  # type: ignore[arg-type]
 
     @staticmethod
     def create_character_option_repository(

@@ -69,3 +69,19 @@ class Armor(BaseModel):
     max_dex_bonus: int | None = Field(None, description="Maximum Dex bonus")
     strength_required: int | None = Field(None, description="Minimum Strength required")
     stealth_disadvantage: bool = Field(False, description="Imposes disadvantage on Stealth")
+
+
+class MagicItem(BaseModel):
+    """Model representing a D&D 5e magic item."""
+
+    # slug maps to "key" or "slug" from the API
+    slug: str = Field(..., alias="key", description="Unique identifier for the magic item")
+    desc: str = Field(..., description="Description of the magic item")
+    rarity: str | None = Field(None, description="Rarity level (common to artifact)")
+    requires_attunement: bool | None = Field(None, description="Whether item requires attunement")
+    document_url: str | None = Field(None, description="URL to official documentation")
+    type: str | None = Field(None, description="Type of item (wondrous, wand, ring, etc.)")
+    wondrous: bool | None = Field(None, description="Whether item is wondrous")
+    weight: float | None = Field(None, ge=0, description="Weight in pounds")
+    armor_class: int | None = Field(None, ge=0, description="AC bonus if armor")
+    damage: str | None = Field(None, description="Damage if weapon")

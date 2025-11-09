@@ -2,7 +2,7 @@
 
 from typing import Any, Protocol
 
-from lorekeeper_mcp.api_clients.models.equipment import Armor, Weapon
+from lorekeeper_mcp.api_clients.models.equipment import Armor, MagicItem, Weapon
 from lorekeeper_mcp.repositories.base import Repository
 
 
@@ -15,6 +15,10 @@ class EquipmentClient(Protocol):
 
     async def get_armor(self, **filters: Any) -> list[Armor]:
         """Fetch armor from API with optional filters."""
+        ...
+
+    async def get_magic_items(self, **filters: Any) -> list[dict[str, Any]]:
+        """Fetch magic items from API with optional filters."""
         ...
 
 
@@ -30,11 +34,11 @@ class EquipmentCache(Protocol):
         ...
 
 
-class EquipmentRepository(Repository[Weapon | Armor]):
+class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
     """Repository for D&D 5e equipment with cache-aside pattern.
 
-    Handles both weapons and armor with type routing.
-    Implements cache-aside pattern for both item types.
+    Handles weapons, armor, and magic items with type routing.
+    Implements cache-aside pattern for all item types.
     """
 
     def __init__(self, client: EquipmentClient, cache: EquipmentCache) -> None:
@@ -89,30 +93,57 @@ class EquipmentRepository(Repository[Weapon | Armor]):
 
         return armors
 
-    async def get_all(self) -> list[Weapon | Armor]:
-        """Retrieve all equipment (weapons and armor).
+    async def get_magic_items(self) -> list[MagicItem]:
+        """Retrieve all magic items using cache-aside pattern.
 
         Returns:
-            List of all Weapon and Armor objects
+            List of all MagicItem objects
+        """
+        # Try cache first
+        cached = await self.cache.get_entities("magic-items")
+
+        if cached:
+            return [MagicItem.model_validate(item) for item in cached]
+
+        # Cache miss - fetch from API
+        items: list[dict[str, Any]] = await self.client.get_magic_items()
+
+        # Convert to MagicItem objects
+        magic_items = [MagicItem.model_validate(item) for item in items]
+
+        # Store in cache
+        item_dicts = [item.model_dump() for item in magic_items]
+        await self.cache.store_entities(item_dicts, "magic-items")
+
+        return magic_items
+
+    async def get_all(self) -> list[Weapon | Armor | MagicItem]:
+        """Retrieve all equipment (weapons, armor, and magic items).
+
+        Returns:
+            List of all Weapon, Armor, and MagicItem objects
         """
         weapons = await self.get_weapons()
         armors = await self.get_armor()
-        return weapons + armors
+        magic_items = await self.get_magic_items()
+        return weapons + armors + magic_items
 
-    async def search(self, **filters: Any) -> list[Weapon | Armor]:
+    async def search(self, **filters: Any) -> list[Weapon | Armor | MagicItem]:
         """Search for equipment with optional filters using cache-aside pattern.
 
         Args:
             **filters: Optional filters. Must include 'item_type' to specify
-                'weapon' or 'armor'. Other filters depend on item type.
+                'weapon', 'armor', or 'magic-item'. Other filters depend on item type.
 
         Returns:
-            List of Weapon or Armor objects matching the filters
+            List of Weapon, Armor, or MagicItem objects matching the filters
         """
         item_type = filters.pop("item_type", None)
 
         if item_type == "armor":
             return await self._search_armor(**filters)  # type: ignore[return-value]
+        if item_type == "magic-item":
+            return await self._search_magic_items(**filters)  # type: ignore[return-value]
         return await self._search_weapons(**filters)  # type: ignore[return-value]
 
     async def _search_weapons(self, **filters: Any) -> list[Weapon]:
@@ -164,3 +195,31 @@ class EquipmentRepository(Repository[Weapon | Armor]):
             await self.cache.store_entities(armor_dicts, "armor")
 
         return armors
+
+    async def _search_magic_items(self, **filters: Any) -> list[MagicItem]:
+        """Search for magic items with optional filters.
+
+        Args:
+            **filters: Optional magic item filters
+
+        Returns:
+            List of MagicItem objects matching the filters
+        """
+        # Try cache first with filters
+        cached = await self.cache.get_entities("magic-items", **filters)
+
+        if cached:
+            return [MagicItem.model_validate(item) for item in cached]
+
+        # Cache miss - fetch from API with filters
+        items: list[dict[str, Any]] = await self.client.get_magic_items(**filters)
+
+        # Convert to MagicItem objects
+        magic_items = [MagicItem.model_validate(item) for item in items]
+
+        # Store in cache if we got results
+        if magic_items:
+            item_dicts = [item.model_dump() for item in magic_items]
+            await self.cache.store_entities(item_dicts, "magic-items")
+
+        return magic_items
