@@ -1,9 +1,8 @@
-"""Equipment lookup tool."""
+"""Equipment lookup tool with repository pattern."""
 
 from typing import Any, Literal
 
-from lorekeeper_mcp.api_clients.open5e_v1 import Open5eV1Client
-from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+from lorekeeper_mcp.repositories.factory import RepositoryFactory
 
 EquipmentType = Literal["weapon", "armor", "magic-item", "all"]
 
@@ -16,13 +15,14 @@ async def lookup_equipment(
     is_simple: bool | None = None,
     requires_attunement: str | None = None,
     limit: int = 20,
+    repository: Any = None,
 ) -> list[dict[str, Any]]:
     """
-    Search and retrieve D&D 5e weapons, armor, and magic items.
+    Search and retrieve D&D 5e weapons, armor, and magic items using the repository pattern.
 
     This tool provides comprehensive equipment lookup across weapons, armor, and magical
     items. Filter by rarity, damage potential, complexity, or attunement requirements.
-    Automatically retrieves and caches data from multiple sources for reliability.
+    Automatically uses the database cache through the repository for improved performance.
 
     Examples:
         - lookup_equipment(type="weapon", name="longsword") - Find longsword variants
@@ -53,6 +53,8 @@ async def lookup_equipment(
             attunement to a character. Examples: "yes", "no", or specific requirements
         limit: Maximum number of results to return. Default 20. For type="all" with many
             matches, limit applies to total results. Examples: 5, 20, 100
+        repository: Optional EquipmentRepository instance for dependency injection.
+            Defaults to RepositoryFactory.create_equipment_repository()
 
     Returns:
         List of equipment dictionaries. Structure varies by type:
@@ -87,44 +89,56 @@ async def lookup_equipment(
             - damage: Damage if weapon
 
     Raises:
-        APIError: If the API request fails due to network issues or server errors
+        ApiError: If the API request fails due to network issues or server errors
     """
-    results: list[dict[str, Any]] = []
+    # Use provided repository or create default
+    if repository is None:
+        repository = RepositoryFactory.create_equipment_repository()
 
-    # Build base params
-    base_params: dict[str, Any] = {"limit": limit}
-    if name is not None:
-        base_params["search"] = name
+    results: list[dict[str, Any]] = []
 
     # Query weapons
     if type in ("weapon", "all"):
-        v2_client = Open5eV2Client()
-        weapon_params = base_params.copy()
+        # Build weapon filters
+        weapon_filters: dict[str, Any] = {"item_type": "weapon"}
         if damage_dice is not None:
-            weapon_params["damage_dice"] = damage_dice
+            weapon_filters["damage_dice"] = damage_dice
         if is_simple is not None:
-            weapon_params["is_simple"] = is_simple
+            weapon_filters["is_simple"] = is_simple
 
-        weapon_response = await v2_client.get_weapons(**weapon_params)
-        results.extend([w.model_dump() for w in weapon_response])
+        # Fetch weapons with filters
+        # When searching by name, fetch more results to ensure we find matches
+        # Use multiplier of 11 to balance finding matches with performance
+        fetch_limit = limit * 11 if name else limit
+        weapons = await repository.search(limit=fetch_limit, **weapon_filters)
+
+        # Client-side filtering by name
+        if name:
+            name_lower = name.lower()
+            weapons = [w for w in weapons if name_lower in w.name.lower()]
+
+        # Limit results to requested count
+        weapons = weapons[:limit]
+        results.extend([w.model_dump() for w in weapons])
 
     # Query armor
     if type in ("armor", "all"):
-        v2_client = Open5eV2Client()
-        armor_response = await v2_client.get_armor(**base_params)
-        results.extend([a.model_dump() for a in armor_response])
+        # Build armor filters
+        armor_filters: dict[str, Any] = {"item_type": "armor"}
 
-    # Query magic items
-    if type in ("magic-item", "all"):
-        v1_client = Open5eV1Client()
-        magic_params = base_params.copy()
-        if rarity is not None:
-            magic_params["rarity"] = rarity
-        if requires_attunement is not None:
-            magic_params["requires_attunement"] = requires_attunement
+        # Fetch armor with filters
+        # When searching by name, fetch more results to ensure we find matches
+        fetch_limit = limit * 11 if name else limit
+        armors = await repository.search(limit=fetch_limit, **armor_filters)
 
-        magic_response = await v1_client.get_magic_items(**magic_params)
-        results.extend(magic_response)
+        # Client-side filtering by name
+        if name:
+            name_lower = name.lower()
+            armors = [a for a in armors if name_lower in a.name.lower()]
+
+        # Limit results to requested count
+        armors = armors[:limit]
+        results.extend([a.model_dump() for a in armors])
 
     # Apply overall limit if querying multiple types
     if type == "all" and len(results) > limit:

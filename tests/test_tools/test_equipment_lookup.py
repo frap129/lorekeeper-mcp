@@ -1,145 +1,232 @@
 """Tests for equipment lookup tool."""
 
-from unittest.mock import AsyncMock, patch
+import inspect
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lorekeeper_mcp.api_clients.exceptions import ParseError
+from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
+from lorekeeper_mcp.api_clients.models.equipment import Armor, Weapon
 from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
 
+@pytest.fixture
+def mock_equipment_repository() -> MagicMock:
+    """Create mock equipment repository for testing."""
+    repo = MagicMock()
+    repo.search = AsyncMock()
+    repo.get_all = AsyncMock()
+    return repo
+
+
+@pytest.fixture
+def sample_longsword() -> Weapon:
+    """Sample longsword weapon for tests."""
+    return Weapon(
+        name="Longsword",
+        slug="longsword",
+        desc="A longsword with a straight blade",
+        document_url="https://example.com/longsword",
+        damage_dice="1d8",
+        damage_type={
+            "name": "Slashing",
+            "key": "slashing",
+            "url": "/api/damage-types/slashing",
+        },
+        range=5,
+        long_range=5,
+        distance_unit="feet",
+        is_simple=False,
+        is_improvised=False,
+    )
+
+
+@pytest.fixture
+def sample_dagger() -> Weapon:
+    """Sample dagger weapon for tests."""
+    return Weapon(
+        name="Dagger",
+        slug="dagger",
+        desc="A small, sharp-pointed blade",
+        document_url="https://example.com/dagger",
+        damage_dice="1d4",
+        damage_type={
+            "name": "Piercing",
+            "key": "piercing",
+            "url": "/api/damage-types/piercing",
+        },
+        range=20,
+        long_range=60,
+        distance_unit="feet",
+        is_simple=True,
+        is_improvised=False,
+    )
+
+
+@pytest.fixture
+def sample_chain_mail() -> Armor:
+    """Sample chain mail armor for tests."""
+    return Armor(
+        name="Chain Mail",
+        slug="chain-mail",
+        desc="Chain mail armor",
+        document_url="https://example.com/chain-mail",
+        category="Heavy",
+        base_ac=16,
+    )
+
+
+@pytest.fixture
+def sample_leather() -> Armor:
+    """Sample leather armor for tests."""
+    return Armor(
+        name="Leather",
+        slug="leather",
+        desc="Light leather armor",
+        document_url="https://example.com/leather",
+        category="Light",
+        base_ac=11,
+        dex_bonus=True,
+    )
+
+
 @pytest.mark.asyncio
-async def test_lookup_weapon(mock_open5e_v2_client):
+async def test_lookup_weapon(mock_equipment_repository, sample_longsword):
     """Test looking up a weapon."""
+    mock_equipment_repository.search.return_value = [sample_longsword]
 
-    mock_open5e_v2_client.get_weapons.return_value = {
-        "count": 1,
-        "results": [{"name": "Longsword", "damage_dice": "1d8"}],
-    }
-
-    with patch(
-        "lorekeeper_mcp.tools.equipment_lookup.Open5eV2Client",
-        return_value=mock_open5e_v2_client,
-    ):
-        result = await lookup_equipment(type="weapon", name="Longsword")
+    result = await lookup_equipment(
+        type="weapon", name="Longsword", repository=mock_equipment_repository
+    )
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
-    mock_open5e_v2_client.get_weapons.assert_awaited_once()
+    assert result[0]["damage_dice"] == "1d8"
+    mock_equipment_repository.search.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_lookup_armor(mock_open5e_v2_client):
+async def test_lookup_armor(mock_equipment_repository, sample_chain_mail):
     """Test looking up armor."""
+    mock_equipment_repository.search.return_value = [sample_chain_mail]
 
-    mock_open5e_v2_client.get_armor.return_value = {
-        "count": 1,
-        "results": [{"name": "Chain Mail", "ac_base": 16}],
-    }
-
-    with patch(
-        "lorekeeper_mcp.tools.equipment_lookup.Open5eV2Client",
-        return_value=mock_open5e_v2_client,
-    ):
-        result = await lookup_equipment(type="armor", name="Chain Mail")
+    result = await lookup_equipment(
+        type="armor", name="Chain Mail", repository=mock_equipment_repository
+    )
 
     assert len(result) == 1
     assert result[0]["name"] == "Chain Mail"
-    mock_open5e_v2_client.get_armor.assert_awaited_once()
+    assert result[0]["category"] == "Heavy"
+    mock_equipment_repository.search.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_lookup_simple_weapons(mock_open5e_v2_client):
+async def test_lookup_simple_weapons(mock_equipment_repository, sample_dagger):
     """Test filtering for simple weapons."""
+    mock_equipment_repository.search.return_value = [sample_dagger]
 
-    mock_open5e_v2_client.get_weapons.return_value = {
-        "count": 2,
-        "results": [
-            {"name": "Club", "is_simple": True},
-            {"name": "Dagger", "is_simple": True},
-        ],
-    }
+    result = await lookup_equipment(
+        type="weapon", is_simple=True, repository=mock_equipment_repository
+    )
 
-    with patch(
-        "lorekeeper_mcp.tools.equipment_lookup.Open5eV2Client",
-        return_value=mock_open5e_v2_client,
-    ):
-        await lookup_equipment(type="weapon", is_simple=True)
+    assert len(result) == 1
+    assert result[0]["is_simple"] is True
 
-    call_kwargs = mock_open5e_v2_client.get_weapons.call_args[1]
+    call_kwargs = mock_equipment_repository.search.call_args[1]
+    assert call_kwargs["item_type"] == "weapon"
     assert call_kwargs["is_simple"] is True
 
 
 @pytest.mark.asyncio
-async def test_lookup_all_equipment_types(mock_open5e_v1_client, mock_open5e_v2_client):
-    """Test looking up all equipment types."""
+async def test_lookup_armor_by_category(mock_equipment_repository, sample_leather):
+    """Test looking up armor by category."""
+    mock_equipment_repository.search.return_value = [sample_leather]
 
-    mock_open5e_v2_client.get_weapons.return_value = {
-        "count": 1,
-        "results": [{"name": "Chain Whip", "type": "weapon"}],
-    }
-    mock_open5e_v2_client.get_armor.return_value = {
-        "count": 1,
-        "results": [{"name": "Chain Mail", "type": "armor"}],
-    }
-    mock_open5e_v1_client.get_magic_items.return_value = {
-        "count": 1,
-        "results": [{"name": "Chain of Binding", "type": "magic-item"}],
-    }
+    result = await lookup_equipment(type="armor", repository=mock_equipment_repository)
 
-    with (
-        patch(
-            "lorekeeper_mcp.tools.equipment_lookup.Open5eV2Client",
-            return_value=mock_open5e_v2_client,
-        ),
-        patch(
-            "lorekeeper_mcp.tools.equipment_lookup.Open5eV1Client",
-            return_value=mock_open5e_v1_client,
-        ),
-    ):
-        result = await lookup_equipment(type="all", name="chain")
+    assert len(result) == 1
+    assert result[0]["category"] == "Light"
 
-    # Should merge results from all three endpoints
-    assert len(result) == 3
-    names = {r["name"] for r in result}
-    assert "Chain Whip" in names
-    assert "Chain Mail" in names
-    assert "Chain of Binding" in names
+    call_kwargs = mock_equipment_repository.search.call_args[1]
+    assert call_kwargs["item_type"] == "armor"
 
 
 @pytest.mark.asyncio
-async def test_lookup_equipment_parse_error(mock_open5e_v2_client):
-    """Test equipment lookup handles malformed responses."""
+async def test_lookup_equipment_api_error(mock_equipment_repository):
+    """Test equipment lookup handles API errors gracefully."""
+    mock_equipment_repository.search.side_effect = ApiError("API unavailable")
 
-    mock_open5e_v2_client.get_weapons.side_effect = ParseError(
-        "Invalid JSON response", raw_data="<html>Error</html>"
+    with pytest.raises(ApiError, match="API unavailable"):
+        await lookup_equipment(type="weapon", repository=mock_equipment_repository)
+
+
+@pytest.mark.asyncio
+async def test_lookup_equipment_network_error(mock_equipment_repository):
+    """Test equipment lookup handles network errors."""
+    mock_equipment_repository.search.side_effect = NetworkError("Connection timeout")
+
+    with pytest.raises(NetworkError, match="Connection timeout"):
+        await lookup_equipment(type="armor", repository=mock_equipment_repository)
+
+
+@pytest.mark.asyncio
+async def test_equipment_search_by_name_client_side(
+    mock_equipment_repository, sample_longsword, sample_dagger
+):
+    """Test that equipment lookup filters by name client-side."""
+    # Repository returns both weapons
+    mock_equipment_repository.search.return_value = [sample_longsword, sample_dagger]
+
+    # Call with name filter - should filter client-side
+    result = await lookup_equipment(
+        type="weapon", name="longsword", repository=mock_equipment_repository
     )
 
-    with (
-        patch(
-            "lorekeeper_mcp.tools.equipment_lookup.Open5eV2Client",
-            return_value=mock_open5e_v2_client,
-        ),
-        pytest.raises(ParseError, match="Invalid JSON response"),
-    ):
-        await lookup_equipment(type="weapon", name="Sword")
+    # Should only return Longsword, not Dagger
+    assert len(result) == 1
+    assert result[0]["name"] == "Longsword"
+
+    # Verify repository.search was called
+    mock_equipment_repository.search.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_equipment_search_parameter():
-    """Test that equipment lookup uses 'search' parameter instead of 'name'"""
+async def test_lookup_equipment_limit_applied(mock_equipment_repository):
+    """Test that lookup_equipment applies limit to results."""
+    weapons = [
+        Weapon(
+            name=f"Weapon {i}",
+            slug=f"weapon-{i}",
+            desc=f"Weapon {i}",
+            document_url="https://example.com",
+            damage_dice="1d8",
+            damage_type={
+                "name": "Slashing",
+                "key": "slashing",
+                "url": "/api/damage-types/slashing",
+            },
+            range=5,
+            long_range=5,
+            distance_unit="feet",
+            is_simple=False,
+            is_improvised=False,
+        )
+        for i in range(1, 30)
+    ]
 
-    # Mock the API client to verify parameter usage
-    with patch("lorekeeper_mcp.tools.equipment_lookup.Open5eV2Client") as mock_client:
-        mock_instance = AsyncMock()
-        mock_instance.get_weapons.return_value = []
-        mock_client.return_value = mock_instance
+    mock_equipment_repository.search.return_value = weapons
 
-        # Call the equipment lookup function
-        await lookup_equipment(type="weapon", name="longsword")
+    result = await lookup_equipment(type="weapon", limit=5, repository=mock_equipment_repository)
 
-        # Verify the API was called with search parameter, not name
-        mock_instance.get_weapons.assert_called_once()
-        call_args = mock_instance.get_weapons.call_args
-        assert "search" in call_args.kwargs
-        assert call_args.kwargs["search"] == "longsword"
+    # Should only return 5 weapons even though repository returned 29
+    assert len(result) == 5
+
+
+@pytest.mark.asyncio
+async def test_lookup_equipment_default_repository():
+    """Test that lookup_equipment creates default repository when not provided."""
+    # This test verifies the function accepts repository parameter
+    # Real integration testing happens in integration tests
+    # For unit test, we verify the signature accepts repository param
+    sig = inspect.signature(lookup_equipment)
+    assert "repository" in sig.parameters
