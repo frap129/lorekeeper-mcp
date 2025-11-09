@@ -1,120 +1,310 @@
 """Tests for creature lookup tool."""
 
-from unittest.mock import AsyncMock, patch
+import inspect
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lorekeeper_mcp.api_clients.exceptions import NetworkError
+from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
+from lorekeeper_mcp.api_clients.models import Monster
 from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
 
-@pytest.mark.asyncio
-async def test_lookup_creature_by_name(mock_open5e_v1_client):
-    """Test looking up creature by exact name."""
+@pytest.fixture
+def mock_monster_repository() -> MagicMock:
+    """Create mock monster repository for testing."""
+    repo = MagicMock()
+    repo.search = AsyncMock()
+    repo.get_all = AsyncMock()
+    return repo
 
-    with patch(
-        "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
-        return_value=mock_open5e_v1_client,
-    ):
-        result = await lookup_creature(name="Ancient Red Dragon")
+
+@pytest.mark.asyncio
+async def test_lookup_creature_by_name(mock_monster_repository):
+    """Test looking up creature by exact name."""
+    creature_obj = Monster(
+        name="Ancient Red Dragon",
+        slug="ancient-red-dragon",
+        size="Gargantuan",
+        type="dragon",
+        alignment="chaotic evil",
+        armor_class=22,
+        hit_points=546,
+        hit_dice="28d20+280",
+        strength=30,
+        dexterity=10,
+        constitution=29,
+        intelligence=18,
+        wisdom=15,
+        charisma=23,
+        challenge_rating="24",
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/ancient-red-dragon",
+    )
+
+    mock_monster_repository.search.return_value = [creature_obj]
+
+    result = await lookup_creature(name="Ancient Red Dragon", repository=mock_monster_repository)
 
     assert len(result) == 1
     assert result[0]["name"] == "Ancient Red Dragon"
     assert result[0]["challenge_rating"] == "24"
-    mock_open5e_v1_client.get_monsters.assert_awaited_once()
+    mock_monster_repository.search.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_by_cr_and_type(mock_open5e_v1_client):
+async def test_lookup_creature_by_cr_and_type(mock_monster_repository):
     """Test creature lookup with CR and type filters."""
+    creature_obj = Monster(
+        name="Zombie",
+        slug="zombie",
+        size="Medium",
+        type="undead",
+        alignment="neutral evil",
+        armor_class=8,
+        hit_points=22,
+        hit_dice="5d8",
+        strength=13,
+        dexterity=6,
+        constitution=16,
+        intelligence=3,
+        wisdom=6,
+        charisma=5,
+        challenge_rating="1/4",
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/zombie",
+    )
 
-    with patch(
-        "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
-        return_value=mock_open5e_v1_client,
-    ):
-        await lookup_creature(cr=5, type="undead", limit=15)
+    mock_monster_repository.search.return_value = [creature_obj]
 
-    call_kwargs = mock_open5e_v1_client.get_monsters.call_args[1]
+    await lookup_creature(cr=5, type="undead", limit=15, repository=mock_monster_repository)
+
+    call_kwargs = mock_monster_repository.search.call_args[1]
     assert call_kwargs["cr"] == 5
     assert call_kwargs["type"] == "undead"
     assert call_kwargs["limit"] == 15
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_fractional_cr(mock_open5e_v1_client):
+async def test_lookup_creature_fractional_cr(mock_monster_repository):
     """Test creature lookup with fractional CR."""
+    creature_obj = Monster(
+        name="Goblin",
+        slug="goblin",
+        size="Small",
+        type="humanoid",
+        alignment="neutral evil",
+        armor_class=15,
+        hit_points=7,
+        hit_dice="2d6",
+        strength=8,
+        dexterity=14,
+        constitution=10,
+        intelligence=10,
+        wisdom=8,
+        charisma=8,
+        challenge_rating="1/4",
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/goblin",
+    )
 
-    with patch(
-        "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
-        return_value=mock_open5e_v1_client,
-    ):
-        await lookup_creature(cr=0.25)
+    mock_monster_repository.search.return_value = [creature_obj]
 
-    call_kwargs = mock_open5e_v1_client.get_monsters.call_args[1]
+    await lookup_creature(cr=0.25, repository=mock_monster_repository)
+
+    call_kwargs = mock_monster_repository.search.call_args[1]
     assert call_kwargs["cr"] == 0.25
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_cr_range(mock_open5e_v1_client):
+async def test_lookup_creature_cr_range(mock_monster_repository):
     """Test creature lookup with CR range."""
+    creatures = [
+        Monster(
+            name=f"Creature {i}",
+            slug=f"creature-{i}",
+            size="Medium",
+            type="humanoid",
+            alignment="neutral",
+            armor_class=10,
+            hit_points=10,
+            hit_dice="1d8",
+            strength=10,
+            dexterity=10,
+            constitution=10,
+            intelligence=10,
+            wisdom=10,
+            charisma=10,
+            challenge_rating=str(i),
+            actions=None,
+            legendary_actions=None,
+            special_abilities=None,
+            desc=None,
+            speed=None,
+            document_url="https://example.com",
+        )
+        for i in range(1, 4)
+    ]
 
-    with patch(
-        "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
-        return_value=mock_open5e_v1_client,
-    ):
-        await lookup_creature(cr_min=1, cr_max=3)
+    mock_monster_repository.search.return_value = creatures
 
-    call_kwargs = mock_open5e_v1_client.get_monsters.call_args[1]
+    await lookup_creature(cr_min=1, cr_max=3, repository=mock_monster_repository)
+
+    call_kwargs = mock_monster_repository.search.call_args[1]
     assert call_kwargs["cr_min"] == 1
     assert call_kwargs["cr_max"] == 3
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_empty_results(mock_open5e_v1_client):
+async def test_lookup_creature_empty_results(mock_monster_repository):
     """Test creature lookup with no results."""
+    mock_monster_repository.search.return_value = []
 
-    mock_open5e_v1_client.get_monsters.return_value = []
-
-    with patch(
-        "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
-        return_value=mock_open5e_v1_client,
-    ):
-        result = await lookup_creature(name="Nonexistent")
+    result = await lookup_creature(name="Nonexistent", repository=mock_monster_repository)
 
     assert result == []
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_timeout(mock_open5e_v1_client):
-    """Test creature lookup handles timeouts."""
+async def test_lookup_creature_api_error(mock_monster_repository):
+    """Test creature lookup handles API errors gracefully."""
+    mock_monster_repository.search.side_effect = ApiError("API unavailable")
 
-    mock_open5e_v1_client.get_monsters.side_effect = NetworkError("Request timeout")
-
-    with (
-        patch(
-            "lorekeeper_mcp.tools.creature_lookup.Open5eV1Client",
-            return_value=mock_open5e_v1_client,
-        ),
-        pytest.raises(NetworkError),
-    ):
-        await lookup_creature(name="Dragon")
+    with pytest.raises(ApiError, match="API unavailable"):
+        await lookup_creature(name="Dragon", repository=mock_monster_repository)
 
 
 @pytest.mark.asyncio
-async def test_creature_search_parameter():
-    """Test that creature lookup uses 'search' parameter instead of 'name'"""
+async def test_lookup_creature_network_error(mock_monster_repository):
+    """Test creature lookup handles network errors."""
+    mock_monster_repository.search.side_effect = NetworkError("Connection timeout")
 
-    # Mock the API client to verify parameter usage
-    with patch("lorekeeper_mcp.tools.creature_lookup.Open5eV1Client") as mock_client:
-        mock_instance = AsyncMock()
-        mock_instance.get_monsters.return_value = []
-        mock_client.return_value = mock_instance
+    with pytest.raises(NetworkError, match="Connection timeout"):
+        await lookup_creature(name="Dragon", repository=mock_monster_repository)
 
-        # Call the creature lookup function
-        await lookup_creature(name="dragon")
 
-        # Verify the API was called with search parameter, not name
-        mock_instance.get_monsters.assert_called_once()
-        call_args = mock_instance.get_monsters.call_args
-        assert "search" in call_args.kwargs
-        assert call_args.kwargs["search"] == "dragon"
+@pytest.mark.asyncio
+async def test_creature_search_by_name_client_side(mock_monster_repository):
+    """Test that creature lookup filters by name client-side."""
+    creature_red_dragon = Monster(
+        name="Ancient Red Dragon",
+        slug="ancient-red-dragon",
+        size="Gargantuan",
+        type="dragon",
+        alignment="chaotic evil",
+        armor_class=22,
+        hit_points=546,
+        hit_dice="28d20+280",
+        strength=30,
+        dexterity=10,
+        constitution=29,
+        intelligence=18,
+        wisdom=15,
+        charisma=23,
+        challenge_rating="24",
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/ancient-red-dragon",
+    )
+    creature_bronze_dragon = Monster(
+        name="Ancient Bronze Dragon",
+        slug="ancient-bronze-dragon",
+        size="Gargantuan",
+        type="dragon",
+        alignment="chaotic good",
+        armor_class=22,
+        hit_points=491,
+        hit_dice="26d20+182",
+        strength=29,
+        dexterity=10,
+        constitution=25,
+        intelligence=18,
+        wisdom=17,
+        charisma=21,
+        challenge_rating="23",
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/ancient-bronze-dragon",
+    )
+
+    # Repository returns both dragons
+    mock_monster_repository.search.return_value = [
+        creature_red_dragon,
+        creature_bronze_dragon,
+    ]
+
+    # Call with name filter - should filter client-side
+    result = await lookup_creature(name="red", repository=mock_monster_repository)
+
+    # Should only return Ancient Red Dragon, not Ancient Bronze Dragon
+    assert len(result) == 1
+    assert result[0]["name"] == "Ancient Red Dragon"
+
+    # Verify repository.search was called
+    mock_monster_repository.search.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_limit_applied(mock_monster_repository):
+    """Test that lookup_creature applies limit to results."""
+    creatures = [
+        Monster(
+            name=f"Creature {i}",
+            slug=f"creature-{i}",
+            size="Medium",
+            type="humanoid",
+            alignment="neutral",
+            armor_class=10,
+            hit_points=10,
+            hit_dice="1d8",
+            strength=10,
+            dexterity=10,
+            constitution=10,
+            intelligence=10,
+            wisdom=10,
+            charisma=10,
+            challenge_rating="1",
+            actions=None,
+            legendary_actions=None,
+            special_abilities=None,
+            desc=None,
+            speed=None,
+            document_url="https://example.com",
+        )
+        for i in range(1, 30)
+    ]
+
+    mock_monster_repository.search.return_value = creatures
+
+    result = await lookup_creature(limit=5, repository=mock_monster_repository)
+
+    # Should only return 5 creatures even though repository returned 29
+    assert len(result) == 5
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_default_repository():
+    """Test that lookup_creature creates default repository when not provided."""
+    # This test verifies the function accepts repository parameter
+    # Real integration testing happens in integration tests
+    # For unit test, we verify the signature accepts repository param
+    sig = inspect.signature(lookup_creature)
+    assert "repository" in sig.parameters

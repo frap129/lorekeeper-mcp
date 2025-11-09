@@ -1,17 +1,18 @@
-"""Creature lookup tool."""
+"""Creature lookup tool with repository pattern."""
 
 from typing import Any
 
-from lorekeeper_mcp.api_clients.open5e_v1 import Open5eV1Client
-
-# Simple in-memory cache for creature lookups (max 128 entries)
-_creature_cache: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
-_creature_cache_maxsize = 128
+from lorekeeper_mcp.repositories.factory import RepositoryFactory
 
 
 def clear_creature_cache() -> None:
-    """Clear the in-memory creature cache."""
-    _creature_cache.clear()
+    """Clear the creature cache (deprecated).
+
+    This function is deprecated and kept for backward compatibility.
+    Cache management is now handled by the repository pattern with
+    database-backed persistence.
+    """
+    # No-op: in-memory caching is no longer used
 
 
 async def lookup_creature(
@@ -22,13 +23,14 @@ async def lookup_creature(
     type: str | None = None,  # noqa: A002
     size: str | None = None,
     limit: int = 20,
+    repository: Any = None,
 ) -> list[dict[str, Any]]:
     """
-    Search and retrieve D&D 5e creatures/monsters from the Open5e v1 API.
+    Search and retrieve D&D 5e creatures/monsters using the repository pattern.
 
     This tool provides comprehensive creature lookup including full stat blocks, combat
-    statistics, abilities, and special features. Perfect for finding NPCs, monsters,
-    and encounters of specific difficulty levels. Results are cached for better performance.
+    statistics, abilities, and special features. Results include complete creature data
+    and are cached through the repository for improved performance.
 
     Examples:
         - lookup_creature(name="dragon") - Find all creatures with "dragon" in name
@@ -52,8 +54,10 @@ async def lookup_creature(
             ooze, reptile, undead, plant. Examples: "dragon", "undead", "humanoid"
         size: Size category filter. Valid values: Tiny, Small, Medium, Large, Huge, Gargantuan
             Examples: "Large" for major encounters, "Tiny" for swarms
-        limit: Maximum number of results to return. Default 20 for pagination
-            and performance. Examples: 5, 50, 100
+        limit: Maximum number of results to return. Default 20, useful for pagination
+            or limiting large result sets. Example: 5
+        repository: Optional MonsterRepository instance for dependency injection.
+            Defaults to RepositoryFactory.create_monster_repository()
 
     Returns:
         List of creature stat block dictionaries, each containing:
@@ -66,30 +70,22 @@ async def lookup_creature(
             - hit_dice: Hit dice expression (e.g., "10d10+20")
             - speed: Movement speeds (walk, fly, swim, burrow, climb)
             - strength/dexterity/constitution/intelligence/wisdom/charisma: Ability scores
-            - saving_throws: Saving throw bonuses if any
-            - skills: Skill bonuses if any
-            - senses: Senses available (darkvision, passive perception, etc.)
             - challenge_rating: CR value for encounter building
-            - traits: Special traits and features
             - actions: Possible actions in combat
-            - reactions: Reaction abilities
             - legendary_actions: Legendary action options (if applicable)
-            - document__slug: Source document reference
+            - special_abilities: Special abilities and traits
+            - document_url: Source document reference
 
     Raises:
-        APIError: If the API request fails due to network issues or server errors
+        ApiError: If the API request fails due to network issues or server errors
     """
-    # Check in-memory cache first
-    cache_key = (name, cr, cr_min, cr_max, type, size, limit)
-    if cache_key in _creature_cache:
-        return _creature_cache[cache_key]
+    # Use provided repository or create default
+    if repository is None:
+        repository = RepositoryFactory.create_monster_repository()
 
-    client = Open5eV1Client()
-
-    # Build query parameters
-    params: dict[str, Any] = {"limit": limit}
-    if name is not None:
-        params["search"] = name
+    # Build query parameters for repository search
+    # Note: name/search filtering happens client-side since the API doesn't filter by search
+    params: dict[str, Any] = {}
     if cr is not None:
         params["cr"] = cr
     if cr_min is not None:
@@ -101,15 +97,18 @@ async def lookup_creature(
     if size is not None:
         params["size"] = size
 
-    response = await client.get_monsters(**params)
+    # Fetch creatures from repository with filters
+    # When searching by name, fetch more results to ensure we find matches
+    # Use multiplier of 11 to balance finding matches with performance
+    fetch_limit = limit * 11 if name else limit
+    creatures = await repository.search(limit=fetch_limit, **params)
 
-    # Convert Monster objects to dictionaries
-    result = [creature.model_dump() for creature in response]
+    # Client-side filtering by name (the API search parameter doesn't actually filter)
+    if name:
+        name_lower = name.lower()
+        creatures = [creature for creature in creatures if name_lower in creature.name.lower()]
 
-    # Cache the result in memory
-    if len(_creature_cache) >= _creature_cache_maxsize:
-        # Simple FIFO eviction
-        _creature_cache.pop(next(iter(_creature_cache)))
-    _creature_cache[cache_key] = result
+    # Limit results to requested count
+    creatures = creatures[:limit]
 
-    return result
+    return [creature.model_dump() for creature in creatures]

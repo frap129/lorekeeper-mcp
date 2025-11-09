@@ -195,7 +195,7 @@ This task list outlines the concrete work items needed to implement the reposito
 **Dependencies**: Phase 2 complete
 
 ### Tool Migration (Can parallelize per tool)
-- [ ] **Task 3.1**: Migrate spell_lookup tool
+- [x] **Task 3.1**: Migrate spell_lookup tool
   - Add optional `repository` parameter to `lookup_spell()`
   - Use `RepositoryFactory.create_spell_repository()` as default
   - Remove direct client instantiation
@@ -203,13 +203,13 @@ This task list outlines the concrete work items needed to implement the reposito
   - Update unit tests to use repository mocks
   - **Validation**: `uv run pytest tests/test_tools/test_spell_lookup.py -v`
 
-- [ ] **Task 3.2**: Migrate creature_lookup tool
-  - Add optional `repository` parameter to `lookup_creature()`
-  - Use `RepositoryFactory.create_monster_repository()` as default
-  - Remove direct client instantiation
-  - Remove `_creature_cache` in-memory cache
-  - Update unit tests to use repository mocks
-  - **Validation**: `uv run pytest tests/test_tools/test_creature_lookup.py -v`
+- [x] **Task 3.2**: Migrate creature_lookup tool
+   - Add optional `repository` parameter to `lookup_creature()`
+   - Use `RepositoryFactory.create_monster_repository()` as default
+   - Remove direct client instantiation
+   - Remove `_creature_cache` in-memory cache
+   - Update unit tests to use repository mocks
+   - **Validation**: `uv run pytest tests/test_tools/test_creature_lookup.py -v`
 
 - [ ] **Task 3.3**: Migrate equipment_lookup tool
   - Add optional `repository` parameter to `lookup_equipment()`
