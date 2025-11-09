@@ -350,3 +350,322 @@ class Dnd5eApiClient(BaseHttpClient):
             return result if isinstance(result, list) else result.get("results", [])
         finally:
             self.cache_ttl = original_ttl
+
+    # Task 1.12: Character option methods
+    async def get_backgrounds_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get backgrounds from D&D 5e API.
+
+        Returns:
+            List of background dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/backgrounds/",
+            use_entity_cache=True,
+            entity_type="backgrounds",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    async def get_classes_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get classes from D&D 5e API.
+
+        Returns:
+            List of class dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/classes/",
+            use_entity_cache=True,
+            entity_type="classes",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    async def get_subclasses(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get subclasses from D&D 5e API.
+
+        Returns:
+            List of subclass dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/subclasses/",
+            use_entity_cache=True,
+            entity_type="subclasses",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    async def get_races_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get races from D&D 5e API.
+
+        Returns:
+            List of race dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/races/",
+            use_entity_cache=True,
+            entity_type="races",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    async def get_subraces(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get subraces from D&D 5e API.
+
+        Returns:
+            List of subrace dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/subraces/",
+            use_entity_cache=True,
+            entity_type="subraces",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    async def get_feats_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get feats from D&D 5e API.
+
+        Returns:
+            List of feat dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/feats/",
+            use_entity_cache=True,
+            entity_type="feats",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    async def get_traits(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get traits from D&D 5e API.
+
+        Returns:
+            List of trait dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/traits/",
+            use_entity_cache=True,
+            entity_type="traits",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    # Task 1.13: Equipment methods
+    async def get_equipment(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get equipment from D&D 5e API.
+
+        Returns:
+            List of equipment dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/equipment/",
+            use_entity_cache=True,
+            entity_type="equipment",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    async def get_equipment_categories(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get equipment categories from D&D 5e API.
+
+        Returns:
+            List of equipment category dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        # Override cache TTL for reference data (30 days)
+        original_ttl = self.cache_ttl
+        self.cache_ttl = self.REFERENCE_DATA_TTL
+
+        try:
+            result = await self.make_request(
+                "/equipment-categories/",
+                use_entity_cache=True,
+                entity_type="itemcategories",
+                cache_filters={},
+                params=params,
+            )
+
+            return result if isinstance(result, list) else [result]
+        finally:
+            self.cache_ttl = original_ttl
+
+    async def get_magic_items_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get magic items from D&D 5e API.
+
+        Returns:
+            List of magic item dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/magic-items/",
+            use_entity_cache=True,
+            entity_type="magicitems",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    # Task 1.14: Spell and monster methods
+    async def get_spells_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get spells from D&D 5e API.
+
+        Returns:
+            List of spell dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/spells/",
+            use_entity_cache=True,
+            entity_type="spells",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    async def get_monsters_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get monsters from D&D 5e API.
+
+        Returns:
+            List of monster dictionaries with Monster model compatibility
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/monsters/",
+            use_entity_cache=True,
+            entity_type="monsters",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    # Task 1.15: Conditions and features methods
+    async def get_conditions_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get conditions from D&D 5e API.
+
+        Returns:
+            List of condition dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/conditions/",
+            use_entity_cache=True,
+            entity_type="conditions",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]
+
+    async def get_features(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get features from D&D 5e API.
+
+        Returns:
+            List of feature dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/features/",
+            use_entity_cache=True,
+            entity_type="features",
+            cache_filters={},
+            params=params,
+        )
+
+        return result if isinstance(result, list) else [result]

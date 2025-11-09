@@ -51,6 +51,12 @@ ENTITY_TYPES = [
     "images",
     "weaponproperties",
     "services",
+    # Task 1.12-1.15: D&D 5e API specific entities
+    "subclasses",
+    "subraces",
+    "traits",
+    "equipment",
+    "features",
 ]
 
 # Indexed fields per entity type for filtering
@@ -132,6 +138,12 @@ INDEXED_FIELDS = {
     "images": [],
     "weaponproperties": [],
     "services": [],
+    # Task 1.12-1.15: D&D 5e API specific entities
+    "subclasses": [],
+    "subraces": [],
+    "traits": [],
+    "equipment": [],
+    "features": [],
 }
 
 
