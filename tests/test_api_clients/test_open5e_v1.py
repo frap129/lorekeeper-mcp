@@ -418,3 +418,123 @@ async def test_get_magic_items_multiple_filters(v1_client: Open5eV1Client) -> No
     assert items[0]["type"] == "ring"
     assert items[0]["rarity"] == "rare"
     assert items[0]["requires_attunement"] is True
+
+
+@respx.mock
+async def test_get_spell_list(v1_client: Open5eV1Client) -> None:
+    """Test spell list lookup."""
+    respx.get("https://api.open5e.com/v1/spells/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "fireball",
+                        "name": "Fireball",
+                        "level": 3,
+                        "school": "evocation",
+                        "concentration": False,
+                        "ritual": False,
+                    }
+                ]
+            },
+        )
+    )
+
+    spells = await v1_client.get_spell_list()
+
+    assert len(spells) == 1
+    assert spells[0]["name"] == "Fireball"
+    assert spells[0]["level"] == 3
+    assert spells[0]["school"] == "evocation"
+
+
+@respx.mock
+async def test_get_spell_list_by_class(v1_client: Open5eV1Client) -> None:
+    """Test spell list lookup by class."""
+    respx.get("https://api.open5e.com/v1/spells/?class=wizard").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "fireball",
+                        "name": "Fireball",
+                        "level": 3,
+                        "school": "evocation",
+                        "concentration": False,
+                        "ritual": False,
+                    },
+                    {
+                        "slug": "magic-missile",
+                        "name": "Magic Missile",
+                        "level": 1,
+                        "school": "evocation",
+                        "concentration": False,
+                        "ritual": False,
+                    },
+                ]
+            },
+        )
+    )
+
+    spells = await v1_client.get_spell_list(class_name="wizard")
+
+    assert len(spells) == 2
+    assert spells[0]["name"] == "Fireball"
+    assert spells[1]["name"] == "Magic Missile"
+
+
+@respx.mock
+async def test_get_spell_list_uses_entity_cache(v1_client: Open5eV1Client) -> None:
+    """Get spell list caches entities."""
+    mock_response = {
+        "results": [
+            {
+                "slug": "fireball",
+                "name": "Fireball",
+                "level": 3,
+                "school": "evocation",
+                "concentration": False,
+                "ritual": False,
+            }
+        ]
+    }
+    respx.get("https://api.open5e.com/v1/spells/").mock(
+        return_value=httpx.Response(200, json=mock_response)
+    )
+
+    await v1_client.get_spell_list()
+
+    cached = await get_cached_entity("spells", "fireball")
+    assert cached is not None
+    assert cached["name"] == "Fireball"
+    assert cached["level"] == 3
+
+
+@respx.mock
+async def test_get_manifest(v1_client: Open5eV1Client) -> None:
+    """Test manifest retrieval."""
+    respx.get("https://api.open5e.com/v1/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "spells": "https://api.open5e.com/v1/spells/",
+                "monsters": "https://api.open5e.com/v1/monsters/",
+                "magicitems": "https://api.open5e.com/v1/magicitems/",
+                "weapons": "https://api.open5e.com/v1/weapons/",
+                "armor": "https://api.open5e.com/v1/armor/",
+                "classes": "https://api.open5e.com/v1/classes/",
+                "races": "https://api.open5e.com/v1/races/",
+                "planes": "https://api.open5e.com/v1/planes/",
+                "sections": "https://api.open5e.com/v1/sections/",
+            },
+        )
+    )
+
+    manifest = await v1_client.get_manifest()
+
+    assert isinstance(manifest, dict)
+    assert "spells" in manifest
+    assert "monsters" in manifest
+    assert "magicitems" in manifest

@@ -219,3 +219,47 @@ class Open5eV1Client(BaseHttpClient):
             return result
 
         return cast(list[dict[str, Any]], result.get("results", []))
+
+    async def get_spell_list(
+        self,
+        class_name: str | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Get spell list from Open5e API v1.
+
+        Args:
+            class_name: Filter by class (e.g., "wizard", "cleric")
+            **filters: Additional API parameters
+
+        Returns:
+            List of spell dictionaries
+        """
+        # Build API params with all provided filters
+        params = {k: v for k, v in filters.items() if v is not None}
+        if class_name is not None:
+            params["class"] = class_name
+
+        result = await self.make_request(
+            "/spells/",
+            use_entity_cache=True,
+            entity_type="spells",
+            params=params,
+        )
+
+        if isinstance(result, list):
+            return result
+
+        return cast(list[dict[str, Any]], result.get("results", []))
+
+    async def get_manifest(self) -> dict[str, Any]:
+        """Get API manifest/root endpoint from Open5e API v1.
+
+        Returns:
+            Dictionary of available endpoints
+        """
+        result = await self.make_request(
+            "/",
+            use_entity_cache=False,
+        )
+
+        return cast(dict[str, Any], result)
