@@ -76,14 +76,18 @@ class MonsterRepository(Repository[Monster]):
         Returns:
             List of Monster objects matching the filters
         """
-        # Try cache first with filters
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("monsters", **filters)
 
         if cached:
-            return [Monster.model_validate(monster) for monster in cached]
+            results = [Monster.model_validate(monster) for monster in cached]
+            return results[:limit] if limit else results
 
-        # Cache miss - fetch from API with filters
-        monsters: list[Monster] = await self.client.get_monsters(**filters)
+        # Cache miss - fetch from API with filters and limit
+        monsters: list[Monster] = await self.client.get_monsters(limit=limit, **filters)
 
         # Store in cache if we got results
         if monsters:

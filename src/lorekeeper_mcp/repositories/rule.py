@@ -122,12 +122,17 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_rules(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for rules."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("rules", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        rules: list[dict[str, Any]] = await self.client.get_rules(**filters)
+        # Fetch from API with filters and limit
+        rules: list[dict[str, Any]] = await self.client.get_rules(limit=limit, **filters)
 
         if rules:
             await self.cache.store_entities(rules, "rules")
@@ -136,12 +141,19 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_damage_types(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for damage types."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("damage_types", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        damage_types: list[dict[str, Any]] = await self.client.get_damage_types(**filters)
+        # Fetch from API with filters and limit
+        damage_types: list[dict[str, Any]] = await self.client.get_damage_types(
+            limit=limit, **filters
+        )
 
         if damage_types:
             await self.cache.store_entities(damage_types, "damage_types")
@@ -150,12 +162,17 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_skills(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for skills."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("skills", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        skills: list[dict[str, Any]] = await self.client.get_skills(**filters)
+        # Fetch from API with filters and limit
+        skills: list[dict[str, Any]] = await self.client.get_skills(limit=limit, **filters)
 
         if skills:
             await self.cache.store_entities(skills, "skills")
@@ -164,12 +181,19 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_conditions(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for conditions."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("conditions", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        conditions: list[dict[str, Any]] = await self.client.get_conditions_dnd5e(**filters)
+        # Fetch from API with filters and limit
+        conditions: list[dict[str, Any]] = await self.client.get_conditions_dnd5e(
+            limit=limit, **filters
+        )
 
         if conditions:
             await self.cache.store_entities(conditions, "conditions")
@@ -178,12 +202,19 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_weapon_properties(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for weapon properties."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("weapon_properties", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        properties: list[dict[str, Any]] = await self.client.get_weapon_properties(**filters)
+        # Fetch from API with filters and limit
+        properties: list[dict[str, Any]] = await self.client.get_weapon_properties(
+            limit=limit, **filters
+        )
 
         if properties:
             await self.cache.store_entities(properties, "weapon_properties")
@@ -192,12 +223,19 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_ability_scores(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for ability scores."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("ability_scores", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        ability_scores: list[dict[str, Any]] = await self.client.get_ability_scores(**filters)
+        # Fetch from API with filters and limit
+        ability_scores: list[dict[str, Any]] = await self.client.get_ability_scores(
+            limit=limit, **filters
+        )
 
         if ability_scores:
             await self.cache.store_entities(ability_scores, "ability_scores")
@@ -206,12 +244,17 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_magic_schools(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for magic schools."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("magic_schools", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        schools: list[dict[str, Any]] = await self.client.get_magic_schools(**filters)
+        # Fetch from API with filters and limit
+        schools: list[dict[str, Any]] = await self.client.get_magic_schools(limit=limit, **filters)
 
         if schools:
             await self.cache.store_entities(schools, "magic_schools")
@@ -220,12 +263,17 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_languages(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for languages."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("languages", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        languages: list[dict[str, Any]] = await self.client.get_languages(**filters)
+        # Fetch from API with filters and limit
+        languages: list[dict[str, Any]] = await self.client.get_languages(limit=limit, **filters)
 
         if languages:
             await self.cache.store_entities(languages, "languages")
@@ -234,12 +282,19 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_proficiencies(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for proficiencies."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("proficiencies", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        proficiencies: list[dict[str, Any]] = await self.client.get_proficiencies(**filters)
+        # Fetch from API with filters and limit
+        proficiencies: list[dict[str, Any]] = await self.client.get_proficiencies(
+            limit=limit, **filters
+        )
 
         if proficiencies:
             await self.cache.store_entities(proficiencies, "proficiencies")
@@ -248,12 +303,17 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_alignments(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for alignments."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("alignments", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        alignments: list[dict[str, Any]] = await self.client.get_alignments(**filters)
+        # Fetch from API with filters and limit
+        alignments: list[dict[str, Any]] = await self.client.get_alignments(limit=limit, **filters)
 
         if alignments:
             await self.cache.store_entities(alignments, "alignments")

@@ -76,14 +76,18 @@ class SpellRepository(Repository[Spell]):
         Returns:
             List of Spell objects matching the filters
         """
-        # Try cache first with filters
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("spells", **filters)
 
         if cached:
-            return [Spell.model_validate(spell) for spell in cached]
+            results = [Spell.model_validate(spell) for spell in cached]
+            return results[:limit] if limit else results
 
-        # Cache miss - fetch from API with filters
-        spells: list[Spell] = await self.client.get_spells(**filters)
+        # Cache miss - fetch from API with filters and limit
+        spells: list[Spell] = await self.client.get_spells(limit=limit, **filters)
 
         # Store in cache if we got results
         if spells:

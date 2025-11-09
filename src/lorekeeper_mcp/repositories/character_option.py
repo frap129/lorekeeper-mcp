@@ -91,12 +91,17 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
 
     async def _search_classes(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for character classes."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("classes", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        classes: list[dict[str, Any]] = await self.client.get_classes(**filters)
+        # Fetch from API with filters and limit
+        classes: list[dict[str, Any]] = await self.client.get_classes(limit=limit, **filters)
 
         if classes:
             await self.cache.store_entities(classes, "classes")
@@ -105,12 +110,17 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
 
     async def _search_races(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for races."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("races", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        races: list[dict[str, Any]] = await self.client.get_races(**filters)
+        # Fetch from API with filters and limit
+        races: list[dict[str, Any]] = await self.client.get_races(limit=limit, **filters)
 
         if races:
             await self.cache.store_entities(races, "races")
@@ -119,12 +129,19 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
 
     async def _search_backgrounds(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for backgrounds."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("backgrounds", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        backgrounds: list[dict[str, Any]] = await self.client.get_backgrounds(**filters)
+        # Fetch from API with filters and limit
+        backgrounds: list[dict[str, Any]] = await self.client.get_backgrounds(
+            limit=limit, **filters
+        )
 
         if backgrounds:
             await self.cache.store_entities(backgrounds, "backgrounds")
@@ -133,12 +150,17 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
 
     async def _search_feats(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for feats."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("feats", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        feats: list[dict[str, Any]] = await self.client.get_feats(**filters)
+        # Fetch from API with filters and limit
+        feats: list[dict[str, Any]] = await self.client.get_feats(limit=limit, **filters)
 
         if feats:
             await self.cache.store_entities(feats, "feats")
@@ -147,12 +169,17 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
 
     async def _search_conditions(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for conditions."""
+        # Extract limit parameter (not a cache filter field)
+        limit = filters.pop("limit", None)
+
+        # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("conditions", **filters)
 
         if cached:
-            return cached
+            return cached[:limit] if limit else cached
 
-        conditions: list[dict[str, Any]] = await self.client.get_conditions(**filters)
+        # Fetch from API with filters and limit
+        conditions: list[dict[str, Any]] = await self.client.get_conditions(limit=limit, **filters)
 
         if conditions:
             await self.cache.store_entities(conditions, "conditions")
