@@ -80,32 +80,32 @@ This task list outlines the concrete work items needed to implement the reposito
   - **Validation**: `uv run pytest tests/test_api_clients/test_open5e_v2.py::test_additional_content -v`
 
 ### D&D 5e API Client Completion (Can parallelize)
-- [ ] **Task 1.12**: Implement character option methods (7 methods)
+- [x] **Task 1.12**: Implement character option methods (7 methods)
   - `get_backgrounds_dnd5e()`, `get_classes_dnd5e()`, `get_subclasses()`, `get_races_dnd5e()`, `get_subraces()`, `get_feats_dnd5e()`, `get_traits()`
   - All use 7-day TTL
   - Handle index-to-slug normalization
   - Add unit tests
   - **Validation**: `uv run pytest tests/test_api_clients/test_dnd5e_api.py::test_character_options -v`
 
-- [ ] **Task 1.13**: Implement equipment methods (3 methods)
+- [x] **Task 1.13**: Implement equipment methods (3 methods)
   - `get_equipment()`, `get_equipment_categories()`, `get_magic_items_dnd5e()`
   - Proper TTL configuration (30 days for categories)
   - Add unit tests
   - **Validation**: `uv run pytest tests/test_api_clients/test_dnd5e_api.py::test_equipment -v`
 
-- [ ] **Task 1.14**: Implement spell and monster methods
+- [x] **Task 1.14**: Implement spell and monster methods
   - `get_spells_dnd5e()`, `get_monsters_dnd5e()`
   - Return appropriate model types (Monster model)
   - Add unit tests
   - **Validation**: `uv run pytest tests/test_api_clients/test_dnd5e_api.py::test_spells_monsters -v`
 
-- [ ] **Task 1.15**: Implement conditions and features methods
+- [x] **Task 1.15**: Implement conditions and features methods
   - `get_conditions_dnd5e()`, `get_features()`
   - Add unit tests
   - **Validation**: `uv run pytest tests/test_api_clients/test_dnd5e_api.py::test_conditions_features -v`
 
 ### Phase 1 Validation
-- [ ] **Task 1.16**: Run all API client tests
+- [x] **Task 1.16**: Run all API client tests
   - **Validation**: `uv run pytest tests/test_api_clients/ -v`
   - **Validation**: All tests pass (>90% coverage)
 
