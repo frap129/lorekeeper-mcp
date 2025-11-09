@@ -227,7 +227,7 @@ This task list outlines the concrete work items needed to implement the reposito
   - Update unit tests to use repository mocks
   - **Validation**: `uv run pytest tests/test_tools/test_character_option_lookup.py -v`
 
-- [ ] **Task 3.5**: Migrate rule_lookup tool
+- [x] **Task 3.5**: Migrate rule_lookup tool
   - Add optional `repository` parameter to `lookup_rule()`
   - Use `RepositoryFactory.create_rule_repository()` as default
   - Remove direct client instantiation
