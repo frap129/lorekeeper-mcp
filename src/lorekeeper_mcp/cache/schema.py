@@ -21,6 +21,36 @@ ENTITY_TYPES = [
     "rule_sections",
     "planes",
     "sections",
+    # Task 1.6: Item-related
+    "items",
+    "itemsets",
+    "itemcategories",
+    # Task 1.7: Creatures
+    "creatures",
+    "creaturetypes",
+    "creaturesets",
+    # Task 1.8: Reference data
+    "damagetypes",
+    "languages",
+    "alignments",
+    "spellschools",
+    "sizes",
+    "itemrarities",
+    "environments",
+    "abilities",
+    "skills",
+    # Task 1.9: Character options
+    "species",
+    # Task 1.10: Rules and metadata
+    "rulesets",
+    "documents",
+    "licenses",
+    "publishers",
+    "gamesystems",
+    # Task 1.11: Additional content
+    "images",
+    "weaponproperties",
+    "services",
 ]
 
 # Indexed fields per entity type for filtering
@@ -69,6 +99,39 @@ INDEXED_FIELDS = {
     "sections": [
         ("parent", "TEXT"),
     ],
+    # Task 1.6: Item-related (no special indexed fields)
+    "items": [],
+    "itemsets": [],
+    "itemcategories": [],
+    # Task 1.7: Creatures
+    "creatures": [
+        ("type", "TEXT"),
+        ("size", "TEXT"),
+    ],
+    "creaturetypes": [],
+    "creaturesets": [],
+    # Task 1.8: Reference data (no special indexed fields)
+    "damagetypes": [],
+    "languages": [],
+    "alignments": [],
+    "spellschools": [],
+    "sizes": [],
+    "itemrarities": [],
+    "environments": [],
+    "abilities": [],
+    "skills": [],
+    # Task 1.9: Character options
+    "species": [],
+    # Task 1.10: Rules and metadata
+    "rulesets": [],
+    "documents": [],
+    "licenses": [],
+    "publishers": [],
+    "gamesystems": [],
+    # Task 1.11: Additional content
+    "images": [],
+    "weaponproperties": [],
+    "services": [],
 }
 
 
