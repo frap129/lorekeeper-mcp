@@ -11,6 +11,7 @@ ENTITY_TYPES = [
     "monsters",
     "weapons",
     "armor",
+    "magicitems",
     "classes",
     "races",
     "backgrounds",
@@ -41,6 +42,11 @@ INDEXED_FIELDS = {
     "armor": [
         ("category", "TEXT"),
         ("armor_class", "INTEGER"),
+    ],
+    "magicitems": [
+        ("type", "TEXT"),
+        ("rarity", "TEXT"),
+        ("requires_attunement", "BOOLEAN"),
     ],
     "classes": [
         ("hit_die", "INTEGER"),

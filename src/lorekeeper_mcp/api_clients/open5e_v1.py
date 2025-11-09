@@ -94,3 +94,56 @@ class Open5eV1Client(BaseHttpClient):
             return result
 
         return cast(list[dict[str, Any]], result.get("results", []))
+
+    async def get_magic_items(
+        self,
+        name: str | None = None,
+        item_type: str | None = None,
+        rarity: str | None = None,
+        requires_attunement: bool | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Get magic items from Open5e API v1.
+
+        Args:
+            name: Filter by item name
+            item_type: Filter by item type (e.g., "ring", "wondrous item")
+            rarity: Filter by rarity (e.g., "uncommon", "rare")
+            requires_attunement: Filter by attunement requirement
+            **filters: Additional API parameters
+
+        Returns:
+            List of magic item dictionaries
+        """
+        # Build cache filters for indexed fields
+        cache_filters: dict[str, Any] = {}
+        if item_type is not None:
+            cache_filters["type"] = item_type
+        if rarity is not None:
+            cache_filters["rarity"] = rarity
+        if requires_attunement is not None:
+            cache_filters["requires_attunement"] = requires_attunement
+
+        # Build API params with all provided filters
+        params = {k: v for k, v in filters.items() if v is not None}
+        if name is not None:
+            params["name"] = name
+        if item_type is not None:
+            params["type"] = item_type
+        if rarity is not None:
+            params["rarity"] = rarity
+        if requires_attunement is not None:
+            params["requires_attunement"] = requires_attunement
+
+        result = await self.make_request(
+            "/magicitems/",
+            use_entity_cache=True,
+            entity_type="magicitems",
+            cache_filters=cache_filters,
+            params=params,
+        )
+
+        if isinstance(result, list):
+            return result
+
+        return cast(list[dict[str, Any]], result.get("results", []))
