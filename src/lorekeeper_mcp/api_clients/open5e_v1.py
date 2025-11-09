@@ -31,11 +31,6 @@ class Open5eV1Client(BaseHttpClient):
         Returns:
             List of monster dictionaries
         """
-        # Build cache filters for indexed fields
-        cache_filters = {}
-        if challenge_rating:
-            cache_filters["challenge_rating"] = challenge_rating
-
         # Include challenge_rating in API params if provided
         params = {k: v for k, v in filters.items() if v is not None}
         if challenge_rating:
@@ -43,9 +38,6 @@ class Open5eV1Client(BaseHttpClient):
 
         result = await self.make_request(
             "/monsters/",
-            use_entity_cache=True,
-            entity_type="monsters",
-            cache_filters=cache_filters,
             params=params,
         )
 
@@ -65,8 +57,6 @@ class Open5eV1Client(BaseHttpClient):
 
         result = await self.make_request(
             "/classes/",
-            use_entity_cache=True,
-            entity_type="classes",
             params=params,
         )
 
@@ -85,8 +75,6 @@ class Open5eV1Client(BaseHttpClient):
 
         result = await self.make_request(
             "/races/",
-            use_entity_cache=True,
-            entity_type="races",
             params=params,
         )
 
@@ -115,15 +103,6 @@ class Open5eV1Client(BaseHttpClient):
         Returns:
             List of magic item dictionaries
         """
-        # Build cache filters for indexed fields
-        cache_filters: dict[str, Any] = {}
-        if item_type is not None:
-            cache_filters["type"] = item_type
-        if rarity is not None:
-            cache_filters["rarity"] = rarity
-        if requires_attunement is not None:
-            cache_filters["requires_attunement"] = requires_attunement
-
         # Build API params with all provided filters
         params = {k: v for k, v in filters.items() if v is not None}
         if name is not None:
@@ -137,9 +116,6 @@ class Open5eV1Client(BaseHttpClient):
 
         result = await self.make_request(
             "/magicitems/",
-            use_entity_cache=True,
-            entity_type="magicitems",
-            cache_filters=cache_filters,
             params=params,
         )
 
@@ -169,8 +145,6 @@ class Open5eV1Client(BaseHttpClient):
 
         result = await self.make_request(
             "/planes/",
-            use_entity_cache=True,
-            entity_type="planes",
             params=params,
         )
 
@@ -195,11 +169,6 @@ class Open5eV1Client(BaseHttpClient):
         Returns:
             List of section dictionaries
         """
-        # Build cache filters for indexed fields
-        cache_filters: dict[str, Any] = {}
-        if parent is not None:
-            cache_filters["parent"] = parent
-
         # Build API params with all provided filters
         params = {k: v for k, v in filters.items() if v is not None}
         if name is not None:
@@ -209,9 +178,6 @@ class Open5eV1Client(BaseHttpClient):
 
         result = await self.make_request(
             "/sections/",
-            use_entity_cache=True,
-            entity_type="sections",
-            cache_filters=cache_filters,
             params=params,
         )
 
@@ -241,8 +207,6 @@ class Open5eV1Client(BaseHttpClient):
 
         result = await self.make_request(
             "/spells/",
-            use_entity_cache=True,
-            entity_type="spells",
             params=params,
         )
 
@@ -258,18 +222,7 @@ class Open5eV1Client(BaseHttpClient):
             Dictionary of available endpoints
 
         Note:
-            Uses 30-day TTL for URL-based cache as manifest is reference data
-            that changes rarely. The entity cache has infinite TTL by design.
+            Caching is handled by the repository layer.
         """
-        # Override cache TTL for reference data (30 days)
-        original_ttl = self.cache_ttl
-        self.cache_ttl = 2592000  # 30 days
-
-        try:
-            result = await self.make_request(
-                "/",
-                use_entity_cache=False,
-            )
-            return cast(dict[str, Any], result)
-        finally:
-            self.cache_ttl = original_ttl
+        result = await self.make_request("/")
+        return cast(dict[str, Any], result)

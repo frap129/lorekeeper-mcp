@@ -50,9 +50,6 @@ class Open5eV2Client(BaseHttpClient):
 
         result = await self.make_request(
             "/spells/",
-            use_entity_cache=True,
-            entity_type="spells",
-            cache_filters=cache_filters,
             params=params,
         )
 
@@ -72,8 +69,6 @@ class Open5eV2Client(BaseHttpClient):
         """Get weapons from Open5e API v2."""
         result = await self.make_request(
             "/weapons/",
-            use_entity_cache=True,
-            entity_type="weapons",
             params=kwargs,
         )
 
@@ -87,8 +82,6 @@ class Open5eV2Client(BaseHttpClient):
         """Get armor from Open5e API v2."""
         result = await self.make_request(
             "/armor/",
-            use_entity_cache=True,
-            entity_type="armor",
             params=kwargs,
         )
 
@@ -102,8 +95,6 @@ class Open5eV2Client(BaseHttpClient):
         """Get character backgrounds."""
         result = await self.make_request(
             "/backgrounds/",
-            use_entity_cache=True,
-            entity_type="backgrounds",
             params=kwargs,
         )
 
@@ -116,8 +107,6 @@ class Open5eV2Client(BaseHttpClient):
         """Get character feats."""
         result = await self.make_request(
             "/feats/",
-            use_entity_cache=True,
-            entity_type="feats",
             params=kwargs,
         )
 
@@ -130,8 +119,6 @@ class Open5eV2Client(BaseHttpClient):
         """Get game conditions."""
         result = await self.make_request(
             "/conditions/",
-            use_entity_cache=True,
-            entity_type="conditions",
             params=kwargs,
         )
 
@@ -152,8 +139,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/items/",
-            use_entity_cache=True,
-            entity_type="items",
             params=kwargs,
         )
 
@@ -176,8 +161,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/itemsets/",
-            use_entity_cache=True,
-            entity_type="itemsets",
             params=kwargs,
         )
 
@@ -200,8 +183,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/itemcategories/",
-            use_entity_cache=True,
-            entity_type="itemcategories",
             params=kwargs,
         )
 
@@ -224,8 +205,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/creatures/",
-            use_entity_cache=True,
-            entity_type="creatures",
             params=kwargs,
         )
 
@@ -246,8 +225,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/creaturetypes/",
-            use_entity_cache=True,
-            entity_type="creaturetypes",
             params=kwargs,
         )
 
@@ -269,8 +246,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/creaturesets/",
-            use_entity_cache=True,
-            entity_type="creaturesets",
             params=kwargs,
         )
 
@@ -291,8 +266,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/damagetypes/",
-            use_entity_cache=True,
-            entity_type="damagetypes",
             params=kwargs,
         )
 
@@ -312,8 +285,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/languages/",
-            use_entity_cache=True,
-            entity_type="languages",
             params=kwargs,
         )
 
@@ -333,8 +304,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/alignments/",
-            use_entity_cache=True,
-            entity_type="alignments",
             params=kwargs,
         )
 
@@ -354,8 +323,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/spellschools/",
-            use_entity_cache=True,
-            entity_type="spellschools",
             params=kwargs,
         )
 
@@ -375,8 +342,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/sizes/",
-            use_entity_cache=True,
-            entity_type="sizes",
             params=kwargs,
         )
 
@@ -396,8 +361,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/itemrarities/",
-            use_entity_cache=True,
-            entity_type="itemrarities",
             params=kwargs,
         )
 
@@ -417,8 +380,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/environments/",
-            use_entity_cache=True,
-            entity_type="environments",
             params=kwargs,
         )
 
@@ -438,8 +399,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/abilities/",
-            use_entity_cache=True,
-            entity_type="abilities",
             params=kwargs,
         )
 
@@ -459,8 +418,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/skills/",
-            use_entity_cache=True,
-            entity_type="skills",
             params=kwargs,
         )
 
@@ -481,8 +438,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/species/",
-            use_entity_cache=True,
-            entity_type="species",
             params=kwargs,
         )
 
@@ -502,8 +457,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/classes/",
-            use_entity_cache=True,
-            entity_type="classes",
             params=kwargs,
         )
 
@@ -524,8 +477,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/rules/",
-            use_entity_cache=True,
-            entity_type="rules",
             params=kwargs,
         )
 
@@ -545,8 +496,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/rulesets/",
-            use_entity_cache=True,
-            entity_type="rulesets",
             params=kwargs,
         )
 
@@ -566,8 +515,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/documents/",
-            use_entity_cache=True,
-            entity_type="documents",
             params=kwargs,
         )
 
@@ -587,8 +534,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/licenses/",
-            use_entity_cache=True,
-            entity_type="licenses",
             params=kwargs,
         )
 
@@ -608,8 +553,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/publishers/",
-            use_entity_cache=True,
-            entity_type="publishers",
             params=kwargs,
         )
 
@@ -629,8 +572,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/gamesystems/",
-            use_entity_cache=True,
-            entity_type="gamesystems",
             params=kwargs,
         )
 
@@ -651,8 +592,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/images/",
-            use_entity_cache=True,
-            entity_type="images",
             params=kwargs,
         )
 
@@ -672,8 +611,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/weaponproperties/",
-            use_entity_cache=True,
-            entity_type="weaponproperties",
             params=kwargs,
         )
 
@@ -693,8 +630,6 @@ class Open5eV2Client(BaseHttpClient):
         """
         result = await self.make_request(
             "/services/",
-            use_entity_cache=True,
-            entity_type="services",
             params=kwargs,
         )
 

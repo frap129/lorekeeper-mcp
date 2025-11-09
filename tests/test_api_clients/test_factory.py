@@ -47,15 +47,5 @@ async def test_create_dnd5e_api() -> None:
     assert isinstance(client, Dnd5eApiClient)
     assert client.base_url == "https://www.dnd5eapi.co/api/2014"
     assert client.source_api == "dnd5e_api"
-    assert client.cache_ttl == 604800  # 7 days
-
-    await client.close()
-
-
-async def test_create_dnd5e_api_with_custom_ttl() -> None:
-    """Test creating D&D 5e API client with custom cache TTL."""
-    client = ClientFactory.create_dnd5e_api(cache_ttl=1000)
-
-    assert client.cache_ttl == 1000
 
     await client.close()

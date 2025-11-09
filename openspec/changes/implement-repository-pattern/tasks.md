@@ -136,40 +136,40 @@ This task list outlines the concrete work items needed to implement the reposito
   - **Validation**: `uv run mypy src/lorekeeper_mcp/repositories/base.py`
 
 ### Concrete Repositories
-- [ ] **Task 2.4**: Implement SpellRepository
+- [x] **Task 2.4**: Implement SpellRepository
   - Create `src/lorekeeper_mcp/repositories/spell.py`
   - Implement cache-aside pattern
   - Support all spell filters
   - Add unit tests with mocked client and cache
   - **Validation**: `uv run pytest tests/test_repositories/test_spell.py -v`
 
-- [ ] **Task 2.5**: Implement MonsterRepository
+- [x] **Task 2.5**: Implement MonsterRepository
   - Create `src/lorekeeper_mcp/repositories/monster.py`
   - Support multi-source fetching (v1 primary)
   - Add unit tests
   - **Validation**: `uv run pytest tests/test_repositories/test_monster.py -v`
 
-- [ ] **Task 2.6**: Implement EquipmentRepository
+- [x] **Task 2.6**: Implement EquipmentRepository
   - Create `src/lorekeeper_mcp/repositories/equipment.py`
   - Handle item type routing (weapon/armor/item)
   - Add unit tests
   - **Validation**: `uv run pytest tests/test_repositories/test_equipment.py -v`
 
-- [ ] **Task 2.7**: Implement CharacterOptionRepository
+- [x] **Task 2.7**: Implement CharacterOptionRepository
   - Create `src/lorekeeper_mcp/repositories/character_option.py`
   - Handle option type routing
   - Support multi-source fetching
   - Add unit tests
   - **Validation**: `uv run pytest tests/test_repositories/test_character_option.py -v`
 
-- [ ] **Task 2.8**: Implement RuleRepository
+- [x] **Task 2.8**: Implement RuleRepository
   - Create `src/lorekeeper_mcp/repositories/rule.py`
   - Handle rule type routing
   - Add unit tests
   - **Validation**: `uv run pytest tests/test_repositories/test_rule.py -v`
 
 ### Repository Factory
-- [ ] **Task 2.9**: Implement repository factory
+- [x] **Task 2.9**: Implement repository factory
   - Create `src/lorekeeper_mcp/repositories/factory.py`
   - Add factory methods for all 5 repositories
   - Support dependency injection
@@ -186,7 +186,7 @@ This task list outlines the concrete work items needed to implement the reposito
   - **Validation**: No mypy errors
 
 ### Phase 2 Validation
-- [ ] **Task 2.11**: Run all repository tests
+- [x] **Task 2.11**: Run all repository tests
   - **Validation**: `uv run pytest tests/test_repositories/ -v`
   - **Validation**: All repository tests pass (>90% coverage)
 

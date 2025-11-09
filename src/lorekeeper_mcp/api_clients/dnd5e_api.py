@@ -8,28 +8,15 @@ from lorekeeper_mcp.api_clients.base import BaseHttpClient
 class Dnd5eApiClient(BaseHttpClient):
     """Client for D&D 5e API endpoints."""
 
-    # Reference data TTL: 30 days (static data)
-    REFERENCE_DATA_TTL = 2592000
-
-    def __init__(
-        self,
-        base_url: str = "https://www.dnd5eapi.co/api/2014",
-        cache_ttl: int = 604800,  # 7 days default
-        source_api: str = "dnd5e_api",
-        **kwargs: Any,
-    ) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """Initialize D&D 5e API client.
 
         Args:
-            base_url: Base URL for API requests (includes version)
-            cache_ttl: Cache time-to-live in seconds (default 7 days)
-            source_api: Source API identifier for cache metadata
             **kwargs: Additional arguments for BaseHttpClient
         """
         super().__init__(
-            base_url=base_url,
-            cache_ttl=cache_ttl,
-            source_api=source_api,
+            base_url="https://www.dnd5eapi.co/api/2014",
+            source_api="dnd5e_api",
             **kwargs,
         )
 
@@ -94,17 +81,12 @@ class Dnd5eApiClient(BaseHttpClient):
 
         params = {k: v for k, v in filters.items() if v is not None}
 
-        # Make request with entity cache
-        result = await self.make_request(
-            endpoint,
-            use_entity_cache=True,
-            entity_type="rules",
-            cache_filters={},
-            params=params,
-        )
+        # Make request
+        result = await self.make_request(endpoint, params=params)
 
-        # Result is already a list due to entity caching extraction
-        return result if isinstance(result, list) else [result]
+        # Extract and normalize entities
+        response = result if isinstance(result, dict) else {"results": result}
+        return self._extract_entities(response, "rules")
 
     async def get_rule_sections(
         self,
@@ -129,17 +111,12 @@ class Dnd5eApiClient(BaseHttpClient):
 
         params = {k: v for k, v in filters.items() if v is not None}
 
-        # Make request with entity cache
-        result = await self.make_request(
-            endpoint,
-            use_entity_cache=True,
-            entity_type="rule_sections",
-            cache_filters={},
-            params=params,
-        )
+        # Make request
+        result = await self.make_request(endpoint, params=params)
 
-        # Result is already a list due to entity caching extraction
-        return result if isinstance(result, list) else [result]
+        # Extract and normalize entities
+        response = result if isinstance(result, dict) else {"results": result}
+        return self._extract_entities(response, "rule_sections")
 
     async def get_damage_types(self, **filters: Any) -> list[dict[str, Any]]:
         """Get damage types from D&D 5e API.
@@ -153,20 +130,13 @@ class Dnd5eApiClient(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
 
-        # Override cache TTL for reference data
-        original_ttl = self.cache_ttl
-        self.cache_ttl = self.REFERENCE_DATA_TTL
-
-        try:
-            result = await self.make_request(
-                "/damage-types/",
-                use_entity_cache=True,
-                entity_type="damage_types",
-                params=params,
-            )
-            return result if isinstance(result, list) else result.get("results", [])
-        finally:
-            self.cache_ttl = original_ttl
+        result = await self.make_request("/damage-types/", params=params)
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_weapon_properties(self, **filters: Any) -> list[dict[str, Any]]:
         """Get weapon properties from D&D 5e API.
@@ -180,20 +150,16 @@ class Dnd5eApiClient(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
 
-        # Override cache TTL for reference data
-        original_ttl = self.cache_ttl
-        self.cache_ttl = self.REFERENCE_DATA_TTL
-
-        try:
-            result = await self.make_request(
-                "/weapon-properties/",
-                use_entity_cache=True,
-                entity_type="weapon_properties",
-                params=params,
-            )
-            return result if isinstance(result, list) else result.get("results", [])
-        finally:
-            self.cache_ttl = original_ttl
+        result = await self.make_request(
+            "/weapon-properties/",
+            params=params,
+        )
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_skills(self, **filters: Any) -> list[dict[str, Any]]:
         """Get skills from D&D 5e API.
@@ -207,19 +173,16 @@ class Dnd5eApiClient(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
 
-        original_ttl = self.cache_ttl
-        self.cache_ttl = self.REFERENCE_DATA_TTL
-
-        try:
-            result = await self.make_request(
-                "/skills/",
-                use_entity_cache=True,
-                entity_type="skills",
-                params=params,
-            )
-            return result if isinstance(result, list) else result.get("results", [])
-        finally:
-            self.cache_ttl = original_ttl
+        result = await self.make_request(
+            "/skills/",
+            params=params,
+        )
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_ability_scores(self, **filters: Any) -> list[dict[str, Any]]:
         """Get ability scores from D&D 5e API.
@@ -233,19 +196,16 @@ class Dnd5eApiClient(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
 
-        original_ttl = self.cache_ttl
-        self.cache_ttl = self.REFERENCE_DATA_TTL
-
-        try:
-            result = await self.make_request(
-                "/ability-scores/",
-                use_entity_cache=True,
-                entity_type="ability_scores",
-                params=params,
-            )
-            return result if isinstance(result, list) else result.get("results", [])
-        finally:
-            self.cache_ttl = original_ttl
+        result = await self.make_request(
+            "/ability-scores/",
+            params=params,
+        )
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_magic_schools(self, **filters: Any) -> list[dict[str, Any]]:
         """Get magic schools from D&D 5e API.
@@ -259,19 +219,16 @@ class Dnd5eApiClient(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
 
-        original_ttl = self.cache_ttl
-        self.cache_ttl = self.REFERENCE_DATA_TTL
-
-        try:
-            result = await self.make_request(
-                "/magic-schools/",
-                use_entity_cache=True,
-                entity_type="magic_schools",
-                params=params,
-            )
-            return result if isinstance(result, list) else result.get("results", [])
-        finally:
-            self.cache_ttl = original_ttl
+        result = await self.make_request(
+            "/magic-schools/",
+            params=params,
+        )
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_languages(self, **filters: Any) -> list[dict[str, Any]]:
         """Get languages from D&D 5e API.
@@ -285,19 +242,16 @@ class Dnd5eApiClient(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
 
-        original_ttl = self.cache_ttl
-        self.cache_ttl = self.REFERENCE_DATA_TTL
-
-        try:
-            result = await self.make_request(
-                "/languages/",
-                use_entity_cache=True,
-                entity_type="languages",
-                params=params,
-            )
-            return result if isinstance(result, list) else result.get("results", [])
-        finally:
-            self.cache_ttl = original_ttl
+        result = await self.make_request(
+            "/languages/",
+            params=params,
+        )
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_proficiencies(self, **filters: Any) -> list[dict[str, Any]]:
         """Get proficiencies from D&D 5e API.
@@ -311,19 +265,16 @@ class Dnd5eApiClient(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
 
-        original_ttl = self.cache_ttl
-        self.cache_ttl = self.REFERENCE_DATA_TTL
-
-        try:
-            result = await self.make_request(
-                "/proficiencies/",
-                use_entity_cache=True,
-                entity_type="proficiencies",
-                params=params,
-            )
-            return result if isinstance(result, list) else result.get("results", [])
-        finally:
-            self.cache_ttl = original_ttl
+        result = await self.make_request(
+            "/proficiencies/",
+            params=params,
+        )
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_alignments(self, **filters: Any) -> list[dict[str, Any]]:
         """Get alignments from D&D 5e API.
@@ -337,19 +288,16 @@ class Dnd5eApiClient(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
 
-        original_ttl = self.cache_ttl
-        self.cache_ttl = self.REFERENCE_DATA_TTL
-
-        try:
-            result = await self.make_request(
-                "/alignments/",
-                use_entity_cache=True,
-                entity_type="alignments",
-                params=params,
-            )
-            return result if isinstance(result, list) else result.get("results", [])
-        finally:
-            self.cache_ttl = original_ttl
+        result = await self.make_request(
+            "/alignments/",
+            params=params,
+        )
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     # Task 1.12: Character option methods
     async def get_backgrounds_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
@@ -366,13 +314,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/backgrounds/",
-            use_entity_cache=True,
-            entity_type="backgrounds",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_classes_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
         """Get classes from D&D 5e API.
@@ -388,13 +338,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/classes/",
-            use_entity_cache=True,
-            entity_type="classes",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_subclasses(self, **filters: Any) -> list[dict[str, Any]]:
         """Get subclasses from D&D 5e API.
@@ -410,13 +362,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/subclasses/",
-            use_entity_cache=True,
-            entity_type="subclasses",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_races_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
         """Get races from D&D 5e API.
@@ -432,13 +386,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/races/",
-            use_entity_cache=True,
-            entity_type="races",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_subraces(self, **filters: Any) -> list[dict[str, Any]]:
         """Get subraces from D&D 5e API.
@@ -454,13 +410,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/subraces/",
-            use_entity_cache=True,
-            entity_type="subraces",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_feats_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
         """Get feats from D&D 5e API.
@@ -476,13 +434,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/feats/",
-            use_entity_cache=True,
-            entity_type="feats",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_traits(self, **filters: Any) -> list[dict[str, Any]]:
         """Get traits from D&D 5e API.
@@ -498,13 +458,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/traits/",
-            use_entity_cache=True,
-            entity_type="traits",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     # Task 1.13: Equipment methods
     async def get_equipment(self, **filters: Any) -> list[dict[str, Any]]:
@@ -521,13 +483,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/equipment/",
-            use_entity_cache=True,
-            entity_type="equipment",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_equipment_categories(self, **filters: Any) -> list[dict[str, Any]]:
         """Get equipment categories from D&D 5e API.
@@ -541,22 +505,17 @@ class Dnd5eApiClient(BaseHttpClient):
         """
         params = {k: v for k, v in filters.items() if v is not None}
 
-        # Override cache TTL for reference data (30 days)
-        original_ttl = self.cache_ttl
-        self.cache_ttl = self.REFERENCE_DATA_TTL
+        result = await self.make_request(
+            "/equipment-categories/",
+            params=params,
+        )
 
-        try:
-            result = await self.make_request(
-                "/equipment-categories/",
-                use_entity_cache=True,
-                entity_type="itemcategories",
-                cache_filters={},
-                params=params,
-            )
-
-            return result if isinstance(result, list) else [result]
-        finally:
-            self.cache_ttl = original_ttl
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_magic_items_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
         """Get magic items from D&D 5e API.
@@ -572,13 +531,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/magic-items/",
-            use_entity_cache=True,
-            entity_type="magicitems",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     # Task 1.14: Spell and monster methods
     async def get_spells_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
@@ -595,13 +556,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/spells/",
-            use_entity_cache=True,
-            entity_type="spells",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_monsters_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
         """Get monsters from D&D 5e API.
@@ -617,13 +580,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/monsters/",
-            use_entity_cache=True,
-            entity_type="monsters",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     # Task 1.15: Conditions and features methods
     async def get_conditions_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
@@ -640,13 +605,15 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/conditions/",
-            use_entity_cache=True,
-            entity_type="conditions",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results
 
     async def get_features(self, **filters: Any) -> list[dict[str, Any]]:
         """Get features from D&D 5e API.
@@ -662,10 +629,12 @@ class Dnd5eApiClient(BaseHttpClient):
 
         result = await self.make_request(
             "/features/",
-            use_entity_cache=True,
-            entity_type="features",
-            cache_filters={},
             params=params,
         )
 
-        return result if isinstance(result, list) else [result]
+        results = result if isinstance(result, list) else result.get("results", [])
+        # Normalize index to slug
+        for item in results:
+            if isinstance(item, dict) and "index" in item and "slug" not in item:
+                item["slug"] = item["index"]
+        return results

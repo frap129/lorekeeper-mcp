@@ -5,8 +5,7 @@ import pytest
 import respx
 
 from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
-from lorekeeper_mcp.api_clients.exceptions import ApiError
-from lorekeeper_mcp.cache.db import get_cached_entity
+from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
 
 
 @pytest.fixture
@@ -15,13 +14,6 @@ async def dnd5e_client(test_db) -> Dnd5eApiClient:
     client = Dnd5eApiClient(max_retries=0)
     yield client
     await client.close()
-
-
-async def test_client_initialization(dnd5e_client: Dnd5eApiClient) -> None:
-    """Test client initializes with correct configuration."""
-    assert dnd5e_client.base_url == "https://www.dnd5eapi.co/api/2014"
-    assert dnd5e_client.source_api == "dnd5e_api"
-    assert dnd5e_client.cache_ttl == 604800  # 7 days default
 
 
 @respx.mock
@@ -333,46 +325,6 @@ async def test_get_alignments(dnd5e_client: Dnd5eApiClient) -> None:
 
 
 @respx.mock
-async def test_get_rules_uses_entity_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify rules are cached as entities."""
-    mock_response = {
-        "results": [
-            {
-                "index": "combat",
-                "name": "Combat",
-                "desc": "Combat rules...",
-            }
-        ]
-    }
-    respx.get("https://www.dnd5eapi.co/api/2014/rules/").mock(
-        return_value=httpx.Response(200, json=mock_response)
-    )
-
-    await dnd5e_client.get_rules()
-
-    # Verify entity cached
-    cached = await get_cached_entity("rules", "combat")
-    assert cached is not None
-    assert cached["name"] == "Combat"
-
-
-@respx.mock
-async def test_get_damage_types_extended_ttl(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify reference data uses 30-day cache TTL."""
-    mock_response = {"results": [{"index": "fire", "name": "Fire", "desc": "Fire damage..."}]}
-    respx.get("https://www.dnd5eapi.co/api/2014/damage-types/").mock(
-        return_value=httpx.Response(200, json=mock_response)
-    )
-
-    await dnd5e_client.get_damage_types()
-
-    # Verify that extended TTL is applied by checking the client's cache_ttl
-    # after calling get_damage_types (which temporarily sets it to REFERENCE_DATA_TTL)
-    # The cache_ttl should be restored to default after the call
-    assert dnd5e_client.cache_ttl == 604800  # 7 days default (should be restored)
-
-
-@respx.mock
 async def test_get_rules_api_error(dnd5e_client: Dnd5eApiClient) -> None:
     """Test API error handling."""
     respx.get("https://www.dnd5eapi.co/api/2014/rules/").mock(
@@ -387,43 +339,16 @@ async def test_get_rules_api_error(dnd5e_client: Dnd5eApiClient) -> None:
 
 @respx.mock
 async def test_get_rules_network_error(dnd5e_client: Dnd5eApiClient) -> None:
-    """Test network error handling with empty cache fallback."""
+    """Test network error handling."""
     respx.get("https://www.dnd5eapi.co/api/2014/rules/").mock(
         side_effect=httpx.RequestError("Network unavailable")
     )
 
-    # Should return empty list when no cache available
-    result = await dnd5e_client.get_rules()
-
-    assert result == []
-
-
-async def test_get_rules_network_error_with_cache_fallback(dnd5e_client: Dnd5eApiClient) -> None:
-    """Test offline fallback to cached entities."""
-    # First request succeeds and caches
-    with respx.mock:
-        respx.get("https://www.dnd5eapi.co/api/2014/rules/").mock(
-            return_value=httpx.Response(
-                200,
-                json={
-                    "results": [{"index": "combat", "name": "Combat", "desc": "Combat rules..."}]
-                },
-            )
-        )
+    # Should raise NetworkError since caching is handled by repositories
+    with pytest.raises(NetworkError):
         await dnd5e_client.get_rules()
 
-    # Second request fails, should return cached
-    with respx.mock:
-        respx.get("https://www.dnd5eapi.co/api/2014/rules/").mock(
-            side_effect=httpx.RequestError("Network unavailable")
-        )
-        result = await dnd5e_client.get_rules()
 
-        assert len(result) == 1
-        assert result[0]["name"] == "Combat"
-
-
-# Task 1.12: Character option methods
 @respx.mock
 async def test_get_backgrounds_dnd5e(dnd5e_client: Dnd5eApiClient) -> None:
     """Test fetching backgrounds."""
@@ -636,182 +561,6 @@ async def test_get_traits(dnd5e_client: Dnd5eApiClient) -> None:
 
 
 @respx.mock
-async def test_get_backgrounds_dnd5e_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify backgrounds are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/backgrounds/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "acolyte",
-                        "name": "Acolyte",
-                        "desc": "You have spent your life in service...",
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_backgrounds_dnd5e()
-
-    cached = await get_cached_entity("backgrounds", "acolyte")
-    assert cached is not None
-    assert cached["name"] == "Acolyte"
-
-
-@respx.mock
-async def test_get_classes_dnd5e_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify classes are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/classes/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "barbarian",
-                        "name": "Barbarian",
-                        "hit_die": 12,
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_classes_dnd5e()
-
-    cached = await get_cached_entity("classes", "barbarian")
-    assert cached is not None
-    assert cached["name"] == "Barbarian"
-
-
-@respx.mock
-async def test_get_subclasses_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify subclasses are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/subclasses/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "berserker",
-                        "name": "Berserker",
-                        "class": {"index": "barbarian", "name": "Barbarian"},
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_subclasses()
-
-    cached = await get_cached_entity("subclasses", "berserker")
-    assert cached is not None
-    assert cached["name"] == "Berserker"
-
-
-@respx.mock
-async def test_get_races_dnd5e_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify races are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/races/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "human",
-                        "name": "Human",
-                        "speed": 30,
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_races_dnd5e()
-
-    cached = await get_cached_entity("races", "human")
-    assert cached is not None
-    assert cached["name"] == "Human"
-
-
-@respx.mock
-async def test_get_subraces_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify subraces are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/subraces/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "high-elf",
-                        "name": "High Elf",
-                        "race": {"index": "elf", "name": "Elf"},
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_subraces()
-
-    cached = await get_cached_entity("subraces", "high-elf")
-    assert cached is not None
-    assert cached["name"] == "High Elf"
-
-
-@respx.mock
-async def test_get_feats_dnd5e_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify feats are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/feats/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "alert",
-                        "name": "Alert",
-                        "desc": "Always vigilant...",
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_feats_dnd5e()
-
-    cached = await get_cached_entity("feats", "alert")
-    assert cached is not None
-    assert cached["name"] == "Alert"
-
-
-@respx.mock
-async def test_get_traits_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify traits are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/traits/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "darkvision",
-                        "name": "Darkvision",
-                        "desc": "You can see in dim light...",
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_traits()
-
-    cached = await get_cached_entity("traits", "darkvision")
-    assert cached is not None
-    assert cached["name"] == "Darkvision"
-
-
-# Task 1.13: Equipment methods
-@respx.mock
 async def test_get_equipment(dnd5e_client: Dnd5eApiClient) -> None:
     """Test fetching equipment."""
     respx.get("https://www.dnd5eapi.co/api/2014/equipment/").mock(
@@ -902,82 +651,6 @@ async def test_get_magic_items_dnd5e(dnd5e_client: Dnd5eApiClient) -> None:
 
 
 @respx.mock
-async def test_get_equipment_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify equipment is cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/equipment/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "longsword",
-                        "name": "Longsword",
-                        "equipment_category": {"index": "melee-weapons"},
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_equipment()
-
-    cached = await get_cached_entity("equipment", "longsword")
-    assert cached is not None
-    assert cached["name"] == "Longsword"
-
-
-@respx.mock
-async def test_get_equipment_categories_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify equipment categories are cached as entities with 30-day TTL."""
-    respx.get("https://www.dnd5eapi.co/api/2014/equipment-categories/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "armor",
-                        "name": "Armor",
-                        "equipment": [],
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_equipment_categories()
-
-    cached = await get_cached_entity("itemcategories", "armor")
-    assert cached is not None
-    assert cached["name"] == "Armor"
-
-
-@respx.mock
-async def test_get_magic_items_dnd5e_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify magic items are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/magic-items/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "bag-of-holding",
-                        "name": "Bag of Holding",
-                        "rarity": "Uncommon",
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_magic_items_dnd5e()
-
-    cached = await get_cached_entity("magicitems", "bag-of-holding")
-    assert cached is not None
-    assert cached["name"] == "Bag of Holding"
-
-
-# Task 1.14: Spell and monster methods
-@respx.mock
 async def test_get_spells_dnd5e(dnd5e_client: Dnd5eApiClient) -> None:
     """Test fetching spells."""
     respx.get("https://www.dnd5eapi.co/api/2014/spells/").mock(
@@ -1054,64 +727,6 @@ async def test_get_monsters_dnd5e(dnd5e_client: Dnd5eApiClient) -> None:
 
 
 @respx.mock
-async def test_get_spells_dnd5e_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify spells are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/spells/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "acid-splash",
-                        "name": "Acid Splash",
-                        "level": 0,
-                        "school": "evocation",
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_spells_dnd5e()
-
-    cached = await get_cached_entity("spells", "acid-splash")
-    assert cached is not None
-    assert cached["name"] == "Acid Splash"
-
-
-@respx.mock
-async def test_get_monsters_dnd5e_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify monsters are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/monsters/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "aboleth",
-                        "name": "Aboleth",
-                        "size": "Large",
-                        "type": "aberration",
-                        "alignment": "lawful evil",
-                        "armor_class": 17,
-                        "hit_points": 135,
-                        "hit_dice": "10d12+70",
-                        "challenge_rating": "10",
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_monsters_dnd5e()
-
-    cached = await get_cached_entity("monsters", "aboleth")
-    assert cached is not None
-    assert cached["name"] == "Aboleth"
-
-
-# Task 1.15: Conditions and features methods
-@respx.mock
 async def test_get_conditions_dnd5e(dnd5e_client: Dnd5eApiClient) -> None:
     """Test fetching conditions."""
     respx.get("https://www.dnd5eapi.co/api/2014/conditions/").mock(
@@ -1171,54 +786,3 @@ async def test_get_features(dnd5e_client: Dnd5eApiClient) -> None:
     assert len(features) == 2
     assert features[0]["name"] == "Action Surge"
     assert features[0]["slug"] == "action-surge"
-
-
-@respx.mock
-async def test_get_conditions_dnd5e_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify conditions are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/conditions/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "blinded",
-                        "name": "Blinded",
-                        "desc": "A blinded creature can't see...",
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_conditions_dnd5e()
-
-    cached = await get_cached_entity("conditions", "blinded")
-    assert cached is not None
-    assert cached["name"] == "Blinded"
-
-
-@respx.mock
-async def test_get_features_uses_cache(dnd5e_client: Dnd5eApiClient) -> None:
-    """Verify features are cached as entities."""
-    respx.get("https://www.dnd5eapi.co/api/2014/features/").mock(
-        return_value=httpx.Response(
-            200,
-            json={
-                "results": [
-                    {
-                        "index": "action-surge",
-                        "name": "Action Surge",
-                        "desc": "On your turn...",
-                        "class": {"index": "fighter", "name": "Fighter"},
-                    }
-                ]
-            },
-        )
-    )
-
-    await dnd5e_client.get_features()
-
-    cached = await get_cached_entity("features", "action-surge")
-    assert cached is not None
-    assert cached["name"] == "Action Surge"
