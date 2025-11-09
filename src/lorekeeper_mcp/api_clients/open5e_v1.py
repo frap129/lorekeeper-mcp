@@ -147,3 +147,23 @@ class Open5eV1Client(BaseHttpClient):
             return result
 
         return cast(list[dict[str, Any]], result.get("results", []))
+
+    async def get_planes(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get planes from Open5e API v1.
+
+        Returns:
+            List of plane dictionaries
+        """
+        params = {k: v for k, v in filters.items() if v is not None}
+
+        result = await self.make_request(
+            "/planes/",
+            use_entity_cache=True,
+            entity_type="planes",
+            params=params,
+        )
+
+        if isinstance(result, list):
+            return result
+
+        return cast(list[dict[str, Any]], result.get("results", []))

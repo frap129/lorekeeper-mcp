@@ -202,3 +202,52 @@ async def test_get_magic_items_by_rarity(v1_client: Open5eV1Client) -> None:
     items = await v1_client.get_magic_items(rarity="legendary")
 
     assert isinstance(items, list)
+
+
+@respx.mock
+async def test_get_planes(v1_client: Open5eV1Client) -> None:
+    """Test plane lookup."""
+    respx.get("https://api.open5e.com/v1/planes/?name=feywild").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "feywild",
+                        "name": "Feywild",
+                        "description": "A realm of magic and wonder.",
+                    }
+                ]
+            },
+        )
+    )
+
+    planes = await v1_client.get_planes(name="feywild")
+
+    assert len(planes) == 1
+    assert planes[0]["name"] == "Feywild"
+    assert planes[0]["slug"] == "feywild"
+
+
+@respx.mock
+async def test_get_planes_uses_entity_cache(v1_client: Open5eV1Client) -> None:
+    """Get planes caches entities."""
+    mock_response = {
+        "results": [
+            {
+                "slug": "feywild",
+                "name": "Feywild",
+                "description": "A realm of magic and wonder.",
+            }
+        ]
+    }
+    respx.get("https://api.open5e.com/v1/planes/").mock(
+        return_value=httpx.Response(200, json=mock_response)
+    )
+
+    await v1_client.get_planes()
+
+    cached = await get_cached_entity("planes", "feywild")
+    assert cached is not None
+    assert cached["name"] == "Feywild"
+    assert cached["description"] == "A realm of magic and wonder."
