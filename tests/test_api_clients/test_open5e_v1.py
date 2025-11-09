@@ -329,3 +329,92 @@ async def test_get_sections_by_parent(v1_client: Open5eV1Client) -> None:
     assert len(sections) == 1
     assert sections[0]["name"] == "Chapter 1"
     assert sections[0]["parent"] == "phb"
+
+
+@respx.mock
+async def test_get_magic_items_by_type(v1_client: Open5eV1Client) -> None:
+    """Test magic item lookup by type."""
+    respx.get("https://api.open5e.com/v1/magicitems/?type=wondrous+item").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "bag-of-holding",
+                        "name": "Bag of Holding",
+                        "type": "wondrous item",
+                        "rarity": "uncommon",
+                        "requires_attunement": False,
+                    }
+                ]
+            },
+        )
+    )
+
+    items = await v1_client.get_magic_items(item_type="wondrous item")
+
+    assert len(items) == 1
+    assert items[0]["name"] == "Bag of Holding"
+    assert items[0]["type"] == "wondrous item"
+
+
+@respx.mock
+async def test_get_magic_items_by_attunement(v1_client: Open5eV1Client) -> None:
+    """Test magic item lookup by attunement requirement."""
+    respx.get("https://api.open5e.com/v1/magicitems/?requires_attunement=true").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "staff-of-power",
+                        "name": "Staff of Power",
+                        "type": "staff",
+                        "rarity": "very rare",
+                        "requires_attunement": True,
+                    }
+                ]
+            },
+        )
+    )
+
+    items = await v1_client.get_magic_items(requires_attunement=True)
+
+    assert len(items) == 1
+    assert items[0]["name"] == "Staff of Power"
+    assert items[0]["requires_attunement"] is True
+
+
+@respx.mock
+async def test_get_magic_items_multiple_filters(v1_client: Open5eV1Client) -> None:
+    """Test magic item lookup with multiple filter parameters."""
+    respx.get(
+        "https://api.open5e.com/v1/magicitems/?type=ring&rarity=rare&requires_attunement=true"
+    ).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "ring-of-spell-storing",
+                        "name": "Ring of Spell Storing",
+                        "type": "ring",
+                        "rarity": "rare",
+                        "requires_attunement": True,
+                    }
+                ]
+            },
+        )
+    )
+
+    items = await v1_client.get_magic_items(
+        item_type="ring",
+        rarity="rare",
+        requires_attunement=True,
+    )
+
+    assert len(items) == 1
+    assert items[0]["name"] == "Ring of Spell Storing"
+    assert items[0]["type"] == "ring"
+    assert items[0]["rarity"] == "rare"
+    assert items[0]["requires_attunement"] is True
