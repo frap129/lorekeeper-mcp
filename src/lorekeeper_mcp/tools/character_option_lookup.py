@@ -1,9 +1,8 @@
-"""Character option lookup tool."""
+"""Character option lookup tool with repository pattern."""
 
 from typing import Any, Literal
 
-from lorekeeper_mcp.api_clients.open5e_v1 import Open5eV1Client
-from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+from lorekeeper_mcp.repositories.factory import RepositoryFactory
 
 OptionType = Literal["class", "race", "background", "feat"]
 
@@ -12,13 +11,15 @@ async def lookup_character_option(
     type: OptionType,  # noqa: A002
     name: str | None = None,
     limit: int = 20,
+    repository: Any = None,
 ) -> list[dict[str, Any]]:
     """
     Retrieve D&D 5e character creation and advancement options.
 
     This tool provides access to classes, races, backgrounds, and feats for character
     creation and level-up decisions. Each option type provides different information
-    relevant to character building. Results are cached for faster repeated lookups.
+    relevant to character building. Results are cached for faster repeated lookups
+    through the repository pattern.
 
     Examples:
         - lookup_character_option(type="class", name="wizard") - Find wizard class details
@@ -42,6 +43,8 @@ async def lookup_character_option(
             Case-insensitive matching.
         limit: Maximum number of results to return. Default 20, useful for limiting
             output or pagination. Examples: 1, 5, 50
+        repository: Optional CharacterOptionRepository instance for dependency injection.
+            Defaults to RepositoryFactory.create_character_option_repository()
 
     Returns:
         List of option dictionaries. Structure varies by type:
@@ -81,28 +84,23 @@ async def lookup_character_option(
 
     Raises:
         ValueError: If type parameter is not one of the valid options
-        APIError: If the API request fails due to network issues or server errors
+        ApiError: If the API request fails due to network issues or server errors
     """
     valid_types = {"class", "race", "background", "feat"}
     if type not in valid_types:
         raise ValueError(f"Invalid type '{type}'. Must be one of: {', '.join(valid_types)}")
 
-    params: dict[str, Any] = {"limit": limit}
+    # Use provided repository or create default
+    if repository is None:
+        repository = RepositoryFactory.create_character_option_repository()
+
+    # Build query parameters for repository search
+    params: dict[str, Any] = {
+        "option_type": type,
+        "limit": limit,
+    }
     if name is not None:
         params["search"] = name
 
-    # Route to appropriate client and endpoint
-    if type == "class":
-        v1_client = Open5eV1Client()
-        response = await v1_client.get_classes(**params)
-    elif type == "race":
-        v1_client = Open5eV1Client()
-        response = await v1_client.get_races(**params)
-    elif type == "background":
-        v2_client = Open5eV2Client()
-        response = await v2_client.get_backgrounds(**params)
-    else:  # type == "feat"
-        v2_client = Open5eV2Client()
-        response = await v2_client.get_feats(**params)
-
-    return response
+    # Fetch options from repository
+    return await repository.search(**params)  # type: ignore[no-any-return]

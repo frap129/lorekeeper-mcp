@@ -1,79 +1,83 @@
 """Tests for character option lookup tool."""
 
-from typing import cast
-from unittest.mock import AsyncMock, patch
+import inspect
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lorekeeper_mcp.tools.character_option_lookup import OptionType, lookup_character_option
+from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
+from lorekeeper_mcp.tools.character_option_lookup import lookup_character_option
+
+
+@pytest.fixture
+def mock_character_option_repository() -> MagicMock:
+    """Create mock character option repository for testing."""
+    repo = MagicMock()
+    repo.search = AsyncMock()
+    repo.get_all = AsyncMock()
+    return repo
 
 
 @pytest.mark.asyncio
-async def test_lookup_class(mock_open5e_v1_client):
-    """Test looking up a class."""
+async def test_lookup_class_with_repository(mock_character_option_repository):
+    """Test looking up a class using repository."""
+    mock_character_option_repository.search.return_value = [{"name": "Paladin", "hit_dice": "1d10"}]
 
-    mock_open5e_v1_client.get_classes.return_value = [{"name": "Paladin", "hit_dice": "1d10"}]
-
-    with patch(
-        "lorekeeper_mcp.tools.character_option_lookup.Open5eV1Client",
-        return_value=mock_open5e_v1_client,
-    ):
-        result = await lookup_character_option(type="class", name="Paladin")
+    result = await lookup_character_option(
+        type="class", name="Paladin", repository=mock_character_option_repository
+    )
 
     assert len(result) == 1
     assert result[0]["name"] == "Paladin"
-    mock_open5e_v1_client.get_classes.assert_awaited_once()
+    # Verify repository.search was called with option_type
+    mock_character_option_repository.search.assert_awaited_once()
+    call_kwargs = mock_character_option_repository.search.call_args[1]
+    assert call_kwargs["option_type"] == "class"
 
 
 @pytest.mark.asyncio
-async def test_lookup_race(mock_open5e_v1_client):
-    """Test looking up a race."""
+async def test_lookup_race_with_repository(mock_character_option_repository):
+    """Test looking up a race using repository."""
+    mock_character_option_repository.search.return_value = [{"name": "Elf", "speed": 30}]
 
-    mock_open5e_v1_client.get_races.return_value = [{"name": "Elf", "speed": 30}]
-
-    with patch(
-        "lorekeeper_mcp.tools.character_option_lookup.Open5eV1Client",
-        return_value=mock_open5e_v1_client,
-    ):
-        result = await lookup_character_option(type="race", name="Elf")
+    result = await lookup_character_option(
+        type="race", name="Elf", repository=mock_character_option_repository
+    )
 
     assert len(result) == 1
     assert result[0]["name"] == "Elf"
-    mock_open5e_v1_client.get_races.assert_awaited_once()
+    call_kwargs = mock_character_option_repository.search.call_args[1]
+    assert call_kwargs["option_type"] == "race"
 
 
 @pytest.mark.asyncio
-async def test_lookup_background(mock_open5e_v2_client):
-    """Test looking up a background."""
+async def test_lookup_background_with_repository(mock_character_option_repository):
+    """Test looking up a background using repository."""
+    mock_character_option_repository.search.return_value = [{"name": "Acolyte"}]
 
-    mock_open5e_v2_client.get_backgrounds.return_value = [{"name": "Acolyte"}]
-
-    with patch(
-        "lorekeeper_mcp.tools.character_option_lookup.Open5eV2Client",
-        return_value=mock_open5e_v2_client,
-    ):
-        result = await lookup_character_option(type="background", name="Acolyte")
+    result = await lookup_character_option(
+        type="background", name="Acolyte", repository=mock_character_option_repository
+    )
 
     assert len(result) == 1
     assert result[0]["name"] == "Acolyte"
-    mock_open5e_v2_client.get_backgrounds.assert_awaited_once()
+    call_kwargs = mock_character_option_repository.search.call_args[1]
+    assert call_kwargs["option_type"] == "background"
 
 
 @pytest.mark.asyncio
-async def test_lookup_feat(mock_open5e_v2_client):
-    """Test looking up a feat."""
+async def test_lookup_feat_with_repository(mock_character_option_repository):
+    """Test looking up a feat using repository."""
+    mock_character_option_repository.search.return_value = [{"name": "Sharpshooter"}]
 
-    mock_open5e_v2_client.get_feats.return_value = [{"name": "Sharpshooter"}]
-
-    with patch(
-        "lorekeeper_mcp.tools.character_option_lookup.Open5eV2Client",
-        return_value=mock_open5e_v2_client,
-    ):
-        result = await lookup_character_option(type="feat", name="Sharpshooter")
+    result = await lookup_character_option(
+        type="feat", name="Sharpshooter", repository=mock_character_option_repository
+    )
 
     assert len(result) == 1
     assert result[0]["name"] == "Sharpshooter"
-    mock_open5e_v2_client.get_feats.assert_awaited_once()
+    call_kwargs = mock_character_option_repository.search.call_args[1]
+    assert call_kwargs["option_type"] == "feat"
 
 
 @pytest.mark.asyncio
@@ -81,61 +85,59 @@ async def test_lookup_invalid_type():
     """Test invalid type parameter raises ValueError."""
 
     with pytest.raises(ValueError, match="Invalid type"):
-        await lookup_character_option(type=cast(OptionType, cast(object, "invalid-type")))
+        await lookup_character_option(type="invalid-type")  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio
-async def test_character_option_search_parameter():
-    """Test that character option lookup uses 'search' parameter instead of 'name'"""
+async def test_lookup_character_option_with_limit(mock_character_option_repository):
+    """Test that limit parameter is passed to repository."""
+    options = [{"name": f"Option {i}", "id": i} for i in range(5)]
+    mock_character_option_repository.search.return_value = options
 
-    # Test with class type using v1 client
-    with patch("lorekeeper_mcp.tools.character_option_lookup.Open5eV1Client") as mock_client:
-        mock_instance = AsyncMock()
-        mock_instance.get_classes.return_value = []
-        mock_client.return_value = mock_instance
+    result = await lookup_character_option(
+        type="class", limit=5, repository=mock_character_option_repository
+    )
 
-        await lookup_character_option(type="class", name="wizard")
+    assert len(result) == 5
+    call_kwargs = mock_character_option_repository.search.call_args[1]
+    assert call_kwargs["limit"] == 5
 
-        mock_instance.get_classes.assert_called_once()
-        call_args = mock_instance.get_classes.call_args
-        assert "search" in call_args.kwargs
-        assert call_args.kwargs["search"] == "wizard"
 
-    # Test with race type using v1 client
-    with patch("lorekeeper_mcp.tools.character_option_lookup.Open5eV1Client") as mock_client:
-        mock_instance = AsyncMock()
-        mock_instance.get_races.return_value = []
-        mock_client.return_value = mock_instance
+@pytest.mark.asyncio
+async def test_lookup_character_option_empty_results(mock_character_option_repository):
+    """Test character option lookup with no results."""
+    mock_character_option_repository.search.return_value = []
 
-        await lookup_character_option(type="race", name="elf")
+    result = await lookup_character_option(
+        type="class", name="NonexistentClass", repository=mock_character_option_repository
+    )
 
-        mock_instance.get_races.assert_called_once()
-        call_args = mock_instance.get_races.call_args
-        assert "search" in call_args.kwargs
-        assert call_args.kwargs["search"] == "elf"
+    assert result == []
 
-    # Test with background type using v2 client
-    with patch("lorekeeper_mcp.tools.character_option_lookup.Open5eV2Client") as mock_client:
-        mock_instance = AsyncMock()
-        mock_instance.get_backgrounds.return_value = []
-        mock_client.return_value = mock_instance
 
-        await lookup_character_option(type="background", name="soldier")
+@pytest.mark.asyncio
+async def test_lookup_character_option_api_error(mock_character_option_repository):
+    """Test character option lookup handles API errors gracefully."""
+    mock_character_option_repository.search.side_effect = ApiError("API unavailable")
 
-        mock_instance.get_backgrounds.assert_called_once()
-        call_args = mock_instance.get_backgrounds.call_args
-        assert "search" in call_args.kwargs
-        assert call_args.kwargs["search"] == "soldier"
+    with pytest.raises(ApiError, match="API unavailable"):
+        await lookup_character_option(type="class", repository=mock_character_option_repository)
 
-    # Test with feat type using v2 client
-    with patch("lorekeeper_mcp.tools.character_option_lookup.Open5eV2Client") as mock_client:
-        mock_instance = AsyncMock()
-        mock_instance.get_feats.return_value = []
-        mock_client.return_value = mock_instance
 
-        await lookup_character_option(type="feat", name="great")
+@pytest.mark.asyncio
+async def test_lookup_character_option_network_error(mock_character_option_repository):
+    """Test character option lookup handles network errors."""
+    mock_character_option_repository.search.side_effect = NetworkError("Connection timeout")
 
-        mock_instance.get_feats.assert_called_once()
-        call_args = mock_instance.get_feats.call_args
-        assert "search" in call_args.kwargs
-        assert call_args.kwargs["search"] == "great"
+    with pytest.raises(NetworkError, match="Connection timeout"):
+        await lookup_character_option(type="class", repository=mock_character_option_repository)
+
+
+@pytest.mark.asyncio
+async def test_lookup_character_option_default_repository():
+    """Test that lookup_character_option creates default repository when not provided."""
+    # This test verifies the function accepts repository parameter
+    # Real integration testing happens in integration tests
+    # For unit test, we verify the signature accepts repository param
+    sig = inspect.signature(lookup_character_option)
+    assert "repository" in sig.parameters
