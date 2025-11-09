@@ -167,3 +167,44 @@ class Open5eV1Client(BaseHttpClient):
             return result
 
         return cast(list[dict[str, Any]], result.get("results", []))
+
+    async def get_sections(
+        self,
+        name: str | None = None,
+        parent: str | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Get sections from Open5e API v1.
+
+        Args:
+            name: Filter by section name
+            parent: Filter by parent section (for hierarchical filtering)
+            **filters: Additional API parameters
+
+        Returns:
+            List of section dictionaries
+        """
+        # Build cache filters for indexed fields
+        cache_filters: dict[str, Any] = {}
+        if parent is not None:
+            cache_filters["parent"] = parent
+
+        # Build API params with all provided filters
+        params = {k: v for k, v in filters.items() if v is not None}
+        if name is not None:
+            params["name"] = name
+        if parent is not None:
+            params["parent"] = parent
+
+        result = await self.make_request(
+            "/sections/",
+            use_entity_cache=True,
+            entity_type="sections",
+            cache_filters=cache_filters,
+            params=params,
+        )
+
+        if isinstance(result, list):
+            return result
+
+        return cast(list[dict[str, Any]], result.get("results", []))

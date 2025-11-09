@@ -251,3 +251,81 @@ async def test_get_planes_uses_entity_cache(v1_client: Open5eV1Client) -> None:
     assert cached is not None
     assert cached["name"] == "Feywild"
     assert cached["description"] == "A realm of magic and wonder."
+
+
+@respx.mock
+async def test_get_sections(v1_client: Open5eV1Client) -> None:
+    """Test sections lookup with name filter."""
+    respx.get("https://api.open5e.com/v1/sections/?name=introduction").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "introduction",
+                        "name": "Introduction",
+                        "parent": None,
+                        "desc": "Getting started with D&D",
+                    }
+                ]
+            },
+        )
+    )
+
+    sections = await v1_client.get_sections(name="introduction")
+
+    assert len(sections) == 1
+    assert sections[0]["name"] == "Introduction"
+    assert sections[0]["slug"] == "introduction"
+    assert sections[0]["parent"] is None
+
+
+@respx.mock
+async def test_get_sections_uses_entity_cache(v1_client: Open5eV1Client) -> None:
+    """Get sections caches entities."""
+    mock_response = {
+        "results": [
+            {
+                "slug": "introduction",
+                "name": "Introduction",
+                "parent": None,
+                "desc": "Getting started with D&D",
+            }
+        ]
+    }
+    respx.get("https://api.open5e.com/v1/sections/").mock(
+        return_value=httpx.Response(200, json=mock_response)
+    )
+
+    await v1_client.get_sections()
+
+    cached = await get_cached_entity("sections", "introduction")
+    assert cached is not None
+    assert cached["name"] == "Introduction"
+    assert cached["parent"] is None
+
+
+@respx.mock
+async def test_get_sections_by_parent(v1_client: Open5eV1Client) -> None:
+    """Test sections lookup by parent (hierarchical filtering)."""
+    respx.get("https://api.open5e.com/v1/sections/?parent=phb").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "phb-chapter-1",
+                        "name": "Chapter 1",
+                        "parent": "phb",
+                        "desc": "Overview of rules",
+                    }
+                ]
+            },
+        )
+    )
+
+    sections = await v1_client.get_sections(parent="phb")
+
+    assert len(sections) == 1
+    assert sections[0]["name"] == "Chapter 1"
+    assert sections[0]["parent"] == "phb"

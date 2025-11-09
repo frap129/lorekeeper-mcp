@@ -20,6 +20,7 @@ ENTITY_TYPES = [
     "rules",
     "rule_sections",
     "planes",
+    "sections",
 ]
 
 # Indexed fields per entity type for filtering
@@ -65,6 +66,9 @@ INDEXED_FIELDS = {
         ("parent", "TEXT"),
     ],
     "planes": [],
+    "sections": [
+        ("parent", "TEXT"),
+    ],
 }
 
 
