@@ -120,3 +120,85 @@ async def test_get_races_uses_entity_cache(v1_client: Open5eV1Client) -> None:
     cached = await get_cached_entity("races", "human")
     assert cached is not None
     assert cached["ability_bonuses"] == "+1 to all"
+
+
+@respx.mock
+async def test_get_magic_items(v1_client: Open5eV1Client) -> None:
+    """Test magic item lookup."""
+    respx.get("https://api.open5e.com/v1/magicitems/?name=ring").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "ring-of-protection",
+                        "name": "Ring of Protection",
+                        "type": "ring",
+                        "rarity": "uncommon",
+                        "requires_attunement": False,
+                        "description": "This ring provides +1 to AC and saves.",
+                    }
+                ]
+            },
+        )
+    )
+
+    items = await v1_client.get_magic_items(name="ring")
+
+    assert len(items) == 1
+    assert items[0]["name"] == "Ring of Protection"
+    assert items[0]["type"] == "ring"
+    assert items[0]["rarity"] == "uncommon"
+
+
+@respx.mock
+async def test_get_magic_items_uses_entity_cache(v1_client: Open5eV1Client) -> None:
+    """Get magic items caches entities."""
+    mock_response = {
+        "results": [
+            {
+                "slug": "ring-of-protection",
+                "name": "Ring of Protection",
+                "type": "ring",
+                "rarity": "uncommon",
+                "requires_attunement": False,
+                "description": "This ring provides +1 to AC and saves.",
+            }
+        ]
+    }
+    respx.get("https://api.open5e.com/v1/magicitems/").mock(
+        return_value=httpx.Response(200, json=mock_response)
+    )
+
+    await v1_client.get_magic_items()
+
+    cached = await get_cached_entity("magicitems", "ring-of-protection")
+    assert cached is not None
+    assert cached["name"] == "Ring of Protection"
+    assert cached["type"] == "ring"
+    assert cached["rarity"] == "uncommon"
+
+
+@respx.mock
+async def test_get_magic_items_by_rarity(v1_client: Open5eV1Client) -> None:
+    """Test magic item lookup by rarity."""
+    respx.get("https://api.open5e.com/v1/magicitems/?rarity=legendary").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "bag-of-holding",
+                        "name": "Bag of Holding",
+                        "type": "wondrous item",
+                        "rarity": "legendary",
+                        "requires_attunement": False,
+                    }
+                ]
+            },
+        )
+    )
+
+    items = await v1_client.get_magic_items(rarity="legendary")
+
+    assert isinstance(items, list)

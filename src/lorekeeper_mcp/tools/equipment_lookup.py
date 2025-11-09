@@ -1,6 +1,6 @@
 """Equipment lookup tool."""
 
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from lorekeeper_mcp.api_clients.open5e_v1 import Open5eV1Client
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
@@ -106,25 +106,13 @@ async def lookup_equipment(
             weapon_params["is_simple"] = is_simple
 
         weapon_response = await v2_client.get_weapons(**weapon_params)
-        # Handle both mocked dict response and actual list response
-        if isinstance(weapon_response, dict):  # type: ignore[unreachable]
-            results.extend(  # type: ignore[unreachable]
-                cast(list[dict[str, Any]], weapon_response.get("results", []))
-            )
-        else:
-            results.extend([w.model_dump() for w in weapon_response])
+        results.extend([w.model_dump() for w in weapon_response])
 
     # Query armor
     if type in ("armor", "all"):
         v2_client = Open5eV2Client()
         armor_response = await v2_client.get_armor(**base_params)
-        # Handle both mocked dict response and actual list response
-        if isinstance(armor_response, dict):  # type: ignore[unreachable]
-            results.extend(  # type: ignore[unreachable]
-                cast(list[dict[str, Any]], armor_response.get("results", []))
-            )
-        else:
-            results.extend([a.model_dump() for a in armor_response])
+        results.extend([a.model_dump() for a in armor_response])
 
     # Query magic items
     if type in ("magic-item", "all"):
@@ -135,14 +123,8 @@ async def lookup_equipment(
         if requires_attunement is not None:
             magic_params["requires_attunement"] = requires_attunement
 
-        magic_response = await v1_client.get_magic_items(  # type: ignore[attr-defined]
-            **magic_params
-        )
-        # Handle both mocked dict response and actual list response
-        if isinstance(magic_response, dict):
-            results.extend(cast(list[dict[str, Any]], magic_response.get("results", [])))
-        else:
-            results.extend([m.model_dump() for m in magic_response])
+        magic_response = await v1_client.get_magic_items(**magic_params)
+        results.extend(magic_response)
 
     # Apply overall limit if querying multiple types
     if type == "all" and len(results) > limit:
