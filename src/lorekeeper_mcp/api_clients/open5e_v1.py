@@ -256,10 +256,20 @@ class Open5eV1Client(BaseHttpClient):
 
         Returns:
             Dictionary of available endpoints
-        """
-        result = await self.make_request(
-            "/",
-            use_entity_cache=False,
-        )
 
-        return cast(dict[str, Any], result)
+        Note:
+            Uses 30-day TTL for URL-based cache as manifest is reference data
+            that changes rarely. The entity cache has infinite TTL by design.
+        """
+        # Override cache TTL for reference data (30 days)
+        original_ttl = self.cache_ttl
+        self.cache_ttl = 2592000  # 30 days
+
+        try:
+            result = await self.make_request(
+                "/",
+                use_entity_cache=False,
+            )
+            return cast(dict[str, Any], result)
+        finally:
+            self.cache_ttl = original_ttl

@@ -890,3 +890,566 @@ async def test_get_services(v2_client: Open5eV2Client) -> None:
 
     assert len(services) == 1
     assert services[0]["name"] == "Compendium"
+
+
+# Cache verification tests for Task 1.6: Item-related methods
+@respx.mock
+async def test_get_items_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
+    """Get items caches entities."""
+    respx.get("https://api.open5e.com/v2/items/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "potion-of-healing",
+                        "name": "Potion of Healing",
+                        "desc": "You regain 4d4+4...",
+                    }
+                ]
+            },
+        )
+    )
+
+    items = await v2_client_with_cache.get_items()
+    assert len(items) == 1
+    assert items[0]["name"] == "Potion of Healing"
+
+    cached = await get_cached_entity("items", "potion-of-healing")
+    assert cached is not None
+    assert cached["name"] == "Potion of Healing"
+
+
+@respx.mock
+async def test_get_item_sets_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
+    """Get item sets caches entities."""
+    respx.get("https://api.open5e.com/v2/itemsets/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "core-rulebook", "name": "Core Rulebook"}]},
+        )
+    )
+
+    item_sets = await v2_client_with_cache.get_item_sets()
+    assert len(item_sets) == 1
+    assert item_sets[0]["name"] == "Core Rulebook"
+
+    cached = await get_cached_entity("itemsets", "core-rulebook")
+    assert cached is not None
+    assert cached["name"] == "Core Rulebook"
+
+
+@respx.mock
+async def test_get_item_categories_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get item categories caches entities."""
+    respx.get("https://api.open5e.com/v2/itemcategories/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "wondrous-item", "name": "Wondrous Item"}]},
+        )
+    )
+
+    categories = await v2_client_with_cache.get_item_categories()
+    assert len(categories) == 1
+    assert categories[0]["name"] == "Wondrous Item"
+
+    cached = await get_cached_entity("itemcategories", "wondrous-item")
+    assert cached is not None
+    assert cached["name"] == "Wondrous Item"
+
+
+# Cache verification tests for Task 1.7: Creature methods
+@respx.mock
+async def test_get_creatures_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
+    """Get creatures caches entities."""
+    respx.get("https://api.open5e.com/v2/creatures/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "goblin",
+                        "name": "Goblin",
+                        "desc": "A common humanoid...",
+                        "size": "Small",
+                        "type": "humanoid",
+                        "alignment": "Neutral Evil",
+                        "armor_class": 15,
+                        "hit_points": 7,
+                        "hit_dice": "2d6",
+                        "challenge_rating": "1/4",
+                    }
+                ]
+            },
+        )
+    )
+
+    creatures = await v2_client_with_cache.get_creatures()
+    assert len(creatures) == 1
+    assert creatures[0].name == "Goblin"
+
+    cached = await get_cached_entity("creatures", "goblin")
+    assert cached is not None
+    assert cached["name"] == "Goblin"
+
+
+@respx.mock
+async def test_get_creature_types_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get creature types caches entities."""
+    respx.get("https://api.open5e.com/v2/creaturetypes/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "humanoid", "name": "Humanoid"}]},
+        )
+    )
+
+    creature_types = await v2_client_with_cache.get_creature_types()
+    assert len(creature_types) == 1
+    assert creature_types[0]["name"] == "Humanoid"
+
+    cached = await get_cached_entity("creaturetypes", "humanoid")
+    assert cached is not None
+    assert cached["name"] == "Humanoid"
+
+
+@respx.mock
+async def test_get_creature_sets_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get creature sets caches entities."""
+    respx.get("https://api.open5e.com/v2/creaturesets/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "srd-5e", "name": "SRD 5e"}]},
+        )
+    )
+
+    creature_sets = await v2_client_with_cache.get_creature_sets()
+    assert len(creature_sets) == 1
+    assert creature_sets[0]["name"] == "SRD 5e"
+
+    cached = await get_cached_entity("creaturesets", "srd-5e")
+    assert cached is not None
+    assert cached["name"] == "SRD 5e"
+
+
+# Cache verification tests for Task 1.8: Reference data methods
+@respx.mock
+async def test_get_damage_types_v2_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get damage types caches entities."""
+    respx.get("https://api.open5e.com/v2/damagetypes/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "slashing", "name": "Slashing"}]},
+        )
+    )
+
+    damage_types = await v2_client_with_cache.get_damage_types_v2()
+    assert len(damage_types) == 1
+    assert damage_types[0]["name"] == "Slashing"
+
+    cached = await get_cached_entity("damagetypes", "slashing")
+    assert cached is not None
+    assert cached["name"] == "Slashing"
+
+
+@respx.mock
+async def test_get_languages_v2_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get languages caches entities."""
+    respx.get("https://api.open5e.com/v2/languages/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "common", "name": "Common"}]},
+        )
+    )
+
+    languages = await v2_client_with_cache.get_languages_v2()
+    assert len(languages) == 1
+    assert languages[0]["name"] == "Common"
+
+    cached = await get_cached_entity("languages", "common")
+    assert cached is not None
+    assert cached["name"] == "Common"
+
+
+@respx.mock
+async def test_get_alignments_v2_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get alignments caches entities."""
+    respx.get("https://api.open5e.com/v2/alignments/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "chaotic-evil", "name": "Chaotic Evil"}]},
+        )
+    )
+
+    alignments = await v2_client_with_cache.get_alignments_v2()
+    assert len(alignments) == 1
+    assert alignments[0]["name"] == "Chaotic Evil"
+
+    cached = await get_cached_entity("alignments", "chaotic-evil")
+    assert cached is not None
+    assert cached["name"] == "Chaotic Evil"
+
+
+@respx.mock
+async def test_get_spell_schools_v2_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get spell schools caches entities."""
+    respx.get("https://api.open5e.com/v2/spellschools/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "evocation", "name": "Evocation"}]},
+        )
+    )
+
+    schools = await v2_client_with_cache.get_spell_schools_v2()
+    assert len(schools) == 1
+    assert schools[0]["name"] == "Evocation"
+
+    cached = await get_cached_entity("spellschools", "evocation")
+    assert cached is not None
+    assert cached["name"] == "Evocation"
+
+
+@respx.mock
+async def test_get_sizes_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
+    """Get sizes caches entities."""
+    respx.get("https://api.open5e.com/v2/sizes/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "medium", "name": "Medium"}]},
+        )
+    )
+
+    sizes = await v2_client_with_cache.get_sizes()
+    assert len(sizes) == 1
+    assert sizes[0]["name"] == "Medium"
+
+    cached = await get_cached_entity("sizes", "medium")
+    assert cached is not None
+    assert cached["name"] == "Medium"
+
+
+@respx.mock
+async def test_get_item_rarities_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get item rarities caches entities."""
+    respx.get("https://api.open5e.com/v2/itemrarities/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "rare", "name": "Rare"}]},
+        )
+    )
+
+    rarities = await v2_client_with_cache.get_item_rarities()
+    assert len(rarities) == 1
+    assert rarities[0]["name"] == "Rare"
+
+    cached = await get_cached_entity("itemrarities", "rare")
+    assert cached is not None
+    assert cached["name"] == "Rare"
+
+
+@respx.mock
+async def test_get_environments_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get environments caches entities."""
+    respx.get("https://api.open5e.com/v2/environments/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "forest", "name": "Forest"}]},
+        )
+    )
+
+    environments = await v2_client_with_cache.get_environments()
+    assert len(environments) == 1
+    assert environments[0]["name"] == "Forest"
+
+    cached = await get_cached_entity("environments", "forest")
+    assert cached is not None
+    assert cached["name"] == "Forest"
+
+
+@respx.mock
+async def test_get_abilities_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get abilities caches entities."""
+    respx.get("https://api.open5e.com/v2/abilities/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "strength", "name": "Strength"}]},
+        )
+    )
+
+    abilities = await v2_client_with_cache.get_abilities()
+    assert len(abilities) == 1
+    assert abilities[0]["name"] == "Strength"
+
+    cached = await get_cached_entity("abilities", "strength")
+    assert cached is not None
+    assert cached["name"] == "Strength"
+
+
+@respx.mock
+async def test_get_skills_v2_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get skills caches entities."""
+    respx.get("https://api.open5e.com/v2/skills/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "acrobatics", "name": "Acrobatics"}]},
+        )
+    )
+
+    skills = await v2_client_with_cache.get_skills_v2()
+    assert len(skills) == 1
+    assert skills[0]["name"] == "Acrobatics"
+
+    cached = await get_cached_entity("skills", "acrobatics")
+    assert cached is not None
+    assert cached["name"] == "Acrobatics"
+
+
+# Cache verification tests for Task 1.9: Character option methods
+@respx.mock
+async def test_get_species_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
+    """Get species caches entities."""
+    respx.get("https://api.open5e.com/v2/species/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "human", "name": "Human"}]},
+        )
+    )
+
+    species = await v2_client_with_cache.get_species()
+    assert len(species) == 1
+    assert species[0]["name"] == "Human"
+
+    cached = await get_cached_entity("species", "human")
+    assert cached is not None
+    assert cached["name"] == "Human"
+
+
+@respx.mock
+async def test_get_classes_v2_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get classes caches entities."""
+    respx.get("https://api.open5e.com/v2/classes/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "wizard", "name": "Wizard"}]},
+        )
+    )
+
+    classes = await v2_client_with_cache.get_classes_v2()
+    assert len(classes) == 1
+    assert classes[0]["name"] == "Wizard"
+
+    cached = await get_cached_entity("classes", "wizard")
+    assert cached is not None
+    assert cached["name"] == "Wizard"
+
+
+# Cache verification tests for Task 1.10: Rules and metadata methods
+@respx.mock
+async def test_get_rules_v2_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get rules caches entities."""
+    respx.get("https://api.open5e.com/v2/rules/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "action", "name": "Action"}]},
+        )
+    )
+
+    rules = await v2_client_with_cache.get_rules_v2()
+    assert len(rules) == 1
+    assert rules[0]["name"] == "Action"
+
+    cached = await get_cached_entity("rules", "action")
+    assert cached is not None
+    assert cached["name"] == "Action"
+
+
+@respx.mock
+async def test_get_rulesets_uses_entity_cache(v2_client_with_cache: Open5eV2Client) -> None:
+    """Get rulesets caches entities."""
+    respx.get("https://api.open5e.com/v2/rulesets/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "5e", "name": "D&D 5e"}]},
+        )
+    )
+
+    rulesets = await v2_client_with_cache.get_rulesets()
+    assert len(rulesets) == 1
+    assert rulesets[0]["name"] == "D&D 5e"
+
+    cached = await get_cached_entity("rulesets", "5e")
+    assert cached is not None
+    assert cached["name"] == "D&D 5e"
+
+
+@respx.mock
+async def test_get_documents_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get documents caches entities."""
+    respx.get("https://api.open5e.com/v2/documents/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "phb", "name": "Player's Handbook"}]},
+        )
+    )
+
+    documents = await v2_client_with_cache.get_documents()
+    assert len(documents) == 1
+    assert documents[0]["name"] == "Player's Handbook"
+
+    cached = await get_cached_entity("documents", "phb")
+    assert cached is not None
+    assert cached["name"] == "Player's Handbook"
+
+
+@respx.mock
+async def test_get_licenses_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get licenses caches entities."""
+    respx.get("https://api.open5e.com/v2/licenses/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "ogl", "name": "Open Game License"}]},
+        )
+    )
+
+    licenses = await v2_client_with_cache.get_licenses()
+    assert len(licenses) == 1
+    assert licenses[0]["name"] == "Open Game License"
+
+    cached = await get_cached_entity("licenses", "ogl")
+    assert cached is not None
+    assert cached["name"] == "Open Game License"
+
+
+@respx.mock
+async def test_get_publishers_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get publishers caches entities."""
+    respx.get("https://api.open5e.com/v2/publishers/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "wotc", "name": "Wizards of the Coast"}]},
+        )
+    )
+
+    publishers = await v2_client_with_cache.get_publishers()
+    assert len(publishers) == 1
+    assert publishers[0]["name"] == "Wizards of the Coast"
+
+    cached = await get_cached_entity("publishers", "wotc")
+    assert cached is not None
+    assert cached["name"] == "Wizards of the Coast"
+
+
+@respx.mock
+async def test_get_game_systems_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get game systems caches entities."""
+    respx.get("https://api.open5e.com/v2/gamesystems/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "dnd5e", "name": "D&D 5e"}]},
+        )
+    )
+
+    systems = await v2_client_with_cache.get_game_systems()
+    assert len(systems) == 1
+    assert systems[0]["name"] == "D&D 5e"
+
+    cached = await get_cached_entity("gamesystems", "dnd5e")
+    assert cached is not None
+    assert cached["name"] == "D&D 5e"
+
+
+# Cache verification tests for Task 1.11: Additional content methods
+@respx.mock
+async def test_get_images_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get images caches entities."""
+    respx.get("https://api.open5e.com/v2/images/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "goblin", "name": "Goblin"}]},
+        )
+    )
+
+    images = await v2_client_with_cache.get_images()
+    assert len(images) == 1
+    assert images[0]["name"] == "Goblin"
+
+    cached = await get_cached_entity("images", "goblin")
+    assert cached is not None
+    assert cached["name"] == "Goblin"
+
+
+@respx.mock
+async def test_get_weapon_properties_v2_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get weapon properties caches entities."""
+    respx.get("https://api.open5e.com/v2/weaponproperties/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "finesse", "name": "Finesse"}]},
+        )
+    )
+
+    properties = await v2_client_with_cache.get_weapon_properties_v2()
+    assert len(properties) == 1
+    assert properties[0]["name"] == "Finesse"
+
+    cached = await get_cached_entity("weaponproperties", "finesse")
+    assert cached is not None
+    assert cached["name"] == "Finesse"
+
+
+@respx.mock
+async def test_get_services_uses_entity_cache(
+    v2_client_with_cache: Open5eV2Client,
+) -> None:
+    """Get services caches entities."""
+    respx.get("https://api.open5e.com/v2/services/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "compendium", "name": "Compendium"}]},
+        )
+    )
+
+    services = await v2_client_with_cache.get_services()
+    assert len(services) == 1
+    assert services[0]["name"] == "Compendium"
+
+    cached = await get_cached_entity("services", "compendium")
+    assert cached is not None
+    assert cached["name"] == "Compendium"

@@ -1,4 +1,23 @@
-"""Base HTTP client with retry logic and error handling."""
+"""Base HTTP client with retry logic and error handling.
+
+This module provides two caching strategies:
+
+1. Entity Cache (recommended for API clients):
+   - Stores individual entities by slug
+   - Has infinite TTL by design (no expiration)
+   - Persists via database, survives process restarts
+   - Used when use_entity_cache=True
+
+2. URL Cache (deprecated, for backwards compatibility):
+   - Caches entire API responses by full URL
+   - Uses cache_ttl setting for expiration (default 7 days)
+   - Stored in-memory, lost on process restart
+   - Used when use_cache=True (with use_entity_cache=False)
+
+When methods specify cache TTL in requirements (e.g., 7-day, 30-day),
+these values apply ONLY to URL-based cache fallback, not entity cache.
+Entity cache TTL is controlled by the database schema and is infinite.
+"""
 
 import asyncio
 import logging
@@ -104,6 +123,12 @@ class BaseHttpClient:
         **kwargs: Any,
     ) -> dict[str, Any] | list[dict[str, Any]]:
         """Make HTTP request with caching and retry logic.
+
+        Two caching strategies are available:
+        - Entity cache (use_entity_cache=True): Stores individual entities by slug,
+          has infinite TTL by design, survives process restarts via database
+        - URL cache (use_cache=True): Caches entire API responses by URL,
+          deprecated, uses cache_ttl setting for expiration
 
         Args:
             endpoint: API endpoint path
