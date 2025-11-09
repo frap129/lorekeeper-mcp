@@ -1,17 +1,18 @@
-"""Spell lookup tool."""
+"""Spell lookup tool with repository pattern."""
 
 from typing import Any
 
-from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
-
-# Simple in-memory cache for spell lookups (max 128 entries)
-_spell_cache: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
-_spell_cache_maxsize = 128
+from lorekeeper_mcp.repositories.factory import RepositoryFactory
 
 
 def clear_spell_cache() -> None:
-    """Clear the in-memory spell cache."""
-    _spell_cache.clear()
+    """Clear the spell cache (deprecated).
+
+    This function is deprecated and kept for backward compatibility.
+    Cache management is now handled by the repository pattern with
+    database-backed persistence.
+    """
+    # No-op: in-memory caching is no longer used
 
 
 async def lookup_spell(
@@ -23,13 +24,15 @@ async def lookup_spell(
     ritual: bool | None = None,
     casting_time: str | None = None,
     limit: int = 20,
+    repository: Any = None,
 ) -> list[dict[str, Any]]:
     """
-    Search and retrieve D&D 5e spells from the Open5e v2 API.
+    Search and retrieve D&D 5e spells using the repository pattern.
 
     This tool provides comprehensive spell lookup functionality with support for filtering
     by multiple criteria. Results include complete spell descriptions, components, damage,
-    effects, and availability information. Automatically caches responses for improved performance.
+    effects, and availability information. Automatically uses the database cache through
+    the repository for improved performance.
 
     Examples:
         - lookup_spell(name="fireball") - Find spells by name
@@ -57,6 +60,8 @@ async def lookup_spell(
             "1 reaction", "1 minute", "10 minutes"
         limit: Maximum number of results to return. Default 20, useful for pagination
             or limiting large result sets. Example: 5
+        repository: Optional SpellRepository instance for dependency injection.
+            Defaults to RepositoryFactory.create_spell_repository()
 
     Returns:
         List of spell dictionaries, each containing:
@@ -78,18 +83,13 @@ async def lookup_spell(
     Raises:
         ApiError: If the API request fails due to network issues or server errors
     """
-    # Check in-memory cache first
-    cache_key = (name, level, school, class_key, concentration, ritual, casting_time, limit)
-    if cache_key in _spell_cache:
-        return _spell_cache[cache_key]
+    # Use provided repository or create default
+    if repository is None:
+        repository = RepositoryFactory.create_spell_repository()
 
-    client = Open5eV2Client()
-
-    # Build query parameters
+    # Build query parameters for repository search
     # Note: name/search filtering happens client-side since the API doesn't filter by search
-    # When searching by name, fetch more results to ensure we find matches
-    # Use multiplier of 11 to balance finding matches with performance (~2.5s for 220 results)
-    params: dict[str, Any] = {"limit": limit * 11 if name else limit}
+    params: dict[str, Any] = {}
     if level is not None:
         params["level"] = level
     if school is not None:
@@ -103,7 +103,11 @@ async def lookup_spell(
     if casting_time is not None:
         params["casting_time"] = casting_time
 
-    spells = await client.get_spells(**params)
+    # Fetch spells from repository with filters
+    # When searching by name, fetch more results to ensure we find matches
+    # Use multiplier of 11 to balance finding matches with performance (~2.5s for 220 results)
+    fetch_limit = limit * 11 if name else limit
+    spells = await repository.search(limit=fetch_limit, **params)
 
     # Client-side filtering by name (the API search parameter doesn't actually filter)
     if name:
@@ -113,12 +117,4 @@ async def lookup_spell(
     # Limit results to requested count
     spells = spells[:limit]
 
-    result = [spell.model_dump() for spell in spells]
-
-    # Cache the result in memory
-    if len(_spell_cache) >= _spell_cache_maxsize:
-        # Simple FIFO eviction
-        _spell_cache.pop(next(iter(_spell_cache)))
-    _spell_cache[cache_key] = result
-
-    return result
+    return [spell.model_dump() for spell in spells]
