@@ -1,4 +1,32 @@
-"""Creature lookup tool with repository pattern."""
+"""Creature lookup tool using the repository pattern for caching.
+
+This module provides creature/monster lookup functionality with automatic database
+caching through the repository pattern. The repository abstracts away cache management,
+allowing you to focus on creature searching. Cache misses automatically fetch from
+multiple D&D 5e sources and store results for future queries.
+
+Architecture:
+    - Uses MonsterRepository for cache-aside pattern with multi-source support
+    - Repository manages SQLite cache automatically
+    - Supports dependency injection for testing
+    - Handles Open5e v1 and D&D 5e API data normalization
+
+Examples:
+    Default usage (automatically creates repository):
+        creatures = await lookup_creature(cr=5)
+        dragons = await lookup_creature(type="dragon")
+
+    With custom repository (dependency injection):
+        from lorekeeper_mcp.repositories.monster import MonsterRepository
+        from lorekeeper_mcp.cache.sqlite import SQLiteCache
+
+        cache = SQLiteCache(db_path="/path/to/cache.db")
+        repository = MonsterRepository(cache=cache)
+        creatures = await lookup_creature(cr_min=1, cr_max=3, repository=repository)
+
+    Challenge rating queries:
+        low_level = await lookup_creature(cr_max=2)
+        bosses = await lookup_creature(cr_min=10)"""
 
 from typing import Any
 
@@ -56,8 +84,10 @@ async def lookup_creature(
             Examples: "Large" for major encounters, "Tiny" for swarms
         limit: Maximum number of results to return. Default 20, useful for pagination
             or limiting large result sets. Example: 5
-        repository: Optional MonsterRepository instance for dependency injection.
-            Defaults to RepositoryFactory.create_monster_repository()
+        repository: Optional repository instance for dependency injection.
+            If not provided, RepositoryFactory creates a default
+            instance with automatic database cache management. Useful for testing with
+            mocked repositories or custom cache configurations.
 
     Returns:
         List of creature stat block dictionaries, each containing:

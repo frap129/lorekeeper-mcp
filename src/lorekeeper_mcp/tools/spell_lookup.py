@@ -1,4 +1,32 @@
-"""Spell lookup tool with repository pattern."""
+"""Spell lookup tool using the repository pattern for caching.
+
+This module provides spell lookup functionality with automatic database caching
+through the repository pattern. The repository abstracts away cache management,
+allowing you to focus on spell searching. Cache misses automatically fetch from
+the D&D 5e API and store results for future queries.
+
+Architecture:
+    - Uses SpellRepository for cache-aside pattern
+    - Repository manages SQLite cache automatically
+    - Supports dependency injection for testing
+
+Examples:
+    Default usage (automatically creates repository):
+        spells = await lookup_spell(level=3, school="evocation")
+
+    With custom repository (dependency injection):
+        from lorekeeper_mcp.repositories.spell import SpellRepository
+        from lorekeeper_mcp.cache.sqlite import SQLiteCache
+
+        cache = SQLiteCache(db_path="/path/to/cache.db")
+        repository = SpellRepository(cache=cache)
+        spells = await lookup_spell(level=3, repository=repository)
+
+    Name search with filtering:
+        spells = await lookup_spell(name="fireball", limit=5)
+
+    Advanced filtering:
+        spells = await lookup_spell(level=0, class_key="wizard")"""
 
 from typing import Any
 
@@ -34,12 +62,26 @@ async def lookup_spell(
     effects, and availability information. Automatically uses the database cache through
     the repository for improved performance.
 
+    The repository pattern handles caching transparently:
+    - First call: Fetches from API and caches in database
+    - Subsequent calls: Returns cached results if available
+    - Supports dependency injection for testing with custom repositories
+
     Examples:
-        - lookup_spell(name="fireball") - Find spells by name
-        - lookup_spell(level=3, school="evocation") - Find all 3rd level evocation spells
-        - lookup_spell(class_key="wizard", concentration=True, limit=10) - Find concentration spells for wizards
-        - lookup_spell(level=0) - Find all cantrips
-        - lookup_spell(ritual=True) - Find all ritual spells
+        Default usage (automatic repository creation):
+            spells = await lookup_spell(name="fireball")
+            spells = await lookup_spell(level=3, school="evocation")
+            spells = await lookup_spell(class_key="wizard", concentration=True)
+
+        With dependency injection (custom repository):
+            from lorekeeper_mcp.repositories.spell import SpellRepository
+            custom_repo = SpellRepository(cache=my_cache)
+            spells = await lookup_spell(level=0, repository=custom_repo)
+
+        Finding specific spell types:
+            cantrips = await lookup_spell(level=0)
+            ritual_spells = await lookup_spell(ritual=True)
+            action_spells = await lookup_spell(casting_time="1 action")
 
     Args:
         name: Spell name or partial name search. Matches spells containing this substring.
@@ -61,7 +103,9 @@ async def lookup_spell(
         limit: Maximum number of results to return. Default 20, useful for pagination
             or limiting large result sets. Example: 5
         repository: Optional SpellRepository instance for dependency injection.
-            Defaults to RepositoryFactory.create_spell_repository()
+            If not provided, RepositoryFactory.create_spell_repository() creates a default
+            instance with automatic database cache management. Useful for testing with
+            mocked repositories or custom cache configurations.
 
     Returns:
         List of spell dictionaries, each containing:

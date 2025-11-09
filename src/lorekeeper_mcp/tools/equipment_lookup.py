@@ -1,4 +1,31 @@
-"""Equipment lookup tool with repository pattern."""
+"""Equipment lookup tool using the repository pattern for caching.
+
+This module provides comprehensive equipment lookup for weapons, armor, and magic
+items with automatic database caching through the repository pattern. The repository
+abstracts away cache management and allows filtering across multiple equipment types.
+
+Architecture:
+    - Uses EquipmentRepository for cache-aside pattern with item-type routing
+    - Repository manages SQLite cache automatically
+    - Supports dependency injection for testing
+    - Handles weapon, armor, and magic item filtering
+
+Examples:
+    Default usage (automatically creates repository):
+        weapons = await lookup_equipment(type="weapon", damage_dice="1d8")
+        items = await lookup_equipment(type="magic-item", rarity="rare")
+
+    With custom repository (dependency injection):
+        from lorekeeper_mcp.repositories.equipment import EquipmentRepository
+        from lorekeeper_mcp.cache.sqlite import SQLiteCache
+
+        cache = SQLiteCache(db_path="/path/to/cache.db")
+        repository = EquipmentRepository(cache=cache)
+        armor = await lookup_equipment(type="armor", repository=repository)
+
+    Item type filtering:
+        all_items = await lookup_equipment(type="all", name="chain")
+        simple_weapons = await lookup_equipment(type="weapon", is_simple=True)"""
 
 from typing import Any, Literal
 
@@ -53,8 +80,10 @@ async def lookup_equipment(
             attunement to a character. Examples: "yes", "no", or specific requirements
         limit: Maximum number of results to return. Default 20. For type="all" with many
             matches, limit applies to total results. Examples: 5, 20, 100
-        repository: Optional EquipmentRepository instance for dependency injection.
-            Defaults to RepositoryFactory.create_equipment_repository()
+        repository: Optional repository instance for dependency injection.
+            If not provided, RepositoryFactory creates a default
+            instance with automatic database cache management. Useful for testing with
+            mocked repositories or custom cache configurations.
 
     Returns:
         List of equipment dictionaries. Structure varies by type:

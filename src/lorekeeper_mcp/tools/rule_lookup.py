@@ -1,4 +1,32 @@
-"""Rule lookup tool with repository pattern."""
+"""Rule lookup tool using the repository pattern for caching.
+
+This module provides comprehensive D&D 5e game rules, conditions, and reference
+information with automatic database caching through the repository pattern. The
+repository abstracts away cache management and handles multi-type rule routing.
+
+Architecture:
+    - Uses RuleRepository for cache-aside pattern with rule-type routing
+    - Repository manages SQLite cache automatically
+    - Supports dependency injection for testing
+    - Handles rule, condition, damage-type, skill, and other reference data filtering
+
+Examples:
+    Default usage (automatically creates repository):
+        conditions = await lookup_rule(rule_type="condition")
+        skills = await lookup_rule(rule_type="skill", name="stealth")
+
+    With custom repository (dependency injection):
+        from lorekeeper_mcp.repositories.rule import RuleRepository
+        from lorekeeper_mcp.cache.sqlite import SQLiteCache
+
+        cache = SQLiteCache(db_path="/path/to/cache.db")
+        repository = RuleRepository(cache=cache)
+        rules = await lookup_rule(rule_type="rule", repository=repository)
+
+    Reference data queries:
+        abilities = await lookup_rule(rule_type="ability-score")
+        damage_types = await lookup_rule(rule_type="damage-type")
+        alignments = await lookup_rule(rule_type="alignment")"""
 
 from typing import Any, Literal, cast
 
@@ -69,8 +97,10 @@ async def lookup_rule(
             Ignored for other rule types.
         limit: Maximum number of results to return. Default 20 for performance.
             Examples: 1, 10, 50
-        repository: Optional RuleRepository instance for dependency injection.
-            Defaults to RepositoryFactory.create_rule_repository()
+        repository: Optional repository instance for dependency injection.
+            If not provided, RepositoryFactory creates a default
+            instance with automatic database cache management. Useful for testing with
+            mocked repositories or custom cache configurations.
 
     Returns:
         List of rule/reference dictionaries. Structure varies by rule_type:

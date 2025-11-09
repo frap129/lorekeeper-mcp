@@ -1,4 +1,31 @@
-"""Character option lookup tool with repository pattern."""
+"""Character option lookup tool using the repository pattern for caching.
+
+This module provides character creation and advancement options (classes, races,
+backgrounds, feats) with automatic database caching through the repository pattern.
+The repository abstracts away cache management and handles multi-source data routing.
+
+Architecture:
+    - Uses CharacterOptionRepository for cache-aside pattern with option-type routing
+    - Repository manages SQLite cache automatically
+    - Supports dependency injection for testing
+    - Handles class, race, background, and feat filtering across sources
+
+Examples:
+    Default usage (automatically creates repository):
+        classes = await lookup_character_option(type="class")
+        elves = await lookup_character_option(type="race", name="elf")
+
+    With custom repository (dependency injection):
+        from lorekeeper_mcp.repositories.character_option import CharacterOptionRepository
+        from lorekeeper_mcp.cache.sqlite import SQLiteCache
+
+        cache = SQLiteCache(db_path="/path/to/cache.db")
+        repository = CharacterOptionRepository(cache=cache)
+        feats = await lookup_character_option(type="feat", repository=repository)
+
+    Character building queries:
+        all_classes = await lookup_character_option(type="class")
+        backgrounds = await lookup_character_option(type="background", name="soldier")"""
 
 from typing import Any, Literal
 
@@ -43,8 +70,10 @@ async def lookup_character_option(
             Case-insensitive matching.
         limit: Maximum number of results to return. Default 20, useful for limiting
             output or pagination. Examples: 1, 5, 50
-        repository: Optional CharacterOptionRepository instance for dependency injection.
-            Defaults to RepositoryFactory.create_character_option_repository()
+        repository: Optional repository instance for dependency injection.
+            If not provided, RepositoryFactory creates a default
+            instance with automatic database cache management. Useful for testing with
+            mocked repositories or custom cache configurations.
 
     Returns:
         List of option dictionaries. Structure varies by type:
