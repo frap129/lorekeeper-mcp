@@ -92,10 +92,8 @@ def sample_leather() -> Armor:
 
 
 @pytest.fixture
-def sample_bag_of_holding() -> "MagicItem":
+def sample_bag_of_holding() -> MagicItem:
     """Sample magic item for tests."""
-    from lorekeeper_mcp.api_clients.models.equipment import MagicItem
-
     return MagicItem(
         name="Bag of Holding",
         slug="bag-of-holding",
@@ -109,10 +107,8 @@ def sample_bag_of_holding() -> "MagicItem":
 
 
 @pytest.fixture
-def sample_wand_of_fireballs() -> "MagicItem":
+def sample_wand_of_fireballs() -> MagicItem:
     """Sample wand magic item for tests."""
-    from lorekeeper_mcp.api_clients.models.equipment import MagicItem
-
     return MagicItem(
         name="Wand of Fireballs",
         slug="wand-of-fireballs",
@@ -270,8 +266,6 @@ async def test_lookup_equipment_default_repository():
 @pytest.mark.asyncio
 async def test_lookup_magic_items(mock_equipment_repository):
     """Test looking up magic items."""
-    from lorekeeper_mcp.api_clients.models.equipment import MagicItem
-
     sample_bag = MagicItem(
         name="Bag of Holding",
         key="bag-of-holding",
@@ -295,8 +289,6 @@ async def test_lookup_magic_items(mock_equipment_repository):
 @pytest.mark.asyncio
 async def test_lookup_magic_items_by_rarity(mock_equipment_repository):
     """Test filtering magic items by rarity."""
-    from lorekeeper_mcp.api_clients.models.equipment import MagicItem
-
     sample_rare = MagicItem(
         name="Wand of Fireballs",
         key="wand-of-fireballs",
@@ -322,8 +314,6 @@ async def test_lookup_magic_items_by_rarity(mock_equipment_repository):
 @pytest.mark.asyncio
 async def test_lookup_magic_items_by_attunement(mock_equipment_repository):
     """Test filtering magic items by attunement requirement."""
-    from lorekeeper_mcp.api_clients.models.equipment import MagicItem
-
     sample_attune = MagicItem(
         name="Ring of Protection",
         key="ring-of-protection",
@@ -377,8 +367,6 @@ async def test_lookup_all_equipment_types(mock_equipment_repository):
         category="Heavy",
         base_ac=18,
     )
-
-    from lorekeeper_mcp.api_clients.models.equipment import MagicItem
 
     sample_magic = MagicItem(
         name="Cloak of Invisibility",

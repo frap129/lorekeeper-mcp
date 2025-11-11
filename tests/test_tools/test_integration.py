@@ -246,28 +246,34 @@ async def test_creature_lookup_by_cr(test_db):
 @respx.mock
 async def test_equipment_lookup_weapons(test_db):
     """Test equipment lookup for weapons."""
-    weapon_response = {
-        "results": [
-            {
-                "index": "longsword",
-                "name": "Longsword",
-                "equipment_category": {"index": "melee-weapons"},
-                "weapon_category": "melee weapons",
-                "weapon_range": "Melee",
-                "category_range": "Melee",
-                "damage": {"damage_dice": "1d8", "damage_type": {"index": "slashing"}},
-                "two_handed_damage": {"damage_dice": "1d10", "damage_type": {"index": "slashing"}},
-                "range": {"normal": 5, "long": None},
-                "weight": 3.0,
-                "properties": [{"index": "versatile"}],
-                "cost": {"quantity": 1, "unit": "gp"},
-                "url": "https://example.com/longsword",
-            }
+    # Step 1: Mock category endpoint returning list of weapons
+    category_response = {
+        "equipment": [
+            {"index": "longsword", "name": "Longsword"},
         ]
     }
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment-categories/weapon").mock(
+        return_value=httpx.Response(200, json=category_response)
+    )
 
-    respx.get("https://www.dnd5eapi.co/api/2014/equipment/?").mock(
-        return_value=httpx.Response(200, json=weapon_response)
+    # Step 2: Mock individual weapon endpoint returning full details
+    weapon_detail = {
+        "index": "longsword",
+        "name": "Longsword",
+        "equipment_category": {"index": "melee-weapons"},
+        "weapon_category": "melee weapons",
+        "weapon_range": "Melee",
+        "category_range": "Melee",
+        "damage": {"damage_dice": "1d8", "damage_type": {"index": "slashing"}},
+        "two_handed_damage": {"damage_dice": "1d10", "damage_type": {"index": "slashing"}},
+        "range": {"normal": 5, "long": None},
+        "weight": 3.0,
+        "properties": [{"index": "versatile"}],
+        "cost": {"quantity": 1, "unit": "gp"},
+        "url": "https://example.com/longsword",
+    }
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment/longsword").mock(
+        return_value=httpx.Response(200, json=weapon_detail)
     )
 
     result = await lookup_equipment(name="longsword", type="weapon")
@@ -278,25 +284,31 @@ async def test_equipment_lookup_weapons(test_db):
 @respx.mock
 async def test_equipment_lookup_armor(test_db):
     """Test equipment lookup for armor."""
-    armor_response = {
-        "results": [
-            {
-                "index": "plate",
-                "name": "Plate",
-                "equipment_category": {"index": "armor"},
-                "armor_category": "heavy armor",
-                "armor_class": {"base": 18},
-                "str_minimum": 15,
-                "stealth_disadvantage": True,
-                "weight": 65.0,
-                "cost": {"quantity": 1500, "unit": "gp"},
-                "url": "https://example.com/plate",
-            }
+    # Step 1: Mock category endpoint returning list of armor
+    category_response = {
+        "equipment": [
+            {"index": "plate", "name": "Plate"},
         ]
     }
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment-categories/armor").mock(
+        return_value=httpx.Response(200, json=category_response)
+    )
 
-    respx.get("https://www.dnd5eapi.co/api/2014/equipment/?").mock(
-        return_value=httpx.Response(200, json=armor_response)
+    # Step 2: Mock individual armor endpoint returning full details
+    armor_detail = {
+        "index": "plate",
+        "name": "Plate",
+        "equipment_category": {"index": "armor"},
+        "armor_category": "heavy armor",
+        "armor_class": {"base": 18},
+        "str_minimum": 15,
+        "stealth_disadvantage": True,
+        "weight": 65.0,
+        "cost": {"quantity": 1500, "unit": "gp"},
+        "url": "https://example.com/plate",
+    }
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment/plate").mock(
+        return_value=httpx.Response(200, json=armor_detail)
     )
 
     result = await lookup_equipment(name="plate", type="armor")
