@@ -144,11 +144,23 @@ async def lookup_equipment(
         # Client-side filtering by name
         if name:
             name_lower = name.lower()
-            weapons = [w for w in weapons if name_lower in w.name.lower()]
+            weapons = [
+                w
+                for w in weapons
+                if name_lower
+                in (w.name.lower() if hasattr(w, "name") else w.get("name", "").lower())
+            ]
 
         # Limit results to requested count
         weapons = weapons[:limit]
-        results.extend([w.model_dump() for w in weapons])
+        # Convert to dicts if needed (handle both model objects and dicts)
+        weapon_dicts = []
+        for w in weapons:
+            if isinstance(w, dict):
+                weapon_dicts.append(w)
+            else:
+                weapon_dicts.append(w.model_dump())
+        results.extend(weapon_dicts)
 
     # Query armor
     if type in ("armor", "all"):
@@ -163,11 +175,23 @@ async def lookup_equipment(
         # Client-side filtering by name
         if name:
             name_lower = name.lower()
-            armors = [a for a in armors if name_lower in a.name.lower()]
+            armors = [
+                a
+                for a in armors
+                if name_lower
+                in (a.name.lower() if hasattr(a, "name") else a.get("name", "").lower())
+            ]
 
         # Limit results to requested count
         armors = armors[:limit]
-        results.extend([a.model_dump() for a in armors])
+        # Convert to dicts if needed (handle both model objects and dicts)
+        armor_dicts = []
+        for a in armors:
+            if isinstance(a, dict):
+                armor_dicts.append(a)
+            else:
+                armor_dicts.append(a.model_dump())
+        results.extend(armor_dicts)
 
     # Query magic items
     if type in ("magic-item", "all"):
@@ -190,11 +214,23 @@ async def lookup_equipment(
         # Client-side filtering by name
         if name:
             name_lower = name.lower()
-            magic_items = [m for m in magic_items if name_lower in m.name.lower()]
+            magic_items = [
+                m
+                for m in magic_items
+                if name_lower
+                in (m.name.lower() if hasattr(m, "name") else m.get("name", "").lower())
+            ]
 
         # Limit results to requested count
         magic_items = magic_items[:limit]
-        results.extend([m.model_dump() for m in magic_items])
+        # Convert to dicts if needed (handle both model objects and dicts)
+        magic_item_dicts = []
+        for m in magic_items:
+            if isinstance(m, dict):
+                magic_item_dicts.append(m)
+            else:
+                magic_item_dicts.append(m.model_dump())
+        results.extend(magic_item_dicts)
 
     # Apply overall limit if querying multiple types
     if type == "all" and len(results) > limit:

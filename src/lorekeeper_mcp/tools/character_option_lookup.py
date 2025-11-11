@@ -128,8 +128,15 @@ async def lookup_character_option(
         "option_type": type,
         "limit": limit,
     }
-    if name is not None:
-        params["search"] = name
+    # Note: search/name filtering is done client-side, not passed to cache
+    # The cache layer doesn't support filtering by name
 
     # Fetch options from repository
-    return await repository.search(**params)  # type: ignore[no-any-return]
+    results: list[dict[str, Any]] = await repository.search(**params)
+
+    # Client-side name filtering if requested
+    if name is not None and results:
+        name_lower = name.lower()
+        results = [r for r in results if name_lower in r.get("name", "").lower()]
+
+    return results

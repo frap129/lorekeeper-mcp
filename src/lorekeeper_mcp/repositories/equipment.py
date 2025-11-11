@@ -166,13 +166,15 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
             return results[:limit] if limit else results
 
         # Cache miss - fetch from API with filters and limit
-        weapons: list[Weapon] = await self.client.get_weapons(limit=limit, **filters)
+        weapons = await self.client.get_weapons(limit=limit, **filters)
 
         # Store in cache if we got results
         if weapons:
+            # Convert to dicts for caching
             weapon_dicts = [weapon.model_dump() for weapon in weapons]
             await self.cache.store_entities(weapon_dicts, "weapons")
 
+        # Return the weapons
         return weapons
 
     async def _search_armor(self, **filters: Any) -> list[Armor]:
@@ -195,13 +197,15 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
             return results[:limit] if limit else results
 
         # Cache miss - fetch from API with filters and limit
-        armors: list[Armor] = await self.client.get_armor(limit=limit, **filters)
+        armors = await self.client.get_armor(limit=limit, **filters)
 
         # Store in cache if we got results
         if armors:
+            # Convert to dicts for caching
             armor_dicts = [armor.model_dump() for armor in armors]
             await self.cache.store_entities(armor_dicts, "armor")
 
+        # Return the armor
         return armors
 
     async def _search_magic_items(self, **filters: Any) -> list[MagicItem]:

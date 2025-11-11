@@ -140,6 +140,9 @@ async def bulk_cache_entities(
                 # Handle nested damage_type object (weapons)
                 if field_name == "damage_type" and isinstance(value, dict):
                     value = value.get("key")
+                # Handle nested armor_class object (armor)
+                if field_name == "armor_class" and isinstance(value, dict):
+                    value = value.get("base")
                 row.append(value)
 
             rows.append(row)

@@ -493,6 +493,56 @@ class Dnd5eApiClient(BaseHttpClient):
                 item["slug"] = item["index"]
         return results
 
+    async def get_weapons(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get weapons from D&D 5e API by filtering equipment results.
+
+        Returns:
+            List of weapon dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        all_equipment = await self.get_equipment(**filters)
+        # Filter for weapons (equipment with weapon_category or melee/ranged in category)
+        weapons: list[dict[str, Any]] = []
+        for item in all_equipment:
+            # Check if it's a weapon
+            if "weapon_category" in item:
+                weapons.append(item)
+            elif "equipment_category" in item and isinstance(item["equipment_category"], dict):
+                category_index = item["equipment_category"].get("index", "").lower()
+                if (
+                    "weapon" in category_index
+                    or "melee" in category_index
+                    or "ranged" in category_index
+                ):
+                    weapons.append(item)
+        return weapons
+
+    async def get_armor(self, **filters: Any) -> list[dict[str, Any]]:
+        """Get armor from D&D 5e API by filtering equipment results.
+
+        Returns:
+            List of armor dictionaries
+
+        Raises:
+            NetworkError: Network request failed
+            ApiError: API returned error response
+        """
+        all_equipment = await self.get_equipment(**filters)
+        # Filter for armor (equipment with armor_category)
+        armor: list[dict[str, Any]] = []
+        for item in all_equipment:
+            # Check if it's armor
+            if "armor_category" in item:
+                armor.append(item)
+            elif "equipment_category" in item and isinstance(item["equipment_category"], dict):
+                category_index = item["equipment_category"].get("index", "").lower()
+                if "armor" in category_index:
+                    armor.append(item)
+        return armor
+
     async def get_equipment_categories(self, **filters: Any) -> list[dict[str, Any]]:
         """Get equipment categories from D&D 5e API.
 
@@ -638,3 +688,26 @@ class Dnd5eApiClient(BaseHttpClient):
             if isinstance(item, dict) and "index" in item and "slug" not in item:
                 item["slug"] = item["index"]
         return results
+
+    # Wrapper methods for CharacterOption and Equipment repositories
+    # These delegate to the _dnd5e versions for compatibility with repository interfaces
+
+    async def get_classes(self, **filters: Any) -> list[dict[str, Any]]:
+        """Wrapper for get_classes_dnd5e for repository compatibility."""
+        return await self.get_classes_dnd5e(**filters)
+
+    async def get_races(self, **filters: Any) -> list[dict[str, Any]]:
+        """Wrapper for get_races_dnd5e for repository compatibility."""
+        return await self.get_races_dnd5e(**filters)
+
+    async def get_backgrounds(self, **filters: Any) -> list[dict[str, Any]]:
+        """Wrapper for get_backgrounds_dnd5e for repository compatibility."""
+        return await self.get_backgrounds_dnd5e(**filters)
+
+    async def get_feats(self, **filters: Any) -> list[dict[str, Any]]:
+        """Wrapper for get_feats_dnd5e for repository compatibility."""
+        return await self.get_feats_dnd5e(**filters)
+
+    async def get_conditions(self, **filters: Any) -> list[dict[str, Any]]:
+        """Wrapper for get_conditions_dnd5e for repository compatibility."""
+        return await self.get_conditions_dnd5e(**filters)

@@ -141,64 +141,88 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_damage_types(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for damage types."""
-        # Extract limit parameter (not a cache filter field)
+        # Extract limit and name parameters (not cache filter fields)
         limit = filters.pop("limit", None)
+        name = filters.pop("name", None)
 
         # Try cache first with valid filter fields only
-        cached = await self.cache.get_entities("damage_types", **filters)
+        cached = await self.cache.get_entities("damagetypes", **filters)
 
         if cached:
-            return cached[:limit] if limit else cached
+            results = cached
+        else:
+            # Fetch from API with filters and limit
+            damage_types: list[dict[str, Any]] = await self.client.get_damage_types(
+                limit=limit, **filters
+            )
 
-        # Fetch from API with filters and limit
-        damage_types: list[dict[str, Any]] = await self.client.get_damage_types(
-            limit=limit, **filters
-        )
+            if damage_types:
+                await self.cache.store_entities(damage_types, "damagetypes")
 
-        if damage_types:
-            await self.cache.store_entities(damage_types, "damage_types")
+            results = damage_types
 
-        return damage_types
+        # Client-side filtering by name if requested
+        if name:
+            name_lower = name.lower()
+            results = [r for r in results if name_lower in r.get("name", "").lower()]
+
+        return results[:limit] if limit else results
 
     async def _search_skills(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for skills."""
-        # Extract limit parameter (not a cache filter field)
+        # Extract limit and name parameters (not cache filter fields)
         limit = filters.pop("limit", None)
+        name = filters.pop("name", None)
 
         # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("skills", **filters)
 
         if cached:
-            return cached[:limit] if limit else cached
+            results = cached
+        else:
+            # Fetch from API with filters and limit
+            skills: list[dict[str, Any]] = await self.client.get_skills(limit=limit, **filters)
 
-        # Fetch from API with filters and limit
-        skills: list[dict[str, Any]] = await self.client.get_skills(limit=limit, **filters)
+            if skills:
+                await self.cache.store_entities(skills, "skills")
 
-        if skills:
-            await self.cache.store_entities(skills, "skills")
+            results = skills
 
-        return skills
+        # Client-side filtering by name if requested
+        if name:
+            name_lower = name.lower()
+            results = [r for r in results if name_lower in r.get("name", "").lower()]
+
+        return results[:limit] if limit else results
 
     async def _search_conditions(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for conditions."""
-        # Extract limit parameter (not a cache filter field)
+        # Extract limit and name parameters (not cache filter fields)
         limit = filters.pop("limit", None)
+        name = filters.pop("name", None)
 
         # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("conditions", **filters)
 
         if cached:
-            return cached[:limit] if limit else cached
+            results = cached
+        else:
+            # Fetch from API with filters and limit
+            conditions: list[dict[str, Any]] = await self.client.get_conditions_dnd5e(
+                limit=limit, **filters
+            )
 
-        # Fetch from API with filters and limit
-        conditions: list[dict[str, Any]] = await self.client.get_conditions_dnd5e(
-            limit=limit, **filters
-        )
+            if conditions:
+                await self.cache.store_entities(conditions, "conditions")
 
-        if conditions:
-            await self.cache.store_entities(conditions, "conditions")
+            results = conditions
 
-        return conditions
+        # Client-side filtering by name if requested
+        if name:
+            name_lower = name.lower()
+            results = [r for r in results if name_lower in r.get("name", "").lower()]
+
+        return results[:limit] if limit else results
 
     async def _search_weapon_properties(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for weapon properties."""

@@ -140,12 +140,6 @@ async def test_get_armor(v2_client: Open5eV2Client) -> None:
     assert armors[0].base_ac == 16
 
 
-@pytest.fixture
-@respx.mock
-@pytest.mark.asyncio
-@pytest.mark.asyncio
-@pytest.mark.asyncio
-@pytest.mark.asyncio
 @respx.mock
 async def test_spell_school_filtering(v2_client: Open5eV2Client) -> None:
     """Test that get_spells filters by school on client side.
@@ -692,3 +686,19 @@ async def test_get_weapon_properties_v2(v2_client: Open5eV2Client) -> None:
 
     assert len(properties) == 1
     assert properties[0]["name"] == "Finesse"
+
+
+@respx.mock
+async def test_get_services(v2_client: Open5eV2Client) -> None:
+    """Test get_services returns service information."""
+    respx.get("https://api.open5e.com/v2/services/").mock(
+        return_value=httpx.Response(
+            200,
+            json={"results": [{"slug": "service-1", "name": "Service 1"}]},
+        )
+    )
+
+    services = await v2_client.get_services()
+
+    assert len(services) == 1
+    assert services[0]["name"] == "Service 1"

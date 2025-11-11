@@ -266,7 +266,7 @@ async def test_equipment_lookup_weapons(test_db):
         ]
     }
 
-    respx.get("https://www.dnd5eapi.co/api/equipment/?").mock(
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment/?").mock(
         return_value=httpx.Response(200, json=weapon_response)
     )
 
@@ -295,7 +295,7 @@ async def test_equipment_lookup_armor(test_db):
         ]
     }
 
-    respx.get("https://www.dnd5eapi.co/api/equipment/?").mock(
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment/?").mock(
         return_value=httpx.Response(200, json=armor_response)
     )
 
@@ -323,7 +323,7 @@ async def test_character_option_lookup_class(test_db):
         ]
     }
 
-    respx.get("https://www.dnd5eapi.co/api/classes/?").mock(
+    respx.get("https://www.dnd5eapi.co/api/2014/classes/?").mock(
         return_value=httpx.Response(200, json=class_response)
     )
 
@@ -347,7 +347,7 @@ async def test_character_option_lookup_race(test_db):
         ]
     }
 
-    respx.get("https://www.dnd5eapi.co/api/races/?").mock(
+    respx.get("https://www.dnd5eapi.co/api/2014/races/?").mock(
         return_value=httpx.Response(200, json=race_response)
     )
 
@@ -369,7 +369,7 @@ async def test_character_option_lookup_feat(test_db):
         ]
     }
 
-    respx.get("https://www.dnd5eapi.co/api/feats/?").mock(
+    respx.get("https://www.dnd5eapi.co/api/2014/feats/?").mock(
         return_value=httpx.Response(200, json=feat_response)
     )
 
@@ -397,7 +397,7 @@ async def test_rule_lookup_condition(test_db):
         ]
     }
 
-    respx.get("https://www.dnd5eapi.co/api/conditions/?").mock(
+    respx.get("https://www.dnd5eapi.co/api/2014/conditions/?").mock(
         return_value=httpx.Response(200, json=condition_response)
     )
 
@@ -420,7 +420,7 @@ async def test_rule_lookup_damage_type(test_db):
         ]
     }
 
-    respx.get("https://www.dnd5eapi.co/api/damage-types/?").mock(
+    respx.get("https://www.dnd5eapi.co/api/2014/damage-types/?").mock(
         return_value=httpx.Response(200, json=damage_response)
     )
 
@@ -443,7 +443,7 @@ async def test_rule_lookup_skill(test_db):
         ]
     }
 
-    respx.get("https://www.dnd5eapi.co/api/skills/?").mock(
+    respx.get("https://www.dnd5eapi.co/api/2014/skills/?").mock(
         return_value=httpx.Response(200, json=skill_response)
     )
 
@@ -483,8 +483,8 @@ async def test_cache_persistence(test_db):
     stored = await cache.store_entities([test_spell], "spells")
     assert stored > 0
 
-    # Retrieve entity
-    retrieved = await cache.get_entities("spells", name="Test Spell")
+    # Retrieve entity by indexed field (level)
+    retrieved = await cache.get_entities("spells", level=1)
     assert len(retrieved) > 0
     assert retrieved[0]["name"] == "Test Spell"
 

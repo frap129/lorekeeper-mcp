@@ -117,7 +117,8 @@ async def lookup_creature(
     # Note: name/search filtering happens client-side since the API doesn't filter by search
     params: dict[str, Any] = {}
     if cr is not None:
-        params["cr"] = cr
+        # Map 'cr' parameter to 'challenge_rating' for cache compatibility
+        params["challenge_rating"] = cr
     if cr_min is not None:
         params["cr_min"] = cr_min
     if cr_max is not None:
