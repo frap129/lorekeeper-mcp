@@ -10,12 +10,11 @@ from lorekeeper_mcp.api_clients.models import Monster, Spell
 @pytest.fixture(autouse=True)
 def cleanup_tool_contexts():
     """Clear all tool repository contexts after each test."""
-    from lorekeeper_mcp.tools import creature_lookup, equipment_lookup, spell_lookup
+    from lorekeeper_mcp.tools import creature_lookup, spell_lookup
 
     yield
     spell_lookup._repository_context.clear()
     creature_lookup._repository_context.clear()
-    equipment_lookup._repository_context.clear()
 
 
 @pytest.fixture
