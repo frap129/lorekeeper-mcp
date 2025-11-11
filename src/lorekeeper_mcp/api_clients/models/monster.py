@@ -16,13 +16,13 @@ class Monster(BaseModel):
     hit_dice: str = Field(..., description="Hit dice formula")
     challenge_rating: str = Field(..., description="Challenge rating (CR)")
 
-    # Ability scores
-    strength: int | None = Field(None, ge=1, le=30, description="Strength score")
-    dexterity: int | None = Field(None, ge=1, le=30, description="Dexterity score")
-    constitution: int | None = Field(None, ge=1, le=30, description="Constitution score")
-    intelligence: int | None = Field(None, ge=1, le=30, description="Intelligence score")
-    wisdom: int | None = Field(None, ge=1, le=30, description="Wisdom score")
-    charisma: int | None = Field(None, ge=1, le=30, description="Charisma score")
+    # Ability scores (can exceed 30 for legendary creatures)
+    strength: int | None = Field(None, ge=1, le=50, description="Strength score")
+    dexterity: int | None = Field(None, ge=1, le=50, description="Dexterity score")
+    constitution: int | None = Field(None, ge=1, le=50, description="Constitution score")
+    intelligence: int | None = Field(None, ge=1, le=50, description="Intelligence score")
+    wisdom: int | None = Field(None, ge=1, le=50, description="Wisdom score")
+    charisma: int | None = Field(None, ge=1, le=50, description="Charisma score")
 
     # Optional arrays
     speed: dict[str, int] | None = Field(None, description="Speed values")

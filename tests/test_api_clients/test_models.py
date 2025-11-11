@@ -165,7 +165,7 @@ def test_monster_model_invalid_stats() -> None:
             strength=0,  # Invalid: must be >= 1
         )
 
-    # Test ability score above 30
+    # Test ability score above 50
     with pytest.raises(ValidationError):
         Monster(
             name="Invalid Monster",
@@ -177,7 +177,7 @@ def test_monster_model_invalid_stats() -> None:
             hit_points=10,
             hit_dice="2d6",
             challenge_rating="1/2",
-            dexterity=31,  # Invalid: must be <= 30
+            dexterity=51,  # Invalid: must be <= 50
         )
 
     # Test negative armor_class
@@ -426,3 +426,56 @@ def test_weapon_with_empty_properties() -> None:
 
     assert len(weapon.properties) == 0
     assert weapon.name == "Club"
+
+
+def test_monster_allows_ability_scores_above_30() -> None:
+    """Test that Monster model accepts ability scores above 30 for legendary creatures."""
+    # Ancient Red Dragon has Constitution 32 in Open5e API
+    monster = Monster(
+        name="Ancient Red Dragon",
+        slug="ancient-red-dragon",
+        size="Gargantuan",
+        type="dragon",
+        alignment="chaotic evil",
+        armor_class=22,
+        hit_points=546,
+        hit_dice="28d20+252",
+        challenge_rating="24",
+        strength=30,
+        dexterity=10,
+        constitution=32,  # Above normal 30 max
+        intelligence=18,
+        wisdom=15,
+        charisma=23,
+        desc="An ancient red dragon",
+        document_url="https://example.com",
+    )
+
+    assert monster.constitution == 32
+    assert monster.strength == 30
+
+
+def test_monster_allows_extremely_high_ability_scores() -> None:
+    """Test that legendary creatures can have very high ability scores."""
+    monster = Monster(
+        name="Tarrasque",
+        slug="tarrasque",
+        size="Gargantuan",
+        type="monstrosity",
+        alignment="unaligned",
+        armor_class=25,
+        hit_points=676,
+        hit_dice="33d20+330",
+        challenge_rating="30",
+        strength=35,  # Extremely high
+        dexterity=11,
+        constitution=34,  # Extremely high
+        intelligence=3,
+        wisdom=11,
+        charisma=11,
+        desc="A tarrasque",
+        document_url="https://example.com",
+    )
+
+    assert monster.strength == 35
+    assert monster.constitution == 34
