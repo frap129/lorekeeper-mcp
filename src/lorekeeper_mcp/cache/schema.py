@@ -62,6 +62,7 @@ ENTITY_TYPES = [
 
 # Indexed fields per entity type for filtering
 # Each field is a tuple of (field_name, field_type)
+# Note: 'name' and 'slug' are always available for filtering as they're in the base schema
 INDEXED_FIELDS = {
     "spells": [
         ("level", "INTEGER"),
@@ -222,7 +223,12 @@ async def init_entity_cache(db_path: str) -> None:
             table_sql = get_create_table_sql(entity_type)
             await db.execute(table_sql)
 
-            # Create indexes for this table
+            # Create index on name field for all entity types (for filtering)
+            await db.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_{entity_type}_name ON {entity_type}(name)"
+            )
+
+            # Create indexes for entity-specific fields
             for index_sql in get_index_sql(entity_type):
                 await db.execute(index_sql)
 

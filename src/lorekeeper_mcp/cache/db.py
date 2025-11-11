@@ -210,12 +210,17 @@ async def query_cached_entities(
         raise ValueError(f"Invalid entity type: {entity_type}")
 
     # Validate filter keys against allowlist to prevent SQL injection
-    allowed_fields = {field_name for field_name, _ in INDEXED_FIELDS.get(entity_type, [])}
+    # Base schema fields that are always filterable
+    base_fields = {"name", "slug", "source_api"}
+    # Entity-specific indexed fields
+    indexed_fields = {field_name for field_name, _ in INDEXED_FIELDS.get(entity_type, [])}
+    allowed_fields = base_fields | indexed_fields
+
     for field in filters:
         if field not in allowed_fields:
             raise ValueError(
                 f"Invalid filter field '{field}' for entity type '{entity_type}'. "
-                f"Allowed fields: {sorted(allowed_fields) if allowed_fields else 'none'}"
+                f"Allowed fields: {sorted(allowed_fields)}"
             )
 
     db_path_obj = Path(db_path or settings.db_path)

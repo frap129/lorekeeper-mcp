@@ -12,6 +12,7 @@ from lorekeeper_mcp.tools import (
     lookup_equipment,
     lookup_rule,
     lookup_spell,
+    spell_lookup,
 )
 
 
@@ -40,7 +41,14 @@ async def test_full_spell_lookup_workflow():
     mock_spell_repository = MagicMock()
     mock_spell_repository.search = AsyncMock(return_value=[spell_obj])
 
-    result = await lookup_spell(name="Fireball", level=3, limit=5, repository=mock_spell_repository)
+    # Use context-based injection for spell lookup
+    spell_lookup._repository_context["repository"] = mock_spell_repository
+    try:
+        result = await lookup_spell(name="Fireball", level=3, limit=5)
+    finally:
+        # Clean up context
+        if "repository" in spell_lookup._repository_context:
+            del spell_lookup._repository_context["repository"]
 
     assert isinstance(result, list)
     assert len(result) == 1

@@ -8,19 +8,19 @@ the D&D 5e API and store results for future queries.
 Architecture:
     - Uses SpellRepository for cache-aside pattern
     - Repository manages SQLite cache automatically
-    - Supports dependency injection for testing
+    - Supports test context-based repository injection
 
 Examples:
     Default usage (automatically creates repository):
         spells = await lookup_spell(level=3, school="evocation")
 
-    With custom repository (dependency injection):
+    With context-based injection (testing):
+        from lorekeeper_mcp.tools.spell_lookup import _repository_context
         from lorekeeper_mcp.repositories.spell import SpellRepository
-        from lorekeeper_mcp.cache.sqlite import SQLiteCache
 
-        cache = SQLiteCache(db_path="/path/to/cache.db")
-        repository = SpellRepository(cache=cache)
-        spells = await lookup_spell(level=3, repository=repository)
+        repository = SpellRepository(cache=my_cache)
+        _repository_context["repository"] = repository
+        spells = await lookup_spell(level=3)
 
     Name search with filtering:
         spells = await lookup_spell(name="fireball", limit=5)
@@ -28,9 +28,27 @@ Examples:
     Advanced filtering:
         spells = await lookup_spell(level=0, class_key="wizard")"""
 
-from typing import Any
+from typing import Any, cast
 
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
+from lorekeeper_mcp.repositories.spell import SpellRepository
+
+# Module-level context for test repository injection
+_repository_context: dict[str, Any] = {}
+
+
+def _get_repository() -> SpellRepository:
+    """Get spell repository, respecting test context.
+
+    Returns the repository from _repository_context if set, otherwise creates
+    a default SpellRepository using RepositoryFactory.
+
+    Returns:
+        SpellRepository instance for spell lookups.
+    """
+    if "repository" in _repository_context:
+        return cast(SpellRepository, _repository_context["repository"])
+    return RepositoryFactory.create_spell_repository()
 
 
 def clear_spell_cache() -> None:
@@ -52,7 +70,6 @@ async def lookup_spell(
     ritual: bool | None = None,
     casting_time: str | None = None,
     limit: int = 20,
-    repository: Any = None,
 ) -> list[dict[str, Any]]:
     """
     Search and retrieve D&D 5e spells using the repository pattern.
@@ -65,7 +82,7 @@ async def lookup_spell(
     The repository pattern handles caching transparently:
     - First call: Fetches from API and caches in database
     - Subsequent calls: Returns cached results if available
-    - Supports dependency injection for testing with custom repositories
+    - Supports test context-based repository injection via _repository_context
 
     Examples:
         Default usage (automatic repository creation):
@@ -73,10 +90,11 @@ async def lookup_spell(
             spells = await lookup_spell(level=3, school="evocation")
             spells = await lookup_spell(class_key="wizard", concentration=True)
 
-        With dependency injection (custom repository):
-            from lorekeeper_mcp.repositories.spell import SpellRepository
+        With test context injection (testing):
+            from lorekeeper_mcp.tools.spell_lookup import _repository_context
             custom_repo = SpellRepository(cache=my_cache)
-            spells = await lookup_spell(level=0, repository=custom_repo)
+            _repository_context["repository"] = custom_repo
+            spells = await lookup_spell(level=0)
 
         Finding specific spell types:
             cantrips = await lookup_spell(level=0)
@@ -102,10 +120,6 @@ async def lookup_spell(
             "1 reaction", "1 minute", "10 minutes"
         limit: Maximum number of results to return. Default 20, useful for pagination
             or limiting large result sets. Example: 5
-        repository: Optional SpellRepository instance for dependency injection.
-            If not provided, RepositoryFactory.create_spell_repository() creates a default
-            instance with automatic database cache management. Useful for testing with
-            mocked repositories or custom cache configurations.
 
     Returns:
         List of spell dictionaries, each containing:
@@ -127,13 +141,14 @@ async def lookup_spell(
     Raises:
         ApiError: If the API request fails due to network issues or server errors
     """
-    # Use provided repository or create default
-    if repository is None:
-        repository = RepositoryFactory.create_spell_repository()
+    # Get repository from context or create default
+    repository = _get_repository()
 
     # Build query parameters for repository search
-    # Note: name/search and class_key filtering happen client-side
+    # Note: class_key filtering happens client-side (not supported by API)
     params: dict[str, Any] = {}
+    if name is not None:
+        params["name"] = name
     if level is not None:
         params["level"] = level
     if school is not None:
@@ -147,15 +162,8 @@ async def lookup_spell(
         params["casting_time"] = casting_time
 
     # Fetch spells from repository with filters
-    # When searching by name, fetch more results to ensure we find matches
-    # Use multiplier of 11 to balance finding matches with performance (~2.5s for 220 results)
-    fetch_limit = limit * 11 if name else limit
-    spells = await repository.search(limit=fetch_limit, **params)
-
-    # Client-side filtering by name (the API search parameter doesn't actually filter)
-    if name:
-        name_lower = name.lower()
-        spells = [spell for spell in spells if name_lower in spell.name.lower()]
+    # API will filter by name server-side for better performance
+    spells = await repository.search(limit=limit, **params)
 
     # Client-side filtering for class_key (not supported by cache/API)
     if class_key:
