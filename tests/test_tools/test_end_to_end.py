@@ -7,6 +7,7 @@ import pytest
 
 from lorekeeper_mcp.api_clients.models import Monster, Spell
 from lorekeeper_mcp.tools import (
+    creature_lookup,
     lookup_character_option,
     lookup_creature,
     lookup_equipment,
@@ -90,9 +91,14 @@ async def test_full_creature_lookup_workflow():
     mock_creature_repository = MagicMock()
     mock_creature_repository.search = AsyncMock(return_value=[monster_obj])
 
-    result = await lookup_creature(
-        name="Ancient Red Dragon", cr=24, repository=mock_creature_repository
-    )
+    # Use context-based injection for creature lookup
+    creature_lookup._repository_context["repository"] = mock_creature_repository
+    try:
+        result = await lookup_creature(name="Ancient Red Dragon", cr=24)
+    finally:
+        # Clean up context
+        if "repository" in creature_lookup._repository_context:
+            del creature_lookup._repository_context["repository"]
 
     assert isinstance(result, list)
     assert len(result) == 1

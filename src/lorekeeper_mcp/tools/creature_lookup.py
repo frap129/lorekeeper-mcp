@@ -8,7 +8,7 @@ multiple D&D 5e sources and store results for future queries.
 Architecture:
     - Uses MonsterRepository for cache-aside pattern with multi-source support
     - Repository manages SQLite cache automatically
-    - Supports dependency injection for testing
+    - Supports test context-based repository injection
     - Handles Open5e v1 and D&D 5e API data normalization
 
 Examples:
@@ -16,21 +16,39 @@ Examples:
         creatures = await lookup_creature(cr=5)
         dragons = await lookup_creature(type="dragon")
 
-    With custom repository (dependency injection):
+    With context-based injection (testing):
+        from lorekeeper_mcp.tools.creature_lookup import _repository_context
         from lorekeeper_mcp.repositories.monster import MonsterRepository
-        from lorekeeper_mcp.cache.sqlite import SQLiteCache
 
-        cache = SQLiteCache(db_path="/path/to/cache.db")
-        repository = MonsterRepository(cache=cache)
-        creatures = await lookup_creature(cr_min=1, cr_max=3, repository=repository)
+        repository = MonsterRepository(cache=my_cache)
+        _repository_context["repository"] = repository
+        creatures = await lookup_creature(cr_min=1, cr_max=3)
 
     Challenge rating queries:
         low_level = await lookup_creature(cr_max=2)
         bosses = await lookup_creature(cr_min=10)"""
 
-from typing import Any
+from typing import Any, cast
 
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
+from lorekeeper_mcp.repositories.monster import MonsterRepository
+
+# Module-level context for test repository injection
+_repository_context: dict[str, Any] = {}
+
+
+def _get_repository() -> MonsterRepository:
+    """Get monster repository, respecting test context.
+
+    Returns the repository from _repository_context if set, otherwise creates
+    a default MonsterRepository using RepositoryFactory.
+
+    Returns:
+        MonsterRepository instance for creature lookups.
+    """
+    if "repository" in _repository_context:
+        return cast(MonsterRepository, _repository_context["repository"])
+    return RepositoryFactory.create_monster_repository()
 
 
 def clear_creature_cache() -> None:
@@ -51,7 +69,6 @@ async def lookup_creature(
     type: str | None = None,  # noqa: A002
     size: str | None = None,
     limit: int = 20,
-    repository: Any = None,
 ) -> list[dict[str, Any]]:
     """
     Search and retrieve D&D 5e creatures/monsters using the repository pattern.
@@ -61,11 +78,20 @@ async def lookup_creature(
     and are cached through the repository for improved performance.
 
     Examples:
-        - lookup_creature(name="dragon") - Find all creatures with "dragon" in name
-        - lookup_creature(cr=5) - Find all creatures with CR 5 (encounter challenge level)
-        - lookup_creature(cr_min=1, cr_max=3, type="undead") - Find undead creatures CR 1-3
-        - lookup_creature(size="Tiny") - Find all tiny creatures for swarms
-        - lookup_creature(type="humanoid", cr_max=2) - Find low-level humanoid NPCs
+        Default usage (automatic repository creation):
+            creatures = await lookup_creature(name="dragon")
+            creatures = await lookup_creature(cr=5)
+            creatures = await lookup_creature(cr_min=1, cr_max=3, type="undead")
+
+        With test context injection (testing):
+            from lorekeeper_mcp.tools.creature_lookup import _repository_context
+            custom_repo = MonsterRepository(cache=my_cache)
+            _repository_context["repository"] = custom_repo
+            creatures = await lookup_creature(size="Tiny")
+
+        Finding specific creature types:
+            humanoids = await lookup_creature(type="humanoid", cr_max=2)
+            large_creatures = await lookup_creature(size="Large", limit=10)
 
     Args:
         name: Creature name or partial name search. Matches creatures containing this substring.
@@ -84,10 +110,6 @@ async def lookup_creature(
             Examples: "Large" for major encounters, "Tiny" for swarms
         limit: Maximum number of results to return. Default 20, useful for pagination
             or limiting large result sets. Example: 5
-        repository: Optional repository instance for dependency injection.
-            If not provided, RepositoryFactory creates a default
-            instance with automatic database cache management. Useful for testing with
-            mocked repositories or custom cache configurations.
 
     Returns:
         List of creature stat block dictionaries, each containing:
@@ -109,9 +131,8 @@ async def lookup_creature(
     Raises:
         ApiError: If the API request fails due to network issues or server errors
     """
-    # Use provided repository or create default
-    if repository is None:
-        repository = RepositoryFactory.create_monster_repository()
+    # Get repository from context or create default
+    repository = _get_repository()
 
     # Build query parameters for repository search
     # Note: name/search filtering happens client-side since the API doesn't filter by search
