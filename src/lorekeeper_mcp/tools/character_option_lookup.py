@@ -15,30 +15,47 @@ Examples:
         classes = await lookup_character_option(type="class")
         elves = await lookup_character_option(type="race", name="elf")
 
-    With custom repository (dependency injection):
+    With context-based injection (testing):
+        from lorekeeper_mcp.tools.character_option_lookup import _repository_context
         from lorekeeper_mcp.repositories.character_option import CharacterOptionRepository
-        from lorekeeper_mcp.cache.sqlite import SQLiteCache
 
-        cache = SQLiteCache(db_path="/path/to/cache.db")
-        repository = CharacterOptionRepository(cache=cache)
-        feats = await lookup_character_option(type="feat", repository=repository)
+        repository = CharacterOptionRepository(cache=my_cache)
+        _repository_context["repository"] = repository
+        feats = await lookup_character_option(type="feat")
 
     Character building queries:
         all_classes = await lookup_character_option(type="class")
         backgrounds = await lookup_character_option(type="background", name="soldier")"""
 
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
+from lorekeeper_mcp.repositories.character_option import CharacterOptionRepository
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
 
 OptionType = Literal["class", "race", "background", "feat"]
+
+# Module-level context for test repository injection
+_repository_context: dict[str, Any] = {}
+
+
+def _get_repository() -> CharacterOptionRepository:
+    """Get character option repository, respecting test context.
+
+    Returns the repository from _repository_context if set, otherwise creates
+    a default CharacterOptionRepository using RepositoryFactory.
+
+    Returns:
+        CharacterOptionRepository instance for character option lookups.
+    """
+    if "repository" in _repository_context:
+        return cast(CharacterOptionRepository, _repository_context["repository"])
+    return RepositoryFactory.create_character_option_repository()
 
 
 async def lookup_character_option(
     type: OptionType,  # noqa: A002
     name: str | None = None,
     limit: int = 20,
-    repository: Any = None,
 ) -> list[dict[str, Any]]:
     """
     Retrieve D&D 5e character creation and advancement options.
@@ -48,12 +65,23 @@ async def lookup_character_option(
     relevant to character building. Results are cached for faster repeated lookups
     through the repository pattern.
 
+    The repository pattern handles caching transparently:
+    - First call: Fetches from API and caches in database
+    - Subsequent calls: Returns cached results if available
+    - Supports test context-based repository injection via _repository_context
+
     Examples:
-        - lookup_character_option(type="class", name="wizard") - Find wizard class details
-        - lookup_character_option(type="race", name="elf") - Find elf racial bonuses
-        - lookup_character_option(type="background", name="soldier") - Find soldier background
-        - lookup_character_option(type="feat", name="great") - Find feats with "great" in name
-        - lookup_character_option(type="class") - Get all available classes
+        Default usage (automatic repository creation):
+            classes = await lookup_character_option(type="class")
+            elves = await lookup_character_option(type="race", name="elf")
+            backgrounds = await lookup_character_option(type="background", name="soldier")
+            feats = await lookup_character_option(type="feat", name="great")
+
+        With test context injection (testing):
+            from lorekeeper_mcp.tools.character_option_lookup import _repository_context
+            custom_repo = CharacterOptionRepository(cache=my_cache)
+            _repository_context["repository"] = custom_repo
+            classes = await lookup_character_option(type="class")
 
     Args:
         type: **REQUIRED.** Character option type. Must be one of:
@@ -70,10 +98,6 @@ async def lookup_character_option(
             Case-insensitive matching.
         limit: Maximum number of results to return. Default 20, useful for limiting
             output or pagination. Examples: 1, 5, 50
-        repository: Optional repository instance for dependency injection.
-            If not provided, RepositoryFactory creates a default
-            instance with automatic database cache management. Useful for testing with
-            mocked repositories or custom cache configurations.
 
     Returns:
         List of option dictionaries. Structure varies by type:
@@ -119,9 +143,8 @@ async def lookup_character_option(
     if type not in valid_types:
         raise ValueError(f"Invalid type '{type}'. Must be one of: {', '.join(valid_types)}")
 
-    # Use provided repository or create default
-    if repository is None:
-        repository = RepositoryFactory.create_character_option_repository()
+    # Get repository from context or create default
+    repository = _get_repository()
 
     # Build query parameters for repository search
     params: dict[str, Any] = {

@@ -132,6 +132,8 @@ async def test_all_tools_callable():
 @pytest.mark.asyncio
 async def test_character_option_lookup_workflow():
     """Test character option lookup workflow."""
+    from lorekeeper_mcp.tools.character_option_lookup import _repository_context
+
     # Create a mock character option repository
     # The repository returns dicts directly from search method
     mock_character_option_repository = MagicMock()
@@ -139,16 +141,23 @@ async def test_character_option_lookup_workflow():
         return_value=[{"name": "Wizard", "hit_dice": "1d6"}]
     )
 
-    result = await lookup_character_option(
-        type="class",
-        name="Wizard",
-        repository=mock_character_option_repository,
-    )
+    # Use repository context pattern
+    _repository_context["repository"] = mock_character_option_repository
 
-    assert isinstance(result, list)
-    assert len(result) == 1
-    option = result[0]
-    assert option["name"] == "Wizard"
+    try:
+        result = await lookup_character_option(
+            type="class",
+            name="Wizard",
+        )
+
+        assert isinstance(result, list)
+        assert len(result) == 1
+        option = result[0]
+        assert option["name"] == "Wizard"
+    finally:
+        # Clean up context
+        if "repository" in _repository_context:
+            del _repository_context["repository"]
 
 
 @pytest.mark.asyncio
