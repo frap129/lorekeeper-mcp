@@ -118,7 +118,8 @@ async def lookup_creature(
     params: dict[str, Any] = {}
     if cr is not None:
         # Map 'cr' parameter to 'challenge_rating' for cache compatibility
-        params["challenge_rating"] = cr
+        # Convert to float to match database schema (REAL type)
+        params["challenge_rating"] = float(cr)
     if cr_min is not None:
         params["cr_min"] = cr_min
     if cr_max is not None:
