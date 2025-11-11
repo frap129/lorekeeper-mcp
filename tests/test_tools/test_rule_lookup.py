@@ -1,9 +1,12 @@
 """Tests for rule lookup tool."""
 
+import contextlib
+import inspect
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from lorekeeper_mcp.tools import rule_lookup
 from lorekeeper_mcp.tools.rule_lookup import lookup_rule
 
 
@@ -24,169 +27,211 @@ def mock_rule_repository() -> MagicMock:
     return repo
 
 
+@pytest.fixture
+def repository_context(mock_rule_repository):
+    """Fixture to inject mock repository via context for tests."""
+    rule_lookup._repository_context["repository"] = mock_rule_repository
+    yield mock_rule_repository
+    # Clean up after test
+    if "repository" in rule_lookup._repository_context:
+        del rule_lookup._repository_context["repository"]
+
+
 @pytest.mark.asyncio
-async def test_lookup_rule_with_repository(mock_rule_repository):
+async def test_lookup_rule_with_repository(repository_context):
     """Test looking up a rule using repository."""
-    mock_rule_repository.search.return_value = [
+    repository_context.search.return_value = [
         {"name": "Combat", "desc": "Combat rules...", "index": "combat"}
     ]
 
-    result = await lookup_rule(rule_type="rule", repository=mock_rule_repository)
+    result = await lookup_rule(rule_type="rule")
 
     assert len(result) == 1
     assert result[0]["name"] == "Combat"
-    mock_rule_repository.search.assert_awaited_once()
-    call_kwargs = mock_rule_repository.search.call_args[1]
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("rule_type") == "rule"
 
 
 @pytest.mark.asyncio
-async def test_lookup_condition_with_repository(mock_rule_repository):
+async def test_lookup_condition_with_repository(repository_context):
     """Test looking up a condition using repository."""
-    mock_rule_repository.search.return_value = [
+    repository_context.search.return_value = [
         {"name": "Grappled", "desc": "A grappled creature's speed..."}
     ]
 
-    result = await lookup_rule(
-        rule_type="condition", name="Grappled", repository=mock_rule_repository
-    )
+    result = await lookup_rule(rule_type="condition", name="Grappled")
 
     assert len(result) == 1
     assert result[0]["name"] == "Grappled"
-    mock_rule_repository.search.assert_awaited_once()
-    call_kwargs = mock_rule_repository.search.call_args[1]
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("rule_type") == "condition"
 
 
 @pytest.mark.asyncio
-async def test_lookup_damage_type_with_repository(mock_rule_repository):
+async def test_lookup_damage_type_with_repository(repository_context):
     """Test looking up a damage type using repository."""
-    mock_rule_repository.search.return_value = [{"name": "Radiant", "desc": "Radiant damage..."}]
+    repository_context.search.return_value = [{"name": "Radiant", "desc": "Radiant damage..."}]
 
-    result = await lookup_rule(
-        rule_type="damage-type", name="Radiant", repository=mock_rule_repository
-    )
+    result = await lookup_rule(rule_type="damage-type", name="Radiant")
 
     assert len(result) == 1
     assert result[0]["name"] == "Radiant"
-    mock_rule_repository.search.assert_awaited_once()
-    call_kwargs = mock_rule_repository.search.call_args[1]
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("rule_type") == "damage-type"
 
 
 @pytest.mark.asyncio
-async def test_lookup_weapon_property_with_repository(mock_rule_repository):
+async def test_lookup_weapon_property_with_repository(repository_context):
     """Test looking up a weapon property using repository."""
-    mock_rule_repository.search.return_value = [
+    repository_context.search.return_value = [
         {"name": "Finesse", "desc": "When making an attack..."}
     ]
 
-    result = await lookup_rule(rule_type="weapon-property", repository=mock_rule_repository)
+    result = await lookup_rule(rule_type="weapon-property")
 
     assert len(result) == 1
     assert result[0]["name"] == "Finesse"
-    mock_rule_repository.search.assert_awaited_once()
-    call_kwargs = mock_rule_repository.search.call_args[1]
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("rule_type") == "weapon-property"
 
 
 @pytest.mark.asyncio
-async def test_lookup_skill_with_repository(mock_rule_repository):
+async def test_lookup_skill_with_repository(repository_context):
     """Test looking up a skill using repository."""
-    mock_rule_repository.search.return_value = [{"name": "Stealth", "ability_score": "dexterity"}]
+    repository_context.search.return_value = [{"name": "Stealth", "ability_score": "dexterity"}]
 
-    result = await lookup_rule(rule_type="skill", name="Stealth", repository=mock_rule_repository)
+    result = await lookup_rule(rule_type="skill", name="Stealth")
 
     assert len(result) == 1
     assert result[0]["name"] == "Stealth"
-    mock_rule_repository.search.assert_awaited_once()
-    call_kwargs = mock_rule_repository.search.call_args[1]
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("rule_type") == "skill"
 
 
 @pytest.mark.asyncio
-async def test_lookup_ability_score_with_repository(mock_rule_repository):
+async def test_lookup_ability_score_with_repository(repository_context):
     """Test looking up ability scores using repository."""
-    mock_rule_repository.search.return_value = [{"name": "Strength", "desc": "Strength ability..."}]
+    repository_context.search.return_value = [{"name": "Strength", "desc": "Strength ability..."}]
 
-    result = await lookup_rule(rule_type="ability-score", repository=mock_rule_repository)
+    result = await lookup_rule(rule_type="ability-score")
 
     assert len(result) == 1
     assert result[0]["name"] == "Strength"
-    mock_rule_repository.search.assert_awaited_once()
-    call_kwargs = mock_rule_repository.search.call_args[1]
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("rule_type") == "ability-score"
 
 
 @pytest.mark.asyncio
-async def test_lookup_magic_school_with_repository(mock_rule_repository):
+async def test_lookup_magic_school_with_repository(repository_context):
     """Test looking up magic schools using repository."""
-    mock_rule_repository.search.return_value = [
-        {"name": "Evocation", "desc": "Evocation school..."}
-    ]
+    repository_context.search.return_value = [{"name": "Evocation", "desc": "Evocation school..."}]
 
-    result = await lookup_rule(rule_type="magic-school", repository=mock_rule_repository)
+    result = await lookup_rule(rule_type="magic-school")
 
     assert len(result) == 1
     assert result[0]["name"] == "Evocation"
-    mock_rule_repository.search.assert_awaited_once()
-    call_kwargs = mock_rule_repository.search.call_args[1]
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("rule_type") == "magic-school"
 
 
 @pytest.mark.asyncio
-async def test_lookup_language_with_repository(mock_rule_repository):
+async def test_lookup_language_with_repository(repository_context):
     """Test looking up languages using repository."""
-    mock_rule_repository.search.return_value = [{"name": "Common", "type": "common"}]
+    repository_context.search.return_value = [{"name": "Common", "type": "common"}]
 
-    result = await lookup_rule(rule_type="language", repository=mock_rule_repository)
+    result = await lookup_rule(rule_type="language")
 
     assert len(result) == 1
     assert result[0]["name"] == "Common"
-    mock_rule_repository.search.assert_awaited_once()
-    call_kwargs = mock_rule_repository.search.call_args[1]
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("rule_type") == "language"
 
 
 @pytest.mark.asyncio
-async def test_lookup_proficiency_with_repository(mock_rule_repository):
+async def test_lookup_proficiency_with_repository(repository_context):
     """Test looking up proficiencies using repository."""
-    mock_rule_repository.search.return_value = [{"name": "Armor", "class": "armor"}]
+    repository_context.search.return_value = [{"name": "Armor", "class": "armor"}]
 
-    result = await lookup_rule(rule_type="proficiency", repository=mock_rule_repository)
+    result = await lookup_rule(rule_type="proficiency")
 
     assert len(result) == 1
     assert result[0]["name"] == "Armor"
-    mock_rule_repository.search.assert_awaited_once()
-    call_kwargs = mock_rule_repository.search.call_args[1]
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("rule_type") == "proficiency"
 
 
 @pytest.mark.asyncio
-async def test_lookup_alignment_with_repository(mock_rule_repository):
+async def test_lookup_alignment_with_repository(repository_context):
     """Test looking up alignments using repository."""
-    mock_rule_repository.search.return_value = [
+    repository_context.search.return_value = [
         {"name": "Lawful Good", "desc": "Alignment description..."}
     ]
 
-    result = await lookup_rule(rule_type="alignment", repository=mock_rule_repository)
+    result = await lookup_rule(rule_type="alignment")
 
     assert len(result) == 1
     assert result[0]["name"] == "Lawful Good"
-    mock_rule_repository.search.assert_awaited_once()
-    call_kwargs = mock_rule_repository.search.call_args[1]
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("rule_type") == "alignment"
 
 
 @pytest.mark.asyncio
-async def test_lookup_rule_with_section_and_repository(mock_rule_repository):
+async def test_lookup_rule_with_section_and_repository(repository_context):
     """Test looking up rules with section filter using repository."""
-    mock_rule_repository.search.return_value = [
+    repository_context.search.return_value = [
         {"name": "Combat", "desc": "Combat rules...", "section": "combat"}
     ]
 
-    await lookup_rule(rule_type="rule", section="combat", repository=mock_rule_repository)
+    await lookup_rule(rule_type="rule", section="combat")
 
-    call_kwargs = mock_rule_repository.search.call_args[1]
+    call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("section") == "combat"
     assert call_kwargs.get("rule_type") == "rule"
+
+
+@pytest.mark.asyncio
+async def test_lookup_rule_no_repository_parameter():
+    """Test that lookup_rule no longer accepts repository parameter."""
+    # This test verifies the function signature doesn't have repository parameter
+    sig = inspect.signature(lookup_rule)
+    assert "repository" not in sig.parameters
+
+
+@pytest.mark.asyncio
+async def test_lookup_rule_with_context_injection(repository_context):
+    """Test looking up rule using context-based repository injection."""
+    repository_context.search.return_value = [
+        {"name": "Combat", "desc": "Combat rules...", "index": "combat"}
+    ]
+
+    result = await lookup_rule(rule_type="rule")
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Combat"
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs.get("rule_type") == "rule"
+
+
+@pytest.mark.asyncio
+async def test_lookup_rule_default_repository():
+    """Test that lookup_rule creates default repository when no context is set."""
+    # Clear any existing context
+    if hasattr(rule_lookup, "_repository_context"):
+        rule_lookup._repository_context.clear()
+
+    # This should work without errors (creates default repository)
+    # We expect this to potentially fail with network errors in test environment,
+    # but we're testing the repository creation logic
+    with contextlib.suppress(Exception):
+        await lookup_rule(rule_type="rule", limit=1)

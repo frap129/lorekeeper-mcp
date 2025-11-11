@@ -7,12 +7,15 @@ import pytest
 
 from lorekeeper_mcp.api_clients.models import Monster, Spell
 from lorekeeper_mcp.tools import (
+    character_option_lookup,
     creature_lookup,
+    equipment_lookup,
     lookup_character_option,
     lookup_creature,
     lookup_equipment,
     lookup_rule,
     lookup_spell,
+    rule_lookup,
     spell_lookup,
 )
 
@@ -132,7 +135,6 @@ async def test_all_tools_callable():
 @pytest.mark.asyncio
 async def test_character_option_lookup_workflow():
     """Test character option lookup workflow."""
-    from lorekeeper_mcp.tools.character_option_lookup import _repository_context
 
     # Create a mock character option repository
     # The repository returns dicts directly from search method
@@ -142,7 +144,7 @@ async def test_character_option_lookup_workflow():
     )
 
     # Use repository context pattern
-    _repository_context["repository"] = mock_character_option_repository
+    character_option_lookup._repository_context["repository"] = mock_character_option_repository
 
     try:
         result = await lookup_character_option(
@@ -156,8 +158,8 @@ async def test_character_option_lookup_workflow():
         assert option["name"] == "Wizard"
     finally:
         # Clean up context
-        if "repository" in _repository_context:
-            del _repository_context["repository"]
+        if "repository" in character_option_lookup._repository_context:
+            del character_option_lookup._repository_context["repository"]
 
 
 @pytest.mark.asyncio
@@ -175,11 +177,17 @@ async def test_equipment_lookup_workflow():
     mock_equipment_repository = MagicMock()
     mock_equipment_repository.search = AsyncMock(return_value=[mock_weapon])
 
+    # Set up context injection
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
     result = await lookup_equipment(
         type="weapon",
         name="Longsword",
-        repository=mock_equipment_repository,
     )
+
+    # Clean up context
+    if "repository" in equipment_lookup._repository_context:
+        del equipment_lookup._repository_context["repository"]
 
     assert isinstance(result, list)
     assert len(result) == 1
@@ -197,7 +205,14 @@ async def test_rule_lookup_workflow():
         return_value=[{"name": "Grappled", "desc": "A grappled creature..."}]
     )
 
-    result = await lookup_rule(rule_type="condition", name="Grappled", repository=mock_repository)
+    # Set up context injection
+    rule_lookup._repository_context["repository"] = mock_repository
+
+    result = await lookup_rule(rule_type="condition", name="Grappled")
+
+    # Clean up context
+    if "repository" in rule_lookup._repository_context:
+        del rule_lookup._repository_context["repository"]
 
     assert isinstance(result, list)
     assert len(result) == 1

@@ -31,6 +31,25 @@ Examples:
 from typing import Any, Literal, cast
 
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
+from lorekeeper_mcp.repositories.rule import RuleRepository
+
+# Module-level context for test repository injection
+_repository_context: dict[str, Any] = {}
+
+
+def _get_repository() -> RuleRepository:
+    """Get rule repository, respecting test context.
+
+    Returns the repository from _repository_context if set, otherwise creates
+    a default RuleRepository using RepositoryFactory.
+
+    Returns:
+        RuleRepository instance for rule lookups.
+    """
+    if "repository" in _repository_context:
+        return cast(RuleRepository, _repository_context["repository"])
+    return RepositoryFactory.create_rule_repository()
+
 
 RuleType = Literal[
     "rule",
@@ -51,7 +70,6 @@ async def lookup_rule(
     name: str | None = None,
     section: str | None = None,
     limit: int = 20,
-    repository: Any = None,
 ) -> list[dict[str, Any]]:
     """
     Look up D&D 5e game rules, conditions, and reference information.
@@ -97,10 +115,6 @@ async def lookup_rule(
             Ignored for other rule types.
         limit: Maximum number of results to return. Default 20 for performance.
             Examples: 1, 10, 50
-        repository: Optional repository instance for dependency injection.
-            If not provided, RepositoryFactory creates a default
-            instance with automatic database cache management. Useful for testing with
-            mocked repositories or custom cache configurations.
 
     Returns:
         List of rule/reference dictionaries. Structure varies by rule_type:
@@ -171,9 +185,8 @@ async def lookup_rule(
             f"Invalid type '{rule_type}'. Must be one of: {', '.join(sorted(valid_types))}"
         )
 
-    # Use provided repository or create default
-    if repository is None:
-        repository = RepositoryFactory.create_rule_repository()
+    # Get repository from context or create default
+    repository = _get_repository()
 
     # Build query parameters for repository search
     params: dict[str, Any] = {"rule_type": rule_type}
@@ -185,4 +198,4 @@ async def lookup_rule(
         params["section"] = section
 
     # Fetch rules from repository with routing
-    return cast(list[dict[str, Any]], await repository.search(**params))
+    return await repository.search(**params)
