@@ -181,7 +181,7 @@ async def test_creature_lookup_basic(test_db):
                 "wisdom": 15,
                 "charisma": 23,
                 "challenge_rating": "24",
-                "speed": {"walk": "40 ft.", "climb": "40 ft.", "fly": "80 ft."},
+                "speed": {"walk": 40, "climb": 40, "fly": 80},
                 "document_url": "https://example.com/dragon",
             }
         ]
@@ -222,7 +222,7 @@ async def test_creature_lookup_by_cr(test_db):
                 "wisdom": 14,
                 "charisma": 16,
                 "challenge_rating": "21",
-                "speed": {"walk": "0 ft.", "fly": "0 ft. (hover)"},
+                "speed": {"walk": 0, "fly": 0},
                 "document_url": "https://example.com/lich",
             }
         ]
