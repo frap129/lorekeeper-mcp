@@ -164,7 +164,7 @@ async def test_spell_repository_search_cache_miss_with_filters(
 
     assert len(results) == 1
     assert results[0].level == 3
-    mock_client.get_spells.assert_called_once_with(level=3)
+    mock_client.get_spells.assert_called_once_with(limit=None, level=3)
     mock_cache.store_entities.assert_called_once()
 
 
@@ -180,7 +180,7 @@ async def test_spell_repository_search_multiple_filters(
     await repo.search(level=3, school="Evocation")
 
     # Client should be called with all filters
-    mock_client.get_spells.assert_called_once_with(level=3, school="Evocation")
+    mock_client.get_spells.assert_called_once_with(limit=None, level=3, school="Evocation")
     mock_cache.get_entities.assert_called_once_with("spells", level=3, school="Evocation")
 
 
@@ -210,7 +210,7 @@ async def test_spell_repository_search_empty_result(
     results = await repo.search(level=9)
 
     assert results == []
-    mock_client.get_spells.assert_called_once_with(level=9)
+    mock_client.get_spells.assert_called_once_with(limit=None, level=9)
 
 
 @pytest.mark.asyncio

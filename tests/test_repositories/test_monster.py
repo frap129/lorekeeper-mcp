@@ -167,7 +167,7 @@ async def test_monster_repository_search_cache_miss_with_filters(
 
     assert len(results) == 1
     assert results[0].type == "humanoid"
-    mock_client.get_monsters.assert_called_once_with(type="humanoid")
+    mock_client.get_monsters.assert_called_once_with(limit=None, type="humanoid")
     mock_cache.store_entities.assert_called_once()
 
 
@@ -188,7 +188,7 @@ async def test_monster_repository_search_by_challenge_rating(
 
     assert len(results) == 1
     assert results[0].challenge_rating == "16"
-    mock_client.get_monsters.assert_called_once_with(challenge_rating="16")
+    mock_client.get_monsters.assert_called_once_with(limit=None, challenge_rating="16")
 
 
 @pytest.mark.asyncio
@@ -203,7 +203,7 @@ async def test_monster_repository_search_multiple_filters(
     await repo.search(type="humanoid", size="Medium")
 
     # Client should be called with all filters
-    mock_client.get_monsters.assert_called_once_with(type="humanoid", size="Medium")
+    mock_client.get_monsters.assert_called_once_with(limit=None, type="humanoid", size="Medium")
     mock_cache.get_entities.assert_called_once_with("monsters", type="humanoid", size="Medium")
 
 
@@ -233,7 +233,7 @@ async def test_monster_repository_search_empty_result(
     results = await repo.search(type="nonexistent")
 
     assert results == []
-    mock_client.get_monsters.assert_called_once_with(type="nonexistent")
+    mock_client.get_monsters.assert_called_once_with(limit=None, type="nonexistent")
 
 
 @pytest.mark.asyncio

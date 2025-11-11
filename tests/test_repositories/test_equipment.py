@@ -221,7 +221,7 @@ async def test_equipment_repository_search_weapons_cache_miss(
     results = await repo.search(item_type="weapon", is_simple=True)
 
     assert len(results) == 1
-    mock_client.get_weapons.assert_called_once_with(is_simple=True)
+    mock_client.get_weapons.assert_called_once_with(limit=None, is_simple=True)
     mock_cache.store_entities.assert_called_once()
 
 
@@ -239,7 +239,7 @@ async def test_equipment_repository_search_armor_cache_miss(
     results = await repo.search(item_type="armor", category="Light")
 
     assert len(results) == 1
-    mock_client.get_armor.assert_called_once_with(category="Light")
+    mock_client.get_armor.assert_called_once_with(limit=None, category="Light")
     mock_cache.store_entities.assert_called_once()
 
 
@@ -255,7 +255,7 @@ async def test_equipment_repository_search_empty_result(
     results = await repo.search(item_type="weapon", is_improvised=True)
 
     assert results == []
-    mock_client.get_weapons.assert_called_once_with(is_improvised=True)
+    mock_client.get_weapons.assert_called_once_with(limit=None, is_improvised=True)
 
 
 @pytest.mark.asyncio
