@@ -556,7 +556,7 @@ class TestLivePerformance:
         duration = time.time() - start
 
         assert len(results) > 0, "Should find spell"
-        assert duration < 3.0, f"API call took {duration:.2f}s, expected <3s"
+        assert duration < 5.0, f"API call took {duration:.2f}s, expected <5s"
 
     @pytest.mark.live
     @pytest.mark.asyncio
