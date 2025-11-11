@@ -132,14 +132,13 @@ async def lookup_spell(
         repository = RepositoryFactory.create_spell_repository()
 
     # Build query parameters for repository search
-    # Note: name/search filtering happens client-side since the API doesn't filter by search
+    # Note: name/search and class_key filtering happen client-side
     params: dict[str, Any] = {}
     if level is not None:
         params["level"] = level
     if school is not None:
         params["school"] = school
-    if class_key is not None:
-        params["class_key"] = class_key
+    # class_key filtering happens client-side below
     if concentration is not None:
         params["concentration"] = concentration
     if ritual is not None:
@@ -157,6 +156,14 @@ async def lookup_spell(
     if name:
         name_lower = name.lower()
         spells = [spell for spell in spells if name_lower in spell.name.lower()]
+
+    # Client-side filtering for class_key (not supported by cache/API)
+    if class_key:
+        spells = [
+            spell
+            for spell in spells
+            if hasattr(spell, "classes") and class_key.lower() in [c.lower() for c in spell.classes]
+        ]
 
     # Limit results to requested count
     spells = spells[:limit]

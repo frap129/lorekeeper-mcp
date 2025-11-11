@@ -209,3 +209,55 @@ async def test_lookup_spell_default_repository():
     # For unit test, we verify the signature accepts repository param
     sig = inspect.signature(lookup_spell)
     assert "repository" in sig.parameters
+
+
+@pytest.mark.asyncio
+async def test_lookup_spell_by_class_key(mock_spell_repository):
+    """Test filtering spells by character class."""
+    wizard_spell = Spell(
+        name="Fireball",
+        slug="fireball",
+        level=3,
+        school="evocation",
+        casting_time="1 action",
+        range="150 feet",
+        components="V,S,M",
+        material="a tiny ball of bat guano and sulfur",
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A bright streak flashes...",
+        document_url="https://example.com/fireball",
+        higher_level="When you cast this spell...",
+        damage_type=None,
+        classes=["wizard", "sorcerer"],
+    )
+
+    cleric_spell = Spell(
+        name="Cure Wounds",
+        slug="cure-wounds",
+        level=1,
+        school="evocation",
+        casting_time="1 action",
+        range="Touch",
+        components="V,S",
+        material=None,
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A creature you touch...",
+        document_url="https://example.com/cure-wounds",
+        higher_level=None,
+        damage_type=None,
+        classes=["cleric", "bard"],
+    )
+
+    # Repository returns all spells, tool filters by class
+    mock_spell_repository.search.return_value = [wizard_spell, cleric_spell]
+
+    results = await lookup_spell(class_key="wizard", limit=10, repository=mock_spell_repository)
+
+    # Should only return wizard spells
+    assert len(results) == 1
+    assert results[0]["name"] == "Fireball"
+    assert "wizard" in results[0]["classes"]

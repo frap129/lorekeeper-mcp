@@ -21,6 +21,9 @@ class Spell(BaseModel):
     material: str | None = Field(None, description="Material components")
     higher_level: str | None = Field(None, description="Higher level casting effects")
     damage_type: list[str] | None = Field(None, description="Damage types dealt")
+    classes: list[str] = Field(
+        default_factory=list, description="Classes that can learn this spell"
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -48,6 +51,27 @@ class Spell(BaseModel):
         # Handle material - convert bool to None or string
         if isinstance(data.get("material"), bool) or not data.get("material"):
             data["material"] = None
+
+        # Parse classes - extract index/key from class objects
+        if "classes" in data:
+            classes = data["classes"]
+            if isinstance(classes, list):
+                # If classes are objects with index/name, extract the index
+                extracted_classes: list[str] = []
+                for c in classes:
+                    if isinstance(c, dict):
+                        # Extract index or name from dict, ensure lowercase
+                        class_key = c.get("index") or c.get("name") or str(c)
+                        extracted_classes.append(class_key.lower())
+                    else:
+                        extracted_classes.append(str(c).lower())
+                data["classes"] = extracted_classes
+            elif isinstance(classes, str):
+                data["classes"] = [classes.lower()]
+            else:
+                data["classes"] = []
+        else:
+            data["classes"] = []
 
         # Generate slug from name if not provided
         if not data.get("slug") and data.get("name"):
