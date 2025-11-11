@@ -8,6 +8,7 @@ import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
 from lorekeeper_mcp.api_clients.models.equipment import Armor, MagicItem, Weapon
+from lorekeeper_mcp.tools import equipment_lookup
 from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
 
 
@@ -25,7 +26,7 @@ def sample_longsword() -> Weapon:
     """Sample longsword weapon for tests."""
     return Weapon(
         name="Longsword",
-        slug="longsword",
+        key="longsword",
         desc="A longsword with a straight blade",
         document_url="https://example.com/longsword",
         damage_dice="1d8",
@@ -47,7 +48,7 @@ def sample_dagger() -> Weapon:
     """Sample dagger weapon for tests."""
     return Weapon(
         name="Dagger",
-        slug="dagger",
+        key="dagger",
         desc="A small, sharp-pointed blade",
         document_url="https://example.com/dagger",
         damage_dice="1d4",
@@ -69,7 +70,7 @@ def sample_chain_mail() -> Armor:
     """Sample chain mail armor for tests."""
     return Armor(
         name="Chain Mail",
-        slug="chain-mail",
+        key="chain-mail",
         desc="Chain mail armor",
         document_url="https://example.com/chain-mail",
         category="Heavy",
@@ -82,11 +83,10 @@ def sample_leather() -> Armor:
     """Sample leather armor for tests."""
     return Armor(
         name="Leather",
-        slug="leather",
+        key="leather",
         desc="Light leather armor",
         document_url="https://example.com/leather",
         category="Light",
-        base_ac=11,
         dex_bonus=True,
     )
 
@@ -96,13 +96,12 @@ def sample_bag_of_holding() -> MagicItem:
     """Sample magic item for tests."""
     return MagicItem(
         name="Bag of Holding",
-        slug="bag-of-holding",
+        key="bag-of-holding",
         desc="This bag holds much more than it appears to hold",
         document_url="https://example.com/bag-of-holding",
         rarity="uncommon",
         requires_attunement=False,
         wondrous=True,
-        weight=15.0,
     )
 
 
@@ -111,13 +110,12 @@ def sample_wand_of_fireballs() -> MagicItem:
     """Sample wand magic item for tests."""
     return MagicItem(
         name="Wand of Fireballs",
-        slug="wand-of-fireballs",
+        key="wand-of-fireballs",
         desc="This wand has 7 charges and regains 1d6+1 charges daily at dawn",
         document_url="https://example.com/wand-of-fireballs",
         rarity="rare",
         requires_attunement=True,
         type="wand",
-        damage="8d6 fire",
     )
 
 
@@ -126,14 +124,18 @@ async def test_lookup_weapon(mock_equipment_repository, sample_longsword):
     """Test looking up a weapon."""
     mock_equipment_repository.search.return_value = [sample_longsword]
 
-    result = await lookup_equipment(
-        type="weapon", name="Longsword", repository=mock_equipment_repository
-    )
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
+    result = await lookup_equipment(type="weapon", name="Longsword")
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
     assert result[0]["damage_dice"] == "1d8"
     mock_equipment_repository.search.assert_awaited_once()
+
+    # Clean up
+    equipment_lookup._repository_context.clear()
 
 
 @pytest.mark.asyncio
@@ -141,14 +143,18 @@ async def test_lookup_armor(mock_equipment_repository, sample_chain_mail):
     """Test looking up armor."""
     mock_equipment_repository.search.return_value = [sample_chain_mail]
 
-    result = await lookup_equipment(
-        type="armor", name="Chain Mail", repository=mock_equipment_repository
-    )
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
+    result = await lookup_equipment(type="armor", name="Chain Mail")
 
     assert len(result) == 1
     assert result[0]["name"] == "Chain Mail"
     assert result[0]["category"] == "Heavy"
     mock_equipment_repository.search.assert_awaited_once()
+
+    # Clean up
+    equipment_lookup._repository_context.clear()
 
 
 @pytest.mark.asyncio
@@ -156,9 +162,10 @@ async def test_lookup_simple_weapons(mock_equipment_repository, sample_dagger):
     """Test filtering for simple weapons."""
     mock_equipment_repository.search.return_value = [sample_dagger]
 
-    result = await lookup_equipment(
-        type="weapon", is_simple=True, repository=mock_equipment_repository
-    )
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
+    result = await lookup_equipment(type="weapon", is_simple=True)
 
     assert len(result) == 1
     assert result[0]["is_simple"] is True
@@ -167,13 +174,19 @@ async def test_lookup_simple_weapons(mock_equipment_repository, sample_dagger):
     assert call_kwargs["item_type"] == "weapon"
     assert call_kwargs["is_simple"] is True
 
+    # Clean up
+    equipment_lookup._repository_context.clear()
+
 
 @pytest.mark.asyncio
 async def test_lookup_armor_by_category(mock_equipment_repository, sample_leather):
     """Test looking up armor by category."""
     mock_equipment_repository.search.return_value = [sample_leather]
 
-    result = await lookup_equipment(type="armor", repository=mock_equipment_repository)
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
+    result = await lookup_equipment(type="armor")
 
     assert len(result) == 1
     assert result[0]["category"] == "Light"
@@ -181,14 +194,23 @@ async def test_lookup_armor_by_category(mock_equipment_repository, sample_leathe
     call_kwargs = mock_equipment_repository.search.call_args[1]
     assert call_kwargs["item_type"] == "armor"
 
+    # Clean up
+    equipment_lookup._repository_context.clear()
+
 
 @pytest.mark.asyncio
 async def test_lookup_equipment_api_error(mock_equipment_repository):
     """Test equipment lookup handles API errors gracefully."""
     mock_equipment_repository.search.side_effect = ApiError("API unavailable")
 
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
     with pytest.raises(ApiError, match="API unavailable"):
-        await lookup_equipment(type="weapon", repository=mock_equipment_repository)
+        await lookup_equipment(type="weapon")
+
+    # Clean up
+    equipment_lookup._repository_context.clear()
 
 
 @pytest.mark.asyncio
@@ -196,8 +218,14 @@ async def test_lookup_equipment_network_error(mock_equipment_repository):
     """Test equipment lookup handles network errors."""
     mock_equipment_repository.search.side_effect = NetworkError("Connection timeout")
 
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
     with pytest.raises(NetworkError, match="Connection timeout"):
-        await lookup_equipment(type="armor", repository=mock_equipment_repository)
+        await lookup_equipment(type="armor")
+
+    # Clean up
+    equipment_lookup._repository_context.clear()
 
 
 @pytest.mark.asyncio
@@ -208,10 +236,11 @@ async def test_equipment_search_by_name_client_side(
     # Repository returns both weapons
     mock_equipment_repository.search.return_value = [sample_longsword, sample_dagger]
 
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
     # Call with name filter - should filter client-side
-    result = await lookup_equipment(
-        type="weapon", name="longsword", repository=mock_equipment_repository
-    )
+    result = await lookup_equipment(type="weapon", name="longsword")
 
     # Should only return Longsword, not Dagger
     assert len(result) == 1
@@ -220,6 +249,9 @@ async def test_equipment_search_by_name_client_side(
     # Verify repository.search was called
     mock_equipment_repository.search.assert_awaited_once()
 
+    # Clean up
+    equipment_lookup._repository_context.clear()
+
 
 @pytest.mark.asyncio
 async def test_lookup_equipment_limit_applied(mock_equipment_repository):
@@ -227,7 +259,7 @@ async def test_lookup_equipment_limit_applied(mock_equipment_repository):
     weapons = [
         Weapon(
             name=f"Weapon {i}",
-            slug=f"weapon-{i}",
+            key=f"weapon-{i}",
             desc=f"Weapon {i}",
             document_url="https://example.com",
             damage_dice="1d8",
@@ -247,20 +279,23 @@ async def test_lookup_equipment_limit_applied(mock_equipment_repository):
 
     mock_equipment_repository.search.return_value = weapons
 
-    result = await lookup_equipment(type="weapon", limit=5, repository=mock_equipment_repository)
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
+    result = await lookup_equipment(type="weapon", limit=5)
 
     # Should only return 5 weapons even though repository returned 29
     assert len(result) == 5
 
+    # Clean up
+    equipment_lookup._repository_context.clear()
+
 
 @pytest.mark.asyncio
 async def test_lookup_equipment_default_repository():
-    """Test that lookup_equipment creates default repository when not provided."""
-    # This test verifies the function accepts repository parameter
-    # Real integration testing happens in integration tests
-    # For unit test, we verify the signature accepts repository param
+    """Test that lookup_equipment does NOT have repository parameter in signature."""
     sig = inspect.signature(lookup_equipment)
-    assert "repository" in sig.parameters
+    assert "repository" not in sig.parameters
 
 
 @pytest.mark.asyncio
@@ -276,14 +311,18 @@ async def test_lookup_magic_items(mock_equipment_repository):
 
     mock_equipment_repository.search.return_value = [sample_bag]
 
-    result = await lookup_equipment(
-        type="magic-item", name="Bag", repository=mock_equipment_repository
-    )
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
+    result = await lookup_equipment(type="magic-item", name="Bag")
 
     assert len(result) == 1
     assert result[0]["name"] == "Bag of Holding"
     assert result[0]["rarity"] == "uncommon"
     mock_equipment_repository.search.assert_awaited_once()
+
+    # Clean up
+    equipment_lookup._repository_context.clear()
 
 
 @pytest.mark.asyncio
@@ -299,9 +338,10 @@ async def test_lookup_magic_items_by_rarity(mock_equipment_repository):
 
     mock_equipment_repository.search.return_value = [sample_rare]
 
-    result = await lookup_equipment(
-        type="magic-item", rarity="rare", repository=mock_equipment_repository
-    )
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
+    result = await lookup_equipment(type="magic-item", rarity="rare")
 
     assert len(result) == 1
     assert result[0]["rarity"] == "rare"
@@ -309,6 +349,9 @@ async def test_lookup_magic_items_by_rarity(mock_equipment_repository):
     call_kwargs = mock_equipment_repository.search.call_args[1]
     assert call_kwargs["item_type"] == "magic-item"
     assert call_kwargs["rarity"] == "rare"
+
+    # Clean up
+    equipment_lookup._repository_context.clear()
 
 
 @pytest.mark.asyncio
@@ -324,10 +367,12 @@ async def test_lookup_magic_items_by_attunement(mock_equipment_repository):
 
     mock_equipment_repository.search.return_value = [sample_attune]
 
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
     result = await lookup_equipment(
         type="magic-item",
         requires_attunement="yes",
-        repository=mock_equipment_repository,
     )
 
     assert len(result) == 1
@@ -336,6 +381,9 @@ async def test_lookup_magic_items_by_attunement(mock_equipment_repository):
     call_kwargs = mock_equipment_repository.search.call_args[1]
     assert call_kwargs["item_type"] == "magic-item"
     assert call_kwargs["requires_attunement"] is True
+
+    # Clean up
+    equipment_lookup._repository_context.clear()
 
 
 @pytest.mark.asyncio
@@ -365,7 +413,6 @@ async def test_lookup_all_equipment_types(mock_equipment_repository):
         desc="Plate armor",
         document_url="https://example.com/plate",
         category="Heavy",
-        base_ac=18,
     )
 
     sample_magic = MagicItem(
@@ -390,12 +437,18 @@ async def test_lookup_all_equipment_types(mock_equipment_repository):
 
     mock_equipment_repository.search.side_effect = search_side_effect
 
-    result = await lookup_equipment(type="all", limit=20, repository=mock_equipment_repository)
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
+    result = await lookup_equipment(type="all", limit=20)
 
     # Should get one of each type
     assert len(result) == 3
     names = {item["name"] for item in result}
     assert names == {"Longsword", "Plate", "Cloak of Invisibility"}
+
+    # Clean up
+    equipment_lookup._repository_context.clear()
 
 
 @pytest.mark.asyncio
@@ -403,8 +456,12 @@ async def test_lookup_magic_items_empty_results(mock_equipment_repository):
     """Test magic item lookup when no results are found."""
     mock_equipment_repository.search.return_value = []
 
-    result = await lookup_equipment(
-        type="magic-item", name="NonExistent", repository=mock_equipment_repository
-    )
+    # Inject via context
+    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+
+    result = await lookup_equipment(type="magic-item", name="NonExistent")
 
     assert len(result) == 0
+
+    # Clean up
+    equipment_lookup._repository_context.clear()

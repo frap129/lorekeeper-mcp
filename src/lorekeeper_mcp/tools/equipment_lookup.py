@@ -7,7 +7,7 @@ abstracts away cache management and allows filtering across multiple equipment t
 Architecture:
     - Uses EquipmentRepository for cache-aside pattern with item-type routing
     - Repository manages SQLite cache automatically
-    - Supports dependency injection for testing
+    - Supports test context-based repository injection
     - Handles weapon, armor, and magic item filtering
 
 Examples:
@@ -15,23 +15,41 @@ Examples:
         weapons = await lookup_equipment(type="weapon", damage_dice="1d8")
         items = await lookup_equipment(type="magic-item", rarity="rare")
 
-    With custom repository (dependency injection):
+    With context-based injection (testing):
+        from lorekeeper_mcp.tools.equipment_lookup import _repository_context
         from lorekeeper_mcp.repositories.equipment import EquipmentRepository
-        from lorekeeper_mcp.cache.sqlite import SQLiteCache
 
-        cache = SQLiteCache(db_path="/path/to/cache.db")
-        repository = EquipmentRepository(cache=cache)
-        armor = await lookup_equipment(type="armor", repository=repository)
+        repository = EquipmentRepository(cache=my_cache)
+        _repository_context["repository"] = repository
+        armor = await lookup_equipment(type="armor")
 
     Item type filtering:
         all_items = await lookup_equipment(type="all", name="chain")
         simple_weapons = await lookup_equipment(type="weapon", is_simple=True)"""
 
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
+from lorekeeper_mcp.repositories.equipment import EquipmentRepository
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
 
+# Module-level context for test repository injection
+_repository_context: dict[str, Any] = {}
+
 EquipmentType = Literal["weapon", "armor", "magic-item", "all"]
+
+
+def _get_repository() -> EquipmentRepository:
+    """Get equipment repository, respecting test context.
+
+    Returns the repository from _repository_context if set, otherwise creates
+    a default EquipmentRepository using RepositoryFactory.
+
+    Returns:
+        EquipmentRepository instance for equipment lookups.
+    """
+    if "repository" in _repository_context:
+        return cast(EquipmentRepository, _repository_context["repository"])
+    return RepositoryFactory.create_equipment_repository()
 
 
 async def lookup_equipment(
@@ -42,7 +60,6 @@ async def lookup_equipment(
     is_simple: bool | None = None,
     requires_attunement: str | None = None,
     limit: int = 20,
-    repository: Any = None,
 ) -> list[dict[str, Any]]:
     """
     Search and retrieve D&D 5e weapons, armor, and magic items using the repository pattern.
@@ -76,14 +93,10 @@ async def lookup_equipment(
             quarterstaff, sickle, spear
             Martial weapons: all other melee and ranged weapons
             Example: True for low-complexity options
-        requires_attunement: Magic item attunement filter. Some powerful items require
-            attunement to a character. Examples: "yes", "no", or specific requirements
-        limit: Maximum number of results to return. Default 20. For type="all" with many
-            matches, limit applies to total results. Examples: 5, 20, 100
-        repository: Optional repository instance for dependency injection.
-            If not provided, RepositoryFactory creates a default
-            instance with automatic database cache management. Useful for testing with
-            mocked repositories or custom cache configurations.
+         requires_attunement: Magic item attunement filter. Some powerful items require
+             attunement to a character. Examples: "yes", "no", or specific requirements
+         limit: Maximum number of results to return. Default 20. For type="all" with many
+             matches, limit applies to total results. Examples: 5, 20, 100
 
     Returns:
         List of equipment dictionaries. Structure varies by type:
@@ -120,9 +133,8 @@ async def lookup_equipment(
     Raises:
         ApiError: If the API request fails due to network issues or server errors
     """
-    # Use provided repository or create default
-    if repository is None:
-        repository = RepositoryFactory.create_equipment_repository()
+    # Get repository from context or create default
+    repository = _get_repository()
 
     results: list[dict[str, Any]] = []
 
@@ -144,22 +156,12 @@ async def lookup_equipment(
         # Client-side filtering by name
         if name:
             name_lower = name.lower()
-            weapons = [
-                w
-                for w in weapons
-                if name_lower
-                in (w.name.lower() if hasattr(w, "name") else w.get("name", "").lower())
-            ]
+            weapons = [w for w in weapons if name_lower in w.name.lower()]
 
         # Limit results to requested count
         weapons = weapons[:limit]
-        # Convert to dicts if needed (handle both model objects and dicts)
-        weapon_dicts = []
-        for w in weapons:
-            if isinstance(w, dict):
-                weapon_dicts.append(w)
-            else:
-                weapon_dicts.append(w.model_dump())
+        # Convert to dicts
+        weapon_dicts = [w.model_dump() for w in weapons]
         results.extend(weapon_dicts)
 
     # Query armor
@@ -175,22 +177,12 @@ async def lookup_equipment(
         # Client-side filtering by name
         if name:
             name_lower = name.lower()
-            armors = [
-                a
-                for a in armors
-                if name_lower
-                in (a.name.lower() if hasattr(a, "name") else a.get("name", "").lower())
-            ]
+            armors = [a for a in armors if name_lower in a.name.lower()]
 
         # Limit results to requested count
         armors = armors[:limit]
-        # Convert to dicts if needed (handle both model objects and dicts)
-        armor_dicts = []
-        for a in armors:
-            if isinstance(a, dict):
-                armor_dicts.append(a)
-            else:
-                armor_dicts.append(a.model_dump())
+        # Convert to dicts
+        armor_dicts = [a.model_dump() for a in armors]
         results.extend(armor_dicts)
 
     # Query magic items
@@ -214,22 +206,12 @@ async def lookup_equipment(
         # Client-side filtering by name
         if name:
             name_lower = name.lower()
-            magic_items = [
-                m
-                for m in magic_items
-                if name_lower
-                in (m.name.lower() if hasattr(m, "name") else m.get("name", "").lower())
-            ]
+            magic_items = [m for m in magic_items if name_lower in m.name.lower()]
 
         # Limit results to requested count
         magic_items = magic_items[:limit]
-        # Convert to dicts if needed (handle both model objects and dicts)
-        magic_item_dicts = []
-        for m in magic_items:
-            if isinstance(m, dict):
-                magic_item_dicts.append(m)
-            else:
-                magic_item_dicts.append(m.model_dump())
+        # Convert to dicts
+        magic_item_dicts = [m.model_dump() for m in magic_items]
         results.extend(magic_item_dicts)
 
     # Apply overall limit if querying multiple types
