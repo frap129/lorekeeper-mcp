@@ -67,6 +67,7 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
         weapons: list[Weapon] = await self.client.get_weapons()
 
         # Store in cache
+        # Store in cache
         weapon_dicts = [weapon.model_dump() for weapon in weapons]
         await self.cache.store_entities(weapon_dicts, "weapons")
 
@@ -87,6 +88,7 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
         # Cache miss - fetch from API
         armors: list[Armor] = await self.client.get_armor()
 
+        # Store in cache
         # Store in cache
         armor_dicts = [armor.model_dump() for armor in armors]
         await self.cache.store_entities(armor_dicts, "armor")
@@ -168,6 +170,7 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
         # Cache miss - fetch from API with filters and limit
         weapons = await self.client.get_weapons(limit=limit, **filters)
 
+        # Store in cache if we got results
         # Store in cache if we got results
         if weapons:
             # Convert to dicts for caching

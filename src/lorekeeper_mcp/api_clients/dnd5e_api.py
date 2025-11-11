@@ -3,6 +3,7 @@
 from typing import Any
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
+from lorekeeper_mcp.api_clients.models.equipment import Armor, Weapon
 
 
 class Dnd5eApiClient(BaseHttpClient):
@@ -493,7 +494,108 @@ class Dnd5eApiClient(BaseHttpClient):
                 item["slug"] = item["index"]
         return results
 
-    async def get_weapons(self, **filters: Any) -> list[dict[str, Any]]:
+    def _transform_weapon(self, weapon_dict: dict[str, Any]) -> Weapon:
+        """Transform D&D 5e API weapon data to Weapon model format.
+
+        Args:
+            weapon_dict: Raw weapon data from D&D 5e API
+
+        Returns:
+            Weapon model instance
+        """
+        # Transform the data to match Weapon model expectations
+        transformed = dict(weapon_dict)
+
+        # Add key field from index
+        transformed["key"] = weapon_dict.get("index", weapon_dict.get("slug", ""))
+
+        # Extract damage_dice from nested damage object
+        if "damage" in weapon_dict and isinstance(weapon_dict["damage"], dict):
+            transformed["damage_dice"] = weapon_dict["damage"].get("damage_dice", "")
+
+            # Create damage_type object
+            damage_type_index = weapon_dict["damage"].get("damage_type", {}).get("index", "")
+            transformed["damage_type"] = {
+                "name": damage_type_index.title(),
+                "key": damage_type_index,
+                "url": f"https://www.dnd5eapi.co/api/damage-types/{damage_type_index}",
+            }
+
+        # Transform properties
+        if "properties" in weapon_dict and isinstance(weapon_dict["properties"], list):
+            transformed["properties"] = []
+            for prop in weapon_dict["properties"]:
+                if isinstance(prop, dict) and "index" in prop:
+                    transformed["properties"].append(
+                        {
+                            "property": {
+                                "name": prop["index"].replace("-", " ").title(),
+                                "type": None,
+                                "url": f"https://www.dnd5eapi.co/api/weapon-properties/{prop["index"]}",
+                            }
+                        }
+                    )
+
+        # Extract range values
+        if "range" in weapon_dict and isinstance(weapon_dict["range"], dict):
+            transformed["range"] = weapon_dict["range"].get("normal", 0)
+            transformed["long_range"] = weapon_dict["range"].get("long", 0) or weapon_dict[
+                "range"
+            ].get("normal", 0)
+            transformed["distance_unit"] = "feet"
+        else:
+            transformed["range"] = 0
+            transformed["long_range"] = 0
+            transformed["distance_unit"] = "feet"
+
+        # Set default values for required fields
+        transformed.setdefault(
+            "is_simple", "simple" in weapon_dict.get("weapon_category", "").lower()
+        )
+        transformed.setdefault("is_improvised", False)
+
+        # Transform cost
+        if "cost" in weapon_dict and isinstance(weapon_dict["cost"], dict):
+            quantity = weapon_dict["cost"].get("quantity", 0)
+            unit = weapon_dict["cost"].get("unit", "gp")
+            transformed["cost"] = f"{quantity} {unit}"
+        return Weapon.model_validate(transformed)
+
+    def _transform_armor(self, armor_dict: dict[str, Any]) -> Armor:
+        """Transform D&D 5e API armor data to Armor model format.
+
+        Args:
+            armor_dict: Raw armor data from D&D 5e API
+
+        Returns:
+            Armor model instance
+        """
+        # Transform the data to match Armor model expectations
+        transformed = dict(armor_dict)
+
+        # Add key field from index
+        transformed["key"] = armor_dict.get("index", armor_dict.get("slug", ""))
+
+        # Set default values for required fields
+        transformed["category"] = armor_dict.get("armor_category", "")
+        transformed.setdefault("base_ac", armor_dict.get("armor_class", {}).get("base", 0))
+        transformed.setdefault(
+            "dex_bonus", armor_dict.get("armor_class", {}).get("dex_bonus", False)
+        )
+        transformed.setdefault("max_dex_bonus", armor_dict.get("armor_class", {}).get("max_bonus"))
+        transformed.setdefault("strength_required", armor_dict.get("str_minimum", 0))
+        transformed.setdefault(
+            "stealth_disadvantage", armor_dict.get("stealth_disadvantage", False)
+        )
+
+        # Transform cost
+        if "cost" in armor_dict and isinstance(armor_dict["cost"], dict):
+            quantity = armor_dict["cost"].get("quantity", 0)
+            unit = armor_dict["cost"].get("unit", "gp")
+            transformed["cost"] = f"{quantity} {unit}"
+        return Armor.model_validate(transformed)
+
+    async def get_weapons(self, **filters: Any) -> list[Weapon]:
         """Get weapons from D&D 5e API by filtering equipment results.
 
         Returns:
@@ -518,9 +620,9 @@ class Dnd5eApiClient(BaseHttpClient):
                     or "ranged" in category_index
                 ):
                     weapons.append(item)
-        return weapons
+        return [self._transform_weapon(weapon) for weapon in weapons]
 
-    async def get_armor(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_armor(self, **filters: Any) -> list[Armor]:
         """Get armor from D&D 5e API by filtering equipment results.
 
         Returns:
@@ -541,7 +643,7 @@ class Dnd5eApiClient(BaseHttpClient):
                 category_index = item["equipment_category"].get("index", "").lower()
                 if "armor" in category_index:
                     armor.append(item)
-        return armor
+        return [self._transform_armor(item) for item in armor]
 
     async def get_equipment_categories(self, **filters: Any) -> list[dict[str, Any]]:
         """Get equipment categories from D&D 5e API.

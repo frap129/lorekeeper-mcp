@@ -6,6 +6,7 @@ import respx
 
 from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
+from lorekeeper_mcp.api_clients.models.equipment import Armor, Weapon
 
 
 @pytest.fixture
@@ -786,3 +787,111 @@ async def test_get_features(dnd5e_client: Dnd5eApiClient) -> None:
     assert len(features) == 2
     assert features[0]["name"] == "Action Surge"
     assert features[0]["slug"] == "action-surge"
+
+
+@respx.mock
+async def test_get_weapons(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching weapons returns Weapon model instances."""
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "index": "longsword",
+                        "name": "Longsword",
+                        "weapon_category": "melee",
+                        "equipment_category": {"index": "melee-weapons", "name": "Melee Weapons"},
+                        "damage": {
+                            "damage_dice": "1d8",
+                            "damage_type": {"index": "slashing", "name": "Slashing"},
+                        },
+                        "properties": [{"index": "finesse", "name": "Finesse"}],
+                        "range": {
+                            "normal": 5,
+                            "long": None,
+                        },
+                        "cost": {"quantity": 15, "unit": "gp"},
+                        "weight": 3,
+                    },
+                    {
+                        "index": "shortbow",
+                        "name": "Shortbow",
+                        "weapon_category": "ranged",
+                        "equipment_category": {"index": "ranged-weapons", "name": "Ranged Weapons"},
+                        "damage": {
+                            "damage_dice": "1d6",
+                            "damage_type": {"index": "piercing", "name": "Piercing"},
+                        },
+                        "properties": [],
+                        "range": {
+                            "normal": 80,
+                            "long": 320,
+                        },
+                        "cost": {"quantity": 25, "unit": "gp"},
+                        "weight": 2,
+                    },
+                ]
+            },
+        )
+    )
+
+    weapons = await dnd5e_client.get_weapons()
+
+    # Verify we get Weapon model instances, not dicts
+    assert len(weapons) == 2
+    assert isinstance(weapons[0], Weapon)
+    assert isinstance(weapons[1], Weapon)
+
+    # Verify transformation
+    assert weapons[0].slug == "longsword"
+    assert weapons[0].damage_dice == "1d8"
+    assert weapons[0].damage_type.key == "slashing"
+    assert weapons[0].range == 5
+    assert weapons[0].is_simple is False  # derived from weapon_category
+
+
+@respx.mock
+async def test_get_armor(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test fetching armor returns Armor model instances."""
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "index": "plate-armor",
+                        "name": "Plate Armor",
+                        "armor_category": "Heavy",
+                        "equipment_category": {"index": "armor", "name": "Armor"},
+                        "armor_class": {"base": 18},
+                        "cost": {"quantity": 1500, "unit": "gp"},
+                        "weight": 65,
+                    },
+                    {
+                        "index": "leather-armor",
+                        "name": "Leather Armor",
+                        "armor_category": "Light",
+                        "equipment_category": {"index": "armor", "name": "Armor"},
+                        "armor_class": {"base": 11, "dex_bonus": True},
+                        "cost": {"quantity": 5, "unit": "gp"},
+                        "weight": 10,
+                    },
+                ]
+            },
+        )
+    )
+
+    armor_items = await dnd5e_client.get_armor()
+
+    # Verify we get Armor model instances, not dicts
+    assert len(armor_items) == 2
+    assert isinstance(armor_items[0], Armor)
+    assert isinstance(armor_items[1], Armor)
+
+    # Verify transformation
+    assert armor_items[0].slug == "plate-armor"
+    assert armor_items[0].category == "Heavy"
+    assert armor_items[0].base_ac == 18
+    assert armor_items[1].slug == "leather-armor"
+    assert armor_items[1].dex_bonus is True
