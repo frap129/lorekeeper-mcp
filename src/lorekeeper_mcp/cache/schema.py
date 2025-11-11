@@ -38,6 +38,7 @@ ENTITY_TYPES = [
     "itemrarities",
     "environments",
     "abilities",
+    "ability_scores",
     "skills",
     # Task 1.9: Character options
     "species",
@@ -125,6 +126,7 @@ INDEXED_FIELDS = {
     "itemrarities": [],
     "environments": [],
     "abilities": [],
+    "ability_scores": [],
     "skills": [],
     # Task 1.9: Character options
     "species": [],

@@ -357,26 +357,47 @@ async def test_character_option_lookup_race(test_db):
 
 @pytest.mark.integration
 @respx.mock
-async def test_character_option_lookup_feat(test_db):
-    """Test character option lookup for feats."""
-    feat_response = {
+async def test_rule_lookup_ability_scores_with_cache(test_db):
+    """Test ability score lookup with cache support."""
+    ability_response = {
         "results": [
             {
-                "index": "alert",
-                "name": "Alert",
-                "url": "https://example.com/alert",
-            }
+                "index": "str",
+                "name": "Strength",
+                "full_name": "Strength",
+                "desc": ["Strength measures bodily power..."],
+                "url": "/api/2014/ability-scores/str",
+            },
+            {
+                "index": "dex",
+                "name": "Dexterity",
+                "full_name": "Dexterity",
+                "desc": ["Dexterity measures agility..."],
+                "url": "/api/2014/ability-scores/dex",
+            },
         ]
     }
 
-    respx.get("https://www.dnd5eapi.co/api/2014/feats/?").mock(
-        return_value=httpx.Response(200, json=feat_response)
+    # Mock the API endpoint - repository filters name client-side
+    route = respx.get("https://www.dnd5eapi.co/api/2014/ability-scores/").mock(
+        return_value=httpx.Response(200, json=ability_response)
     )
 
-    result = await lookup_character_option(type="feat", name="alert")
-    assert isinstance(result, list)
+    # First call - should hit API and cache
+    result1 = await lookup_rule(rule_type="ability-score", name="Strength")
+    assert len(result1) == 1
+    assert result1[0]["name"] == "Strength"
+    assert route.call_count == 1
+
+    # Second call - should hit cache
+    result2 = await lookup_rule(rule_type="ability-score", name="Strength")
+    assert len(result2) == 1
+    assert result2[0]["name"] == "Strength"
+    assert route.call_count == 1  # No additional API call
 
 
+# ============================================================================
+# Database Cache Tests
 # ============================================================================
 # Rule Lookup Integration Tests
 # ============================================================================

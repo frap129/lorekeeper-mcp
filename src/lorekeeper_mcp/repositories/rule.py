@@ -247,24 +247,32 @@ class RuleRepository(Repository[dict[str, Any]]):
 
     async def _search_ability_scores(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for ability scores."""
-        # Extract limit parameter (not a cache filter field)
+        # Extract limit and name parameters (not cache filter fields)
         limit = filters.pop("limit", None)
+        name = filters.pop("name", None)
 
         # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("ability_scores", **filters)
 
         if cached:
-            return cached[:limit] if limit else cached
+            results = cached
+        else:
+            # Fetch from API with filters and limit
+            ability_scores: list[dict[str, Any]] = await self.client.get_ability_scores(
+                limit=limit, **filters
+            )
 
-        # Fetch from API with filters and limit
-        ability_scores: list[dict[str, Any]] = await self.client.get_ability_scores(
-            limit=limit, **filters
-        )
+            if ability_scores:
+                await self.cache.store_entities(ability_scores, "ability_scores")
 
-        if ability_scores:
-            await self.cache.store_entities(ability_scores, "ability_scores")
+            results = ability_scores
 
-        return ability_scores
+        # Client-side filtering by name if requested
+        if name:
+            name_lower = name.lower()
+            results = [r for r in results if name_lower in r.get("name", "").lower()]
+
+        return results[:limit] if limit else results
 
     async def _search_magic_schools(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for magic schools."""

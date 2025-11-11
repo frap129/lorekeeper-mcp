@@ -506,6 +506,10 @@ class Dnd5eApiClient(BaseHttpClient):
         # Transform the data to match Weapon model expectations
         transformed = dict(weapon_dict)
 
+        # Handle desc field - API returns as list, model expects string
+        if "desc" in transformed and isinstance(transformed["desc"], list):
+            transformed["desc"] = " ".join(transformed["desc"])
+
         # Add key field from index
         transformed["key"] = weapon_dict.get("index", weapon_dict.get("slug", ""))
 
@@ -531,7 +535,7 @@ class Dnd5eApiClient(BaseHttpClient):
                             "property": {
                                 "name": prop["index"].replace("-", " ").title(),
                                 "type": None,
-                                "url": f"https://www.dnd5eapi.co/api/weapon-properties/{prop["index"]}",
+                                "url": f"https://www.dnd5eapi.co/api/weapon-properties/{prop['index']}",
                             }
                         }
                     )
@@ -573,6 +577,10 @@ class Dnd5eApiClient(BaseHttpClient):
         # Transform the data to match Armor model expectations
         transformed = dict(armor_dict)
 
+        # Handle desc field - API returns as list, model expects string
+        if "desc" in transformed and isinstance(transformed["desc"], list):
+            transformed["desc"] = " ".join(transformed["desc"])
+
         # Add key field from index
         transformed["key"] = armor_dict.get("index", armor_dict.get("slug", ""))
 
@@ -596,54 +604,104 @@ class Dnd5eApiClient(BaseHttpClient):
         return Armor.model_validate(transformed)
 
     async def get_weapons(self, **filters: Any) -> list[Weapon]:
-        """Get weapons from D&D 5e API by filtering equipment results.
+        """Get weapons from D&D 5e API.
+
+        Fetches weapons from the weapon category endpoint. Equipment category
+        endpoint returns minimal data, so fetch full details from each item's
+        individual endpoint.
+
+        Args:
+            limit: Maximum number of weapons to return
+            **filters: Additional filter parameters
 
         Returns:
-            List of weapon dictionaries
+            List of Weapon model instances
 
         Raises:
             NetworkError: Network request failed
             ApiError: API returned error response
         """
-        all_equipment = await self.get_equipment(**filters)
-        # Filter for weapons (equipment with weapon_category or melee/ranged in category)
-        weapons: list[dict[str, Any]] = []
-        for item in all_equipment:
-            # Check if it's a weapon
-            if "weapon_category" in item:
-                weapons.append(item)
-            elif "equipment_category" in item and isinstance(item["equipment_category"], dict):
-                category_index = item["equipment_category"].get("index", "").lower()
-                if (
-                    "weapon" in category_index
-                    or "melee" in category_index
-                    or "ranged" in category_index
-                ):
-                    weapons.append(item)
-        return [self._transform_weapon(weapon) for weapon in weapons]
+        weapons_list: list[dict[str, Any]] = []
+
+        # Fetch from weapon category
+        result = await self.make_request("/equipment-categories/weapon")
+        if isinstance(result, dict) and "equipment" in result:
+            weapons_list = result.get("equipment", [])
+
+        # Fetch full details for each weapon from its individual endpoint
+        full_weapons: list[dict[str, Any]] = []
+        for weapon_ref in weapons_list:
+            if isinstance(weapon_ref, dict) and "index" in weapon_ref:
+                try:
+                    # Fetch full weapon details from /equipment/{index}
+                    full_weapon = await self.make_request(f"/equipment/{weapon_ref['index']}")
+                    if isinstance(full_weapon, dict):
+                        full_weapons.append(full_weapon)
+                except Exception:
+                    # If individual fetch fails, skip this weapon
+                    continue
+
+        # Normalize index to slug for all weapons
+        for weapon in full_weapons:
+            if isinstance(weapon, dict) and "index" in weapon and "slug" not in weapon:
+                weapon["slug"] = weapon["index"]
+
+        # Apply limit if specified
+        limit = filters.get("limit")
+        if limit is not None:
+            full_weapons = full_weapons[:limit]
+
+        return [self._transform_weapon(weapon) for weapon in full_weapons]
 
     async def get_armor(self, **filters: Any) -> list[Armor]:
-        """Get armor from D&D 5e API by filtering equipment results.
+        """Get armor from D&D 5e API.
+
+        Fetches armor from the armor equipment category. Equipment category
+        endpoint returns minimal data, so fetch full details from each item's
+        individual endpoint.
+
+        Args:
+            limit: Maximum number of armor items to return
+            **filters: Additional filter parameters
 
         Returns:
-            List of armor dictionaries
+            List of Armor model instances
 
         Raises:
             NetworkError: Network request failed
             ApiError: API returned error response
         """
-        all_equipment = await self.get_equipment(**filters)
-        # Filter for armor (equipment with armor_category)
-        armor: list[dict[str, Any]] = []
-        for item in all_equipment:
-            # Check if it's armor
-            if "armor_category" in item:
-                armor.append(item)
-            elif "equipment_category" in item and isinstance(item["equipment_category"], dict):
-                category_index = item["equipment_category"].get("index", "").lower()
-                if "armor" in category_index:
-                    armor.append(item)
-        return [self._transform_armor(item) for item in armor]
+        armor_list: list[dict[str, Any]] = []
+
+        # Fetch from armor category
+        result = await self.make_request("/equipment-categories/armor")
+        if isinstance(result, dict) and "equipment" in result:
+            armor_list = result.get("equipment", [])
+
+        # Fetch full details for each armor item from its individual endpoint
+        full_armor: list[dict[str, Any]] = []
+        for armor_ref in armor_list:
+            if isinstance(armor_ref, dict) and "index" in armor_ref:
+                try:
+                    # Fetch full armor details from /equipment/{index}
+                    full_item = await self.make_request(f"/equipment/{armor_ref['index']}")
+                    if isinstance(full_item, dict):
+                        full_armor.append(full_item)
+                except Exception:
+                    # If individual fetch fails, skip this armor
+                    continue
+
+        # Normalize index to slug for all armor
+        for armor in full_armor:
+            if isinstance(armor, dict) and "index" in armor and "slug" not in armor:
+                armor["slug"] = armor["index"]
+
+        # Apply limit if specified
+        limit = filters.get("limit")
+        if limit is not None:
+            full_armor = full_armor[:limit]
+
+        return [self._transform_armor(item) for item in full_armor]
 
     async def get_equipment_categories(self, **filters: Any) -> list[dict[str, Any]]:
         """Get equipment categories from D&D 5e API.
