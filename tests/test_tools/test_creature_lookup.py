@@ -88,7 +88,7 @@ async def test_lookup_creature_by_cr_and_type(mock_monster_repository):
     await lookup_creature(cr=5, type="undead", limit=15, repository=mock_monster_repository)
 
     call_kwargs = mock_monster_repository.search.call_args[1]
-    assert call_kwargs["cr"] == 5
+    assert call_kwargs["challenge_rating"] == 5  # Maps cr -> challenge_rating
     assert call_kwargs["type"] == "undead"
     assert call_kwargs["limit"] == 15
 
@@ -125,7 +125,7 @@ async def test_lookup_creature_fractional_cr(mock_monster_repository):
     await lookup_creature(cr=0.25, repository=mock_monster_repository)
 
     call_kwargs = mock_monster_repository.search.call_args[1]
-    assert call_kwargs["cr"] == 0.25
+    assert call_kwargs["challenge_rating"] == 0.25  # Maps cr -> challenge_rating
 
 
 @pytest.mark.asyncio
