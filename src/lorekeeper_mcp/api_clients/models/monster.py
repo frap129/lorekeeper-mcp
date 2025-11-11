@@ -17,12 +17,12 @@ class Monster(BaseModel):
     challenge_rating: str = Field(..., description="Challenge rating (CR)")
 
     # Ability scores (can exceed 30 for legendary creatures)
-    strength: int | None = Field(None, ge=1, le=40, description="Strength score")
-    dexterity: int | None = Field(None, ge=1, le=40, description="Dexterity score")
-    constitution: int | None = Field(None, ge=1, le=40, description="Constitution score")
-    intelligence: int | None = Field(None, ge=1, le=40, description="Intelligence score")
-    wisdom: int | None = Field(None, ge=1, le=40, description="Wisdom score")
-    charisma: int | None = Field(None, ge=1, le=40, description="Charisma score")
+    strength: int | None = Field(None, ge=1, le=50, description="Strength score")
+    dexterity: int | None = Field(None, ge=1, le=50, description="Dexterity score")
+    constitution: int | None = Field(None, ge=1, le=50, description="Constitution score")
+    intelligence: int | None = Field(None, ge=1, le=50, description="Intelligence score")
+    wisdom: int | None = Field(None, ge=1, le=50, description="Wisdom score")
+    charisma: int | None = Field(None, ge=1, le=50, description="Charisma score")
 
     # Optional arrays
     speed: dict[str, int] | None = Field(None, description="Speed values")
