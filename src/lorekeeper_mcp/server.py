@@ -12,6 +12,7 @@ from lorekeeper_mcp.tools import (
     lookup_equipment,
     lookup_rule,
     lookup_spell,
+    search_dnd_content,
 )
 
 
@@ -39,3 +40,4 @@ mcp.tool()(lookup_creature)
 mcp.tool()(lookup_character_option)
 mcp.tool()(lookup_equipment)
 mcp.tool()(lookup_rule)
+mcp.tool()(search_dnd_content)
