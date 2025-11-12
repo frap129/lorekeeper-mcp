@@ -243,3 +243,160 @@ async def test_spell_repository_cache_aside_pattern(
     mock_cache.store_entities.assert_called_once()
     # 4. Return results
     assert len(results) == 3
+
+
+def test_repository_parameter_mapping_with_open5e_client() -> None:
+    """Test that repository correctly maps parameters for Open5e API."""
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_cache = MagicMock()
+    mock_client = MagicMock(spec=Open5eV2Client)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Map parameters for Open5e
+    result = repo._map_to_api_params(
+        name="fireball",
+        school="evocation",
+        level_min=3,
+        level_max=5,
+    )
+
+    # Verify mappings for Open5e
+    assert result["name__icontains"] == "fireball"
+    assert result["school__key"] == "evocation"
+    assert result["level__gte"] == 3
+    assert result["level__lte"] == 5
+
+
+def test_repository_parameter_mapping_with_dnd5e_client() -> None:
+    """Test that repository correctly maps parameters for D&D 5e API."""
+    from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
+
+    mock_cache = MagicMock()
+    mock_client = MagicMock(spec=Dnd5eApiClient)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Map parameters for D&D 5e
+    result = repo._map_to_api_params(
+        name="fireball",
+        level_min=3,
+        level_max=5,
+    )
+
+    # Verify mappings for D&D 5e
+    assert result["name"] == "fireball"
+    assert result["level"] == "3,4,5"
+
+
+def test_open5e_operator_mapping() -> None:
+    """Test Open5e-specific filter operator mappings."""
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_cache = MagicMock()
+    mock_client = MagicMock(spec=Open5eV2Client)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Test name__icontains mapping
+    result = repo._map_to_api_params(name="magic")
+    assert "name__icontains" in result
+    assert result["name__icontains"] == "magic"
+    assert "name" not in result
+
+    # Test school__key mapping
+    result = repo._map_to_api_params(school="conjuration")
+    assert "school__key" in result
+    assert result["school__key"] == "conjuration"
+    assert "school" not in result
+
+    # Test level range mappings
+    result = repo._map_to_api_params(level_min=1, level_max=3)
+    assert "level__gte" in result
+    assert "level__lte" in result
+    assert result["level__gte"] == 1
+    assert result["level__lte"] == 3
+
+    # Test exact level match
+    result = repo._map_to_api_params(level=2)
+    assert result["level"] == 2
+
+
+def test_dnd5e_parameter_mapping() -> None:
+    """Test D&D 5e API-specific parameter mappings."""
+    from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
+
+    mock_cache = MagicMock()
+    mock_client = MagicMock(spec=Dnd5eApiClient)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Test name parameter (pass-through)
+    result = repo._map_to_api_params(name="shield")
+    assert result["name"] == "shield"
+
+    # Test level range mapping to comma-separated list
+    result = repo._map_to_api_params(level_min=1, level_max=3)
+    assert result["level"] == "1,2,3"
+
+    # Test single level (pass-through)
+    result = repo._map_to_api_params(level=4)
+    assert result["level"] == 4
+
+    # Test school parameter (pass-through)
+    result = repo._map_to_api_params(school="necromancy")
+    assert result["school"] == "necromancy"
+
+
+def test_repository_passthrough_exact_matches() -> None:
+    """Test that exact match parameters are passed through correctly."""
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_cache = MagicMock()
+    mock_client = MagicMock(spec=Open5eV2Client)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Test pass-through parameters for Open5e
+    result = repo._map_to_api_params(
+        level=2,
+        concentration=True,
+        ritual=False,
+        casting_time="1 action",
+    )
+
+    assert result["level"] == 2
+    assert result["concentration"] is True
+    assert result["ritual"] is False
+    assert result["casting_time"] == "1 action"
+
+
+def test_repository_mixed_parameters() -> None:
+    """Test mapping with both transformed and pass-through parameters."""
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_cache = MagicMock()
+    mock_client = MagicMock(spec=Open5eV2Client)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Mix of transformed and pass-through parameters
+    result = repo._map_to_api_params(
+        name="cure",
+        school="abjuration",
+        level=2,
+        concentration=True,
+    )
+
+    # Verify transformed parameters
+    assert result["name__icontains"] == "cure"
+    assert result["school__key"] == "abjuration"
+
+    # Verify pass-through parameters
+    assert result["level"] == 2
+    assert result["concentration"] is True
+
+    # Verify old parameter names are not present
+    assert "name" not in result
+    assert "school" not in result or result.get("school") != "abjuration"

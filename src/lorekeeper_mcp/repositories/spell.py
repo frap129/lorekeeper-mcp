@@ -2,7 +2,9 @@
 
 from typing import Any, Protocol
 
+from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 from lorekeeper_mcp.api_clients.models.spell import Spell
+from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.repositories.base import Repository
 
 
@@ -95,3 +97,51 @@ class SpellRepository(Repository[Spell]):
             await self.cache.store_entities(spell_dicts, "spells")
 
         return spells
+
+    def _map_to_api_params(self, **filters: Any) -> dict[str, Any]:
+        """Map repository parameters to API-specific filter operators.
+
+        Converts repository-level filter parameters to API-specific operators
+        based on the client type. Open5e uses operators like `name__icontains`
+        and `school__key`, while D&D 5e API uses different parameter names.
+
+        Args:
+            **filters: Repository-level filter parameters
+
+        Returns:
+            Dictionary of API-specific parameters ready for API calls
+        """
+        params: dict[str, Any] = {}
+
+        if isinstance(self.client, Open5eV2Client):
+            # Map to Open5e filter operators
+            if "name" in filters:
+                params["name__icontains"] = filters["name"]
+            if "school" in filters:
+                params["school__key"] = filters["school"]
+            if "level_min" in filters:
+                params["level__gte"] = filters["level_min"]
+            if "level_max" in filters:
+                params["level__lte"] = filters["level_max"]
+            # Pass through exact matches
+            for key in ["level", "concentration", "ritual", "casting_time"]:
+                if key in filters:
+                    params[key] = filters[key]
+
+        elif isinstance(self.client, Dnd5eApiClient):
+            # D&D API uses name directly (built-in partial match)
+            if "name" in filters:
+                params["name"] = filters["name"]
+            # Handle multi-value level ranges
+            if "level_min" in filters and "level_max" in filters:
+                # Convert range to comma-separated list
+                levels = list(range(filters["level_min"], filters["level_max"] + 1))
+                params["level"] = ",".join(map(str, levels))
+            elif "level" in filters:
+                params["level"] = filters["level"]
+            # Pass through other filters
+            for key in ["school"]:
+                if key in filters:
+                    params[key] = filters[key]
+
+        return params
