@@ -98,30 +98,30 @@
 ## Phase 3: Optional Tool Enhancements
 
 ### 3.1 Add Spell Range Parameters
-- [ ] **Task**: Add optional `level_min`, `level_max`, `damage_type` parameters to lookup_spell
-- [ ] **Validation**: New parameters work, existing calls unaffected (backward compatible)
-- [ ] **Test**: `test_spell_level_range`, `test_damage_type_filter`, `test_backward_compatibility`
+- [x] **Task**: Add optional `level_min`, `level_max`, `damage_type` parameters to lookup_spell
+- [x] **Validation**: New parameters work, existing calls unaffected (backward compatible)
+- [x] **Test**: `test_spell_level_range`, `test_damage_type_filter`, `test_backward_compatibility`
 - **Dependencies**: 1.5
 - **Estimated Time**: 2 hours
 
 ### 3.2 Add Equipment Range Parameters
-- [ ] **Task**: Add optional `cost_min`, `cost_max`, `weight_max`, `is_finesse`, `is_light`, `is_magic` to lookup_equipment
-- [ ] **Validation**: New filters work correctly, backward compatible
-- [ ] **Test**: `test_equipment_cost_range`, `test_weight_filter`, `test_weapon_properties`
+- [x] **Task**: Add optional `cost_min`, `cost_max`, `weight_max`, `is_finesse`, `is_light`, `is_magic` to lookup_equipment
+- [x] **Validation**: New filters work correctly, backward compatible
+- [x] **Test**: `test_equipment_cost_range`, `test_weight_filter`, `test_weapon_properties`
 - **Dependencies**: 1.4
 - **Estimated Time**: 2 hours
 
 ### 3.3 Add Creature Range Parameters
-- [ ] **Task**: Add optional `armor_class_min`, `hit_points_min` parameters to lookup_creature
-- [ ] **Validation**: Range filters work, backward compatible
-- [ ] **Test**: `test_creature_ac_filter`, `test_hp_filter`
+- [x] **Task**: Add optional `armor_class_min`, `hit_points_min` parameters to lookup_creature
+- [x] **Validation**: Range filters work, backward compatible
+- [x] **Test**: `test_creature_ac_filter`, `test_hp_filter`
 - **Dependencies**: 1.3
 - **Estimated Time**: 2 hours
 
 ### 3.4 Update Tool Documentation
-- [ ] **Task**: Update docstrings for all enhanced tools with new parameter descriptions and examples
-- [ ] **Validation**: All new parameters documented with examples
-- [ ] **Test**: Documentation review
+- [x] **Task**: Update docstrings for all enhanced tools with new parameter descriptions and examples
+- [x] **Validation**: All new parameters documented with examples
+- [x] **Test**: Documentation review
 - **Dependencies**: 3.1, 3.2, 3.3
 - **Estimated Time**: 2 hours
 
@@ -159,10 +159,10 @@
 - [ ] Tool documented with examples and use cases
 
 ### Phase 3 (Optional - Enhancements):
-- [ ] Range parameters available for common use cases (level, cost, CR)
-- [ ] All enhancements backward compatible (no breaking changes)
-- [ ] New parameters documented and tested
-- [ ] Existing tool functionality unchanged
+- [x] Range parameters available for common use cases (level, cost, CR)
+- [x] All enhancements backward compatible (no breaking changes)
+- [x] New parameters documented and tested
+- [x] Existing tool functionality unchanged
 
 ## Risk Mitigation
 
