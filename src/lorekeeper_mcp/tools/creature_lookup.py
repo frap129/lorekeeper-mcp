@@ -127,7 +127,8 @@ async def lookup_creature(
         armor_class_min: Minimum Armor Class filter. Returns creatures with AC at or above
             this value. Useful for finding well-armored threats. Examples: 15, 18, 20
         hit_points_min: Minimum Hit Points filter. Returns creatures with HP at or above
-            this value. Useful for finding creatures with significant endurance. Examples: 50, 100, 200
+            this value. Useful for finding creatures with significant endurance. Examples: 50, 100,
+            200
         limit: Maximum number of results to return. Default 20, useful for pagination
             or limiting large result sets. Example: 5
 
