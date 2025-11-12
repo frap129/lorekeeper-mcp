@@ -88,17 +88,40 @@ async def lookup_spell(
     - Supports test context-based repository injection via _repository_context
 
     Examples:
-        Default usage (automatic repository creation):
+        Basic spell lookup by name:
             spells = await lookup_spell(name="fireball")
-            spells = await lookup_spell(level=3, school="evocation")
-            spells = await lookup_spell(class_key="wizard", concentration=True)
+            spells = await lookup_spell(name="shield")
 
-        With level ranges:
+        Filtering by level:
+            cantrips = await lookup_spell(level=0)
+            high_level_spells = await lookup_spell(level=5)
+
+        Using level ranges (NEW):
             mid_level_spells = await lookup_spell(level_min=3, level_max=5)
-            high_damage_spells = await lookup_spell(level_min=5)
+            powerful_spells = await lookup_spell(level_min=5)
+            beginner_spells = await lookup_spell(level_max=2)
 
-        Filtering by damage type:
+        Filtering by school and other properties:
+            evocation_spells = await lookup_spell(school="evocation")
+            wizard_spells = await lookup_spell(class_key="wizard")
+            ritual_spells = await lookup_spell(ritual=True)
+            concentration_spells = await lookup_spell(concentration=True)
+
+        Filtering by damage type (NEW):
             fire_spells = await lookup_spell(damage_type="fire")
+            cold_spells = await lookup_spell(damage_type="cold")
+            necrotic_spells = await lookup_spell(damage_type="necrotic")
+
+        Complex queries combining multiple filters:
+            evocation_fire_spells = await lookup_spell(
+                school="evocation", damage_type="fire"
+            )
+            cleric_rituals = await lookup_spell(
+                class_key="cleric", ritual=True, level_min=1
+            )
+            mid_level_wizard_spells = await lookup_spell(
+                class_key="wizard", level_min=3, level_max=5, limit=10
+            )
 
         With test context injection (testing):
             from lorekeeper_mcp.tools.spell_lookup import _repository_context
@@ -106,35 +129,38 @@ async def lookup_spell(
             _repository_context["repository"] = custom_repo
             spells = await lookup_spell(level=0)
 
-        Finding specific spell types:
-            cantrips = await lookup_spell(level=0)
-            ritual_spells = await lookup_spell(ritual=True)
-            action_spells = await lookup_spell(casting_time="1 action")
-
     Args:
-        name: Spell name or partial name search. Matches spells containing this substring.
-            Example: "fireball", "magic", "shield"
-        level: Spell level ranging from 0-9, where 0 represents cantrips/0-level spells
-            and 9 represents 9th level spells. Example: 3 for 3rd level spells
-        level_min: Minimum spell level (inclusive). Returns spells at this level or higher.
-            Example: 3 for 3rd level and above spells
-        level_max: Maximum spell level (inclusive). Returns spells at this level or lower.
-            Example: 5 for spells up to 5th level
-        school: Magic school filter. Valid values: abjuration, conjuration, divination,
-            enchantment, evocation, illusion, necromancy, transmutation
-            Example: "evocation" for damage-dealing spells
+        name: Spell name or partial name search. Case-insensitive substring match against
+            spell names. Examples: "fireball", "magic", "shield", "cure wounds"
+        level: Exact spell level ranging from 0-9. 0 represents cantrips/0-level spells,
+            9 represents 9th level spells. Example: 3 for exactly 3rd level spells
+        level_min: Minimum spell level (inclusive) for range-based searches. Use with
+            level_max to find spells in a range. Returns spells at this level or higher.
+            Examples: 1 for 1st level and above, 5 for 5th level and above
+        level_max: Maximum spell level (inclusive) for range-based searches. Use with
+            level_min to find spells in a range. Returns spells at this level or lower.
+            Examples: 3 for up to 3rd level spells, 5 for up to 5th level spells
+        school: Magic school filter for spell type. Valid values: abjuration, conjuration,
+            divination, enchantment, evocation, illusion, necromancy, transmutation.
+            Each school has distinct characteristics. Example: "evocation" for
+            damage-dealing spells, "abjuration" for protective spells
         class_key: Filter spells available to a specific class. Valid values: wizard, cleric,
-            druid, bard, paladin, ranger, sorcerer, warlock, artificer
-            Example: "wizard" for spells in the wizard spell list
-        concentration: Filter for spells requiring concentration. True returns only concentration
-            spells, False returns only non-concentration spells. Example: True
-        ritual: Filter for ritual spells. True returns spells that can be cast as rituals.
-            Example: True
-        casting_time: Casting time filter for spells. Examples: "1 action", "1 bonus action",
-            "1 reaction", "1 minute", "10 minutes"
-        damage_type: Filter spells by damage type dealt. Example: "fire", "cold", "necrotic"
-        limit: Maximum number of results to return. Default 20, useful for pagination
-            or limiting large result sets. Example: 5
+            druid, bard, paladin, ranger, sorcerer, warlock, artificer. Each class has
+            access to different spell lists. Example: "wizard" for spells in wizard spell list
+        concentration: Filter for spells requiring concentration. True returns only
+            concentration spells, False returns only non-concentration spells. Concentration
+            is a key resource in combat. Example: True
+        ritual: Filter for ritual spells. Returns only spells that can be cast as rituals,
+            allowing casting without expending spell slots. Example: True
+        casting_time: Casting time filter to find spells with specific casting times.
+            Examples: "1 action" (most common), "1 bonus action" (quick casts),
+            "1 reaction" (reaction spells), "1 minute" (extended preparation)
+        damage_type: Filter spells by damage type dealt. Examples: "fire" (fire damage),
+            "cold" (cold damage), "necrotic" (necrotic damage), "poison" (poison damage),
+            "psychic" (psychic damage). NEW in Phase 3.
+        limit: Maximum number of results to return. Default 20. Useful for pagination
+            or limiting large result sets. Examples: 5 for small sets, 20 for standard,
+            100 for comprehensive results
 
     Returns:
         List of spell dictionaries, each containing:

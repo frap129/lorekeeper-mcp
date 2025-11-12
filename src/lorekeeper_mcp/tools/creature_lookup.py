@@ -80,20 +80,34 @@ async def lookup_creature(
     and are cached through the repository for improved performance.
 
     Examples:
-        Default usage (automatic repository creation):
+        Basic creature lookup:
             creatures = await lookup_creature(name="dragon")
             creatures = await lookup_creature(cr=5)
-            creatures = await lookup_creature(cr_min=1, cr_max=3, type="undead")
+            medium_creatures = await lookup_creature(size="Medium")
+
+        Using challenge rating ranges:
+            low_cr_creatures = await lookup_creature(cr_max=2)
+            mid_level_threats = await lookup_creature(cr_min=3, cr_max=5)
+            deadly_bosses = await lookup_creature(cr_min=10)
+
+        Filtering by type and size:
+            undead_creatures = await lookup_creature(type="undead")
+            humanoids = await lookup_creature(type="humanoid", cr_max=2)
+            large_creatures = await lookup_creature(size="Large", limit=10)
+
+        Using armor class and hit points filters (NEW in Phase 3):
+            well_armored_creatures = await lookup_creature(armor_class_min=15)
+            heavily_armored = await lookup_creature(armor_class_min=18)
+            tanky_creatures = await lookup_creature(hit_points_min=100)
+            deadly_tanky = await lookup_creature(
+                armor_class_min=16, hit_points_min=75, cr_min=5
+            )
 
         With test context injection (testing):
             from lorekeeper_mcp.tools.creature_lookup import _repository_context
             custom_repo = MonsterRepository(cache=my_cache)
             _repository_context["repository"] = custom_repo
             creatures = await lookup_creature(size="Tiny")
-
-        Finding specific creature types:
-            humanoids = await lookup_creature(type="humanoid", cr_max=2)
-            large_creatures = await lookup_creature(size="Large", limit=10)
 
     Args:
         name: Creature name or partial name search. Matches creatures containing this substring.

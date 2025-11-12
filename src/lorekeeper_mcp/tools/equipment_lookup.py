@@ -75,11 +75,48 @@ async def lookup_equipment(
     Automatically uses the database cache through the repository for improved performance.
 
     Examples:
-        - lookup_equipment(type="weapon", name="longsword") - Find longsword variants
-        - lookup_equipment(type="armor", is_simple=True) - Find light/medium armor
-        - lookup_equipment(type="magic-item", rarity="rare") - Find rare magical items
-        - lookup_equipment(type="all", name="chain") - Find chain weapons, armor, and items
-        - lookup_equipment(type="weapon", damage_dice="1d8", is_simple=True) - Find simple 1d8 weapons
+        Basic equipment lookup:
+            longswords = await lookup_equipment(type="weapon", name="longsword")
+            rare_items = await lookup_equipment(type="magic-item", rarity="rare")
+            light_armor = await lookup_equipment(type="armor", is_simple=True)
+
+        Using cost ranges (NEW in Phase 3):
+            affordable_weapons = await lookup_equipment(
+                type="weapon", cost_max=25
+            )
+            expensive_items = await lookup_equipment(
+                type="weapon", cost_min=50, cost_max=100
+            )
+
+        Using weight and properties (NEW in Phase 3):
+            lightweight_weapons = await lookup_equipment(
+                type="weapon", weight_max=3
+            )
+            finesse_weapons = await lookup_equipment(
+                type="weapon", is_finesse=True
+            )
+            light_dual_wield_weapons = await lookup_equipment(
+                type="weapon", is_light=True
+            )
+            magical_weapons = await lookup_equipment(
+                type="weapon", is_magic=True
+            )
+
+        Complex equipment queries:
+            affordable_simple_weapons = await lookup_equipment(
+                type="weapon", is_simple=True, cost_max=10
+            )
+            light_finesse_weapons = await lookup_equipment(
+                type="weapon", is_light=True, is_finesse=True, limit=10
+            )
+            expensive_magical_weapons = await lookup_equipment(
+                type="weapon", is_magic=True, cost_min=100
+            )
+
+        Searching all types:
+            all_chain_items = await lookup_equipment(
+                type="all", name="chain"
+            )
 
     Args:
         type: Equipment type to search. Default "all" searches all types. Options:
