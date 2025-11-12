@@ -726,3 +726,67 @@ class Open5eV2Client(BaseHttpClient):
             return result
 
         return result.get("results", [])  # type: ignore[no-any-return]
+
+    # Task 2.2: Unified Search Implementation
+    DEFAULT_SEARCH_LIMIT = 50
+
+    async def unified_search(
+        self,
+        query: str,
+        fuzzy: bool = False,
+        vector: bool = False,
+        object_model: str | None = None,
+        limit: int = DEFAULT_SEARCH_LIMIT,
+    ) -> list[dict[str, Any]]:
+        """Search across all D&D content using the unified search endpoint.
+
+        This method provides cross-entity search across spells, creatures,
+        items, and other D&D content with support for fuzzy matching and
+        semantic/vector search.
+
+        Args:
+            query: Search term (required)
+            fuzzy: Enable typo-tolerant matching (default: False)
+            vector: Enable semantic/concept-based matching (default: False)
+            object_model: Filter to specific content type
+                (e.g., "Spell", "Creature", "Item")
+            limit: Max results to return (default: 50)
+
+        Returns:
+            List of search results with fields:
+                - document: Dict with key and name
+                - object_pk: Primary key of the result
+                - object_name: Name of the result
+                - object: Entity-specific data
+                - object_model: Content type (Spell, Creature, Item, etc.)
+                - schema_version: API version (v2)
+                - route: API route for the result
+                - text: Full description text
+                - highlighted: Text excerpt with match highlighted
+                - match_type: Type of match (exact, fuzzy, vector)
+                - matched_term: The term that matched
+                - match_score: Relevance score (0.0-1.0)
+        """
+        params: dict[str, Any] = {"query": query}
+
+        # Add optional parameters if provided
+        if fuzzy:
+            params["fuzzy"] = "true"
+        if vector:
+            params["vector"] = "true"
+        if object_model:
+            params["object_model"] = object_model
+        if limit != self.DEFAULT_SEARCH_LIMIT:
+            params["limit"] = limit
+
+        result = await self.make_request(
+            "/search/",
+            params=params,
+        )
+
+        # The search endpoint returns a list directly
+        if isinstance(result, list):
+            return result
+
+        # Fallback in case the API returns a dict with results
+        return result.get("results", [])  # type: ignore[no-any-return]

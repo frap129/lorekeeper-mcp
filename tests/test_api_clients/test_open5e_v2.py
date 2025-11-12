@@ -1052,3 +1052,196 @@ async def test_cost_range_filtering_lte(v2_client: Open5eV2Client) -> None:
 
     # Should return armor with cost <= 50 gp from server
     assert len(armors) == 2
+
+
+# Task 2.2: Unified Search Implementation
+@respx.mock
+async def test_unified_search_method(v2_client: Open5eV2Client) -> None:
+    """Test unified_search() method with basic query parameter.
+
+    The unified_search method should call the /v2/search/ endpoint with
+    the query parameter and return a list of search results.
+    """
+    respx.get("https://api.open5e.com/v2/search/?query=fireball").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "document": {"key": "fireball", "name": "Fireball"},
+                    "object_pk": "spell-fireball",
+                    "object_name": "Fireball",
+                    "object": {"level": 3, "school": "Evocation"},
+                    "object_model": "Spell",
+                    "schema_version": "v2",
+                    "route": "v2/spells/",
+                    "text": "A bright streak...",
+                    "highlighted": "A <em>fireball</em> is...",
+                    "match_type": "exact",
+                    "matched_term": "fireball",
+                    "match_score": 1.0,
+                },
+                {
+                    "document": {
+                        "key": "delayed-blast-fireball",
+                        "name": "Delayed Blast Fireball",
+                    },
+                    "object_pk": "spell-delayed-blast-fireball",
+                    "object_name": "Delayed Blast Fireball",
+                    "object": {"level": 7, "school": "Evocation"},
+                    "object_model": "Spell",
+                    "schema_version": "v2",
+                    "route": "v2/spells/",
+                    "text": "A delayed version...",
+                    "highlighted": "A delayed <em>fireball</em>...",
+                    "match_type": "exact",
+                    "matched_term": "fireball",
+                    "match_score": 0.95,
+                },
+            ],
+        )
+    )
+
+    results = await v2_client.unified_search(query="fireball")
+
+    assert len(results) == 2
+    assert results[0]["object_name"] == "Fireball"
+    assert results[0]["object_model"] == "Spell"
+    assert results[0]["match_type"] == "exact"
+    assert results[1]["object_name"] == "Delayed Blast Fireball"
+
+
+@respx.mock
+async def test_fuzzy_parameter(v2_client: Open5eV2Client) -> None:
+    """Test unified_search() with fuzzy parameter for typo-tolerant matching.
+
+    The fuzzy parameter should be passed to the API and enable fuzzy matching.
+    """
+    respx.get("https://api.open5e.com/v2/search/?query=firbal&fuzzy=true").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "document": {"key": "fireball", "name": "Fireball"},
+                    "object_pk": "spell-fireball",
+                    "object_name": "Fireball",
+                    "object": {"level": 3, "school": "Evocation"},
+                    "object_model": "Spell",
+                    "schema_version": "v2",
+                    "route": "v2/spells/",
+                    "text": "A bright streak...",
+                    "highlighted": "A <em>fireball</em> is...",
+                    "match_type": "fuzzy",
+                    "matched_term": "firbal",
+                    "match_score": 0.857,
+                }
+            ],
+        )
+    )
+
+    results = await v2_client.unified_search(query="firbal", fuzzy=True)
+
+    assert len(results) == 1
+    assert results[0]["match_type"] == "fuzzy"
+    assert results[0]["match_score"] == 0.857
+
+
+@respx.mock
+async def test_vector_parameter(v2_client: Open5eV2Client) -> None:
+    """Test unified_search() with vector parameter for semantic search.
+
+    The vector parameter should be passed to the API and enable semantic
+    similarity matching for concept-based searching.
+    """
+    respx.get("https://api.open5e.com/v2/search/?query=healing+magic&vector=true").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "document": {"key": "potion-of-healing", "name": "Potion of Healing"},
+                    "object_pk": "item-potion-of-healing",
+                    "object_name": "Potion of Healing",
+                    "object": {"rarity": "common"},
+                    "object_model": "Item",
+                    "schema_version": "v2",
+                    "route": "v2/items/",
+                    "text": "You regain 4d4+4 HP...",
+                    "highlighted": "<em>Healing</em> potion",
+                    "match_type": "vector",
+                    "matched_term": "healing magic",
+                    "match_score": 0.92,
+                },
+                {
+                    "document": {"key": "cure-wounds", "name": "Cure Wounds"},
+                    "object_pk": "spell-cure-wounds",
+                    "object_name": "Cure Wounds",
+                    "object": {"level": 1, "school": "Evocation"},
+                    "object_model": "Spell",
+                    "schema_version": "v2",
+                    "route": "v2/spells/",
+                    "text": "A spell to cure wounds...",
+                    "highlighted": "<em>Cure</em> wounds spell",
+                    "match_type": "vector",
+                    "matched_term": "healing magic",
+                    "match_score": 0.88,
+                },
+            ],
+        )
+    )
+
+    results = await v2_client.unified_search(query="healing magic", vector=True)
+
+    assert len(results) == 2
+    assert all(r["match_type"] == "vector" for r in results)
+    assert results[0]["object_model"] == "Item"
+    assert results[1]["object_model"] == "Spell"
+
+
+@respx.mock
+async def test_object_model_filter(v2_client: Open5eV2Client) -> None:
+    """Test unified_search() with object_model parameter to filter by content type.
+
+    The object_model parameter should filter results to only the specified
+    content type (e.g., "Spell", "Creature", "Item").
+    """
+    respx.get("https://api.open5e.com/v2/search/?query=dragon&object_model=Creature").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {
+                    "document": {"key": "dragon-prismatic", "name": "Dragon Prismatic"},
+                    "object_pk": "creature-dragon-prismatic",
+                    "object_name": "Dragon Prismatic",
+                    "object": {"size": "Huge", "challenge_rating": "20"},
+                    "object_model": "Creature",
+                    "schema_version": "v2",
+                    "route": "v2/creatures/",
+                    "text": "A majestic dragon...",
+                    "highlighted": "A dragon with all colors",
+                    "match_type": "exact",
+                    "matched_term": "dragon",
+                    "match_score": 1.0,
+                },
+                {
+                    "document": {"key": "dragon-green", "name": "Dragon Green"},
+                    "object_pk": "creature-dragon-green",
+                    "object_name": "Dragon Green",
+                    "object": {"size": "Huge", "challenge_rating": "18"},
+                    "object_model": "Creature",
+                    "schema_version": "v2",
+                    "route": "v2/creatures/",
+                    "text": "A green colored dragon...",
+                    "highlighted": "A green <em>dragon</em>",
+                    "match_type": "exact",
+                    "matched_term": "dragon",
+                    "match_score": 0.98,
+                },
+            ],
+        )
+    )
+
+    results = await v2_client.unified_search(query="dragon", object_model="Creature")
+
+    assert len(results) == 2
+    assert all(r["object_model"] == "Creature" for r in results)
+    assert results[0]["object_name"] == "Dragon Prismatic"
+    assert results[1]["object_name"] == "Dragon Green"

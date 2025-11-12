@@ -1,0 +1,334 @@
+{
+  "base_url": "https://api.open5e.com/v2",
+  "endpoint": "/v2/search/",
+  "tests": [
+    {
+      "name": "Test 1: Basic Exact Query",
+      "params": {
+        "query": "Fireball"
+      },
+      "description": "Search for 'Fireball' spell with defaults",
+      "status": "success",
+      "results_count": 50,
+      "first_result": {
+        "document": {
+          "key": "a5e-ag",
+          "name": "Adventurer's Guide"
+        },
+        "object_pk": "a5e-ag_fireball",
+        "object_name": "Fireball",
+        "object": {
+          "school": "Evocation",
+          "level": 3
+        },
+        "object_model": "Spell",
+        "schema_version": "v2",
+        "route": "v2/spells/",
+        "text": "Fireball\n\nA fiery mote streaks to a point within range and explodes in a burst of flame. The fire spreads around corners and ignites unattended flammable objects. Each creature in the area takes 6d6 fire damage.",
+        "highlighted": "<span class=\"highlighted\">Fireball</span>\n\nA fiery mote streaks to a point within range and explodes in a burst of flame. The fire spreads...",
+        "match_type": "exact",
+        "matched_term": "Fireball",
+        "match_score": 1.0
+      },
+      "response_keys": [
+        "count",
+        "next",
+        "previous",
+        "results",
+        "search_metadata"
+      ]
+    },
+    {
+      "name": "Test 2: Fuzzy Matching - Typo",
+      "params": {
+        "query": "firbal",
+        "fuzzy": true
+      },
+      "description": "Search for 'firbal' (typo) with fuzzy=true",
+      "status": "success",
+      "results_count": 4,
+      "first_result": {
+        "document": {
+          "key": "a5e-ag",
+          "name": "Adventurer's Guide"
+        },
+        "object_pk": "a5e-ag_delayed-blast-fireball",
+        "object_name": "Delayed Blast Fireball",
+        "object": {
+          "school": "Evocation",
+          "level": 7
+        },
+        "object_model": "Spell",
+        "schema_version": "v2",
+        "route": "v2/spells/",
+        "text": "Delayed Blast Fireball\n\nA glowing bead of yellow light flies from your finger and lingers at a point at the center of the area until you end the spell\u2014either because your concentration is broken or because you choose to end it\u2014and the bead detonates. Each creature in the area takes 12d6 fire damage. If at the end of your turn the bead has not yet detonated, the damage increases by 1d6.\n\nIf touched before the spell ends, the creature touching the bead makes a Dexterity saving throw or the bead detonates. On a successful save, the creature can use an action to throw the bead up to 40 feet, moving the area with it. If the bead strikes a creature or solid object, the bead detonates.\n\nThe fire spreads around corners, and it damages and ignites any flammable unattended objects in the area.",
+        "highlighted": "Delayed Blast <span class=\"highlighted\">Fireball</span>\n\nA glowing bead of yellow light flies from your finger and lingers at a point at the center of the area until you end the spell\u2014either because your concentration is broken or because you choose to end it\u2014and the bead detonates. Each creature in the area takes 12d6 fire damage. If at the end of your turn the bead has not yet detonated, the damage increases by 1d6.\n\nIf touched before the spell ends, the creature touching the bead makes a Dexterity saving throw or the bead detonates. On a successful save, the creature can use an action to throw the bead up to 40 feet, moving the area with it. If the bead strikes a creature or solid object, the bead detonates.\n\nThe fire spreads around corners, and it damages and ignites any flammable unattended objects in the area.",
+        "match_type": "fuzzy",
+        "matched_term": "fireball",
+        "match_score": 0.8571428571428572
+      },
+      "response_keys": [
+        "count",
+        "next",
+        "previous",
+        "results",
+        "search_metadata"
+      ]
+    },
+    {
+      "name": "Test 3: Typo without Fuzzy",
+      "params": {
+        "query": "firbal",
+        "fuzzy": false
+      },
+      "description": "Search for 'firbal' (typo) with fuzzy=false",
+      "status": "success",
+      "results_count": 4,
+      "first_result": {
+        "document": {
+          "key": "a5e-ag",
+          "name": "Adventurer's Guide"
+        },
+        "object_pk": "a5e-ag_delayed-blast-fireball",
+        "object_name": "Delayed Blast Fireball",
+        "object": {
+          "school": "Evocation",
+          "level": 7
+        },
+        "object_model": "Spell",
+        "schema_version": "v2",
+        "route": "v2/spells/",
+        "text": "Delayed Blast Fireball\n\nA glowing bead of yellow light flies from your finger and lingers at a point at the center of the area until you end the spell\u2014either because your concentration is broken or because you choose to end it\u2014and the bead detonates. Each creature in the area takes 12d6 fire damage. If at the end of your turn the bead has not yet detonated, the damage increases by 1d6.\n\nIf touched before the spell ends, the creature touching the bead makes a Dexterity saving throw or the bead detonates. On a successful save, the creature can use an action to throw the bead up to 40 feet, moving the area with it. If the bead strikes a creature or solid object, the bead detonates.\n\nThe fire spreads around corners, and it damages and ignites any flammable unattended objects in the area.",
+        "highlighted": "Delayed Blast <span class=\"highlighted\">Fireball</span>\n\nA glowing bead of yellow light flies from your finger and lingers at a point at the center of the area until you end the spell\u2014either because your concentration is broken or because you choose to end it\u2014and the bead detonates. Each creature in the area takes 12d6 fire damage. If at the end of your turn the bead has not yet detonated, the damage increases by 1d6.\n\nIf touched before the spell ends, the creature touching the bead makes a Dexterity saving throw or the bead detonates. On a successful save, the creature can use an action to throw the bead up to 40 feet, moving the area with it. If the bead strikes a creature or solid object, the bead detonates.\n\nThe fire spreads around corners, and it damages and ignites any flammable unattended objects in the area.",
+        "match_type": "fuzzy",
+        "matched_term": "fireball",
+        "match_score": 0.8571428571428572
+      }
+    },
+    {
+      "name": "Test 4: Vector/Semantic Search",
+      "params": {
+        "query": "healing magic",
+        "vector": true
+      },
+      "description": "Search for 'healing magic' concept with vector=true",
+      "status": "success",
+      "results_count": 50,
+      "first_results": [
+        {
+          "document": {
+            "key": "srd-2024",
+            "name": "System Reference Document 5.2"
+          },
+          "object_pk": "srd-2024_potion-of-healing",
+          "object_name": "Potion of Healing",
+          "object": {
+            "is_magic_item": false,
+            "type": null,
+            "rarity": null
+          },
+          "object_model": "Item",
+          "schema_version": "v2",
+          "route": "v2/items/",
+          "text": "Potion of Healing\n\nThis potion is a magic item. As a Bonus Action, you can drink it or administer it to another creature within 5 feet of yourself. The creature that drinks the magical red fluid in this vial regains 2d4 + 2 Hit Points.",
+          "highlighted": "Potion of <span class=\"highlighted\">Healing</span>\n\nThis potion is a <span class=\"highlighted\">magic</span> item. As a Bonus Action, you can drink it or administer it...",
+          "match_type": "exact",
+          "matched_term": "healing magic",
+          "match_score": 1.0
+        },
+        {
+          "document": {
+            "key": "srd-2024",
+            "name": "System Reference Document 5.2"
+          },
+          "object_pk": "srd-2024_life-domain",
+          "object_name": "Life Domain",
+          "object": {
+            "subclass_of": {
+              "name": "Cleric",
+              "key": "srd-2024_cleric"
+            }
+          },
+          "object_model": "CharacterClass",
+          "schema_version": "v2",
+          "route": "v2/classes/",
+          "text": "Life Domain\n\nBlessed Healer\n\nThe healing spells you cast on others heal you as well. Immediately after you cast a spell with a spell slot that restores Hit Points to one or more creatures other than yourself, you regain Hit Points equal to 2 plus the spell slot's level.\nDisciple of Life\n\nWhen a spell you cast with a spell slot restores Hit Points to a creature, that creature regains additional Hit Points on the turn you cast the spell. The additional Hit Points equal 2 plus the spell slot's level.\nLife Domain Spells\n\nYour connection to this divine domain ensures you always have certain spells ready. When you reach a Cleric level specified in the Life Domain Spells table, you thereafter always have the listed spells prepared.\n\nTable: Life Domain Spells\n\n|Cleric Level|Prepared Spells|\n|---|---|\n|3|Aid, Bless, Cure Wounds, Lesser Restoration|\n|5|Mass Healing Word, Revivify|\n|7|Aura of Life, Death Ward|\n|9|Greater Restoration, Mass Cure Wounds|\nPreserve Life\n\nAs a Magic action, you present your Holy Symbol and expend a use of your Channel Divinity to evoke healing energy that can restore a number of Hit Points equal to five times your Cleric level. Choose Bloodied creatures within 30 feet of yourself (which can include you), and divide those Hit Points among them. This feature can restore a creature to no more than half its Hit Point maximum.\nSupreme Healing\n\nWhen you would normally roll one or more dice to restore Hit Points to a creature with a spell or Channel Divinity, don't roll those dice for the healing; instead use the highest number possible for each die. For example, instead of restoring 2d6 Hit Points to a creature with a spell, you restore 12.",
+          "highlighted": "...<span class=\"highlighted\">Healing</span> Word, Revivify|\n|7|Aura of Life, Death Ward|\n|9|Greater Restoration, Mass Cure Wounds|\nPreserve Life\n\nAs a <span class=\"highlighted\">Magic</span>...",
+          "match_type": "exact",
+          "matched_term": "healing magic",
+          "match_score": 1.0
+        },
+        {
+          "document": {
+            "key": "srd-2024",
+            "name": "System Reference Document 5.2"
+          },
+          "object_pk": "srd-2024_potion-of-poison",
+          "object_name": "Potion of Poison",
+          "object": {
+            "is_magic_item": true,
+            "type": "Potion",
+            "rarity": "Uncommon"
+          },
+          "object_model": "Item",
+          "schema_version": "v2",
+          "route": "v2/items/",
+          "text": "Potion of Poison\n\nThis concoction looks, smells, and tastes like a Potion of Healing or another beneficial potion. However, it is actually poison masked by illusion magic. Identify reveals its true nature. If you drink this potion, you take 4d6 Poison damage and must succeed on a DC 13 Constitution saving throw or have the Poisoned condition for 1 hour.",
+          "highlighted": "...a Potion of <span class=\"highlighted\">Healing</span> or another beneficial potion. However, it is actually poison masked by illusion <span class=\"highlighted\">magic</span>. Identify reveals its...",
+          "match_type": "exact",
+          "matched_term": "healing magic",
+          "match_score": 1.0
+        }
+      ]
+    },
+    {
+      "name": "Test 5: Concept without Vector",
+      "params": {
+        "query": "healing magic",
+        "vector": false
+      },
+      "description": "Search for 'healing magic' with vector=false",
+      "status": "success",
+      "results_count": 30
+    },
+    {
+      "name": "Test 6: Object Model Filter - Spell",
+      "params": {
+        "query": "cure wounds",
+        "object_model": "Spell"
+      },
+      "description": "Search for 'cure wounds' filtering to Spell only",
+      "status": "success",
+      "results_count": 7,
+      "first_result": {
+        "document": {
+          "key": "a5e-ag",
+          "name": "Adventurer's Guide"
+        },
+        "object_pk": "a5e-ag_cure-wounds",
+        "object_name": "Cure Wounds",
+        "object": {
+          "school": "Evocation",
+          "level": 1
+        },
+        "object_model": "Spell",
+        "schema_version": "v2",
+        "route": "v2/spells/",
+        "text": "Cure Wounds\n\nThe target regains hit points equal to 1d8 + your spellcasting ability modifier.",
+        "highlighted": "<span class=\"highlighted\">Cure</span> <span class=\"highlighted\">Wounds</span>\n\nThe target regains hit points equal to 1d8 + your spellcasting ability modifier.",
+        "match_type": "exact",
+        "matched_term": "cure wounds",
+        "match_score": 1.0
+      }
+    },
+    {
+      "name": "Test 7: Object Model Filter - Creature",
+      "params": {
+        "query": "dragon",
+        "object_model": "Creature"
+      },
+      "description": "Search for 'dragon' filtering to Creature only",
+      "status": "success",
+      "results_count": 50,
+      "first_results": [
+        {
+          "document": {
+            "key": "tob3",
+            "name": "Tome of Beasts 3"
+          },
+          "object_pk": "tob3_dragon-prismatic-wyrmling",
+          "object_name": "Dragon, Prismatic Wyrmling",
+          "object": {
+            "cr": "2",
+            "type": "Dragon",
+            "size": "Medium"
+          },
+          "object_model": "Creature",
+          "schema_version": "v2",
+          "route": "v2/creatures/",
+          "text": "Dragon, Prismatic Wyrmling\n",
+          "highlighted": "<span class=\"highlighted\">Dragon</span>, Prismatic Wyrmling\n",
+          "match_type": "exact",
+          "matched_term": "dragon",
+          "match_score": 1.0
+        },
+        {
+          "document": {
+            "key": "tob3",
+            "name": "Tome of Beasts 3"
+          },
+          "object_pk": "tob3_dragon-prismatic-young",
+          "object_name": "Dragon, Prismatic Young",
+          "object": {
+            "cr": "8",
+            "type": "Dragon",
+            "size": "Large"
+          },
+          "object_model": "Creature",
+          "schema_version": "v2",
+          "route": "v2/creatures/",
+          "text": "Dragon, Prismatic Young\n",
+          "highlighted": "<span class=\"highlighted\">Dragon</span>, Prismatic Young\n",
+          "match_type": "exact",
+          "matched_term": "dragon",
+          "match_score": 1.0
+        },
+        {
+          "document": {
+            "key": "tob3",
+            "name": "Tome of Beasts 3"
+          },
+          "object_pk": "tob3_dragon-sand-wyrmling",
+          "object_name": "Dragon, Sand Wyrmling",
+          "object": {
+            "cr": "3",
+            "type": "Dragon",
+            "size": "Medium"
+          },
+          "object_model": "Creature",
+          "schema_version": "v2",
+          "route": "v2/creatures/",
+          "text": "Dragon, Sand Wyrmling\n",
+          "highlighted": "<span class=\"highlighted\">Dragon</span>, Sand Wyrmling\n",
+          "match_type": "exact",
+          "matched_term": "dragon",
+          "match_score": 1.0
+        }
+      ]
+    },
+    {
+      "name": "Test 8: Fuzzy + Vector",
+      "params": {
+        "query": "damge spel",
+        "fuzzy": true,
+        "vector": true
+      },
+      "description": "Search for 'damge spel' (typo) with both fuzzy and vector",
+      "status": "success",
+      "results_count": 0
+    },
+    {
+      "name": "Test 9: Fuzzy Matching - Another Typo",
+      "params": {
+        "query": "cury wounds",
+        "fuzzy": true
+      },
+      "description": "Search for 'cury wounds' (typo) with fuzzy=true",
+      "status": "success",
+      "results_count": 0,
+      "first_result": null
+    },
+    {
+      "name": "Test 10: Strict Mode",
+      "params": {
+        "query": "fireball",
+        "fuzzy": true,
+        "strict": true
+      },
+      "description": "Search with strict=true (only explicit match types)",
+      "status": "success",
+      "results_count": 1
+    }
+  ],
+  "summary": {}
+}
