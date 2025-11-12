@@ -318,3 +318,158 @@ async def test_lookup_creature_default_repository():
     # and instead uses context-based injection
     sig = inspect.signature(lookup_creature)
     assert "repository" not in sig.parameters
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_armor_class_min(repository_context):
+    """Test creature lookup with armor_class_min filter."""
+    creature_obj = Monster(
+        name="Ancient Red Dragon",
+        slug="ancient-red-dragon",
+        size="Gargantuan",
+        type="dragon",
+        alignment="chaotic evil",
+        armor_class=22,
+        hit_points=546,
+        hit_dice="28d20+280",
+        challenge_rating="24",
+        challenge_rating_decimal=24.0,
+        strength=30,
+        dexterity=10,
+        constitution=29,
+        intelligence=18,
+        wisdom=15,
+        charisma=23,
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/ancient-red-dragon",
+    )
+
+    repository_context.search.return_value = [creature_obj]
+
+    await lookup_creature(armor_class_min=20)
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["armor_class_min"] == 20
+    assert call_kwargs["limit"] == 20
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_hit_points_min(repository_context):
+    """Test creature lookup with hit_points_min filter."""
+    creature_obj = Monster(
+        name="Ancient Red Dragon",
+        slug="ancient-red-dragon",
+        size="Gargantuan",
+        type="dragon",
+        alignment="chaotic evil",
+        armor_class=22,
+        hit_points=546,
+        hit_dice="28d20+280",
+        challenge_rating="24",
+        challenge_rating_decimal=24.0,
+        strength=30,
+        dexterity=10,
+        constitution=29,
+        intelligence=18,
+        wisdom=15,
+        charisma=23,
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/ancient-red-dragon",
+    )
+
+    repository_context.search.return_value = [creature_obj]
+
+    await lookup_creature(hit_points_min=500)
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["hit_points_min"] == 500
+    assert call_kwargs["limit"] == 20
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_combined_filters(repository_context):
+    """Test creature lookup with armor_class_min and hit_points_min together."""
+    creature_obj = Monster(
+        name="Ancient Red Dragon",
+        slug="ancient-red-dragon",
+        size="Gargantuan",
+        type="dragon",
+        alignment="chaotic evil",
+        armor_class=22,
+        hit_points=546,
+        hit_dice="28d20+280",
+        challenge_rating="24",
+        challenge_rating_decimal=24.0,
+        strength=30,
+        dexterity=10,
+        constitution=29,
+        intelligence=18,
+        wisdom=15,
+        charisma=23,
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/ancient-red-dragon",
+    )
+
+    repository_context.search.return_value = [creature_obj]
+
+    await lookup_creature(armor_class_min=20, hit_points_min=500, cr=10)
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["armor_class_min"] == 20
+    assert call_kwargs["hit_points_min"] == 500
+    assert call_kwargs["challenge_rating"] == 10.0
+    assert call_kwargs["limit"] == 20
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_backward_compatible(repository_context):
+    """Test that existing calls without new parameters still work."""
+    creature_obj = Monster(
+        name="Goblin",
+        slug="goblin",
+        size="Small",
+        type="humanoid",
+        alignment="neutral evil",
+        armor_class=15,
+        hit_points=7,
+        hit_dice="2d6",
+        challenge_rating="1/4",
+        challenge_rating_decimal=0.25,
+        strength=8,
+        dexterity=14,
+        constitution=10,
+        intelligence=10,
+        wisdom=8,
+        charisma=8,
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/goblin",
+    )
+
+    repository_context.search.return_value = [creature_obj]
+
+    # Call without new parameters - should work unchanged
+    result = await lookup_creature(name="goblin")
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Goblin"
+
+    # Verify new parameters were not passed to repository
+    call_kwargs = repository_context.search.call_args[1]
+    assert "armor_class_min" not in call_kwargs
+    assert "hit_points_min" not in call_kwargs

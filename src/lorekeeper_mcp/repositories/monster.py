@@ -2,7 +2,9 @@
 
 from typing import Any, Protocol
 
+from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 from lorekeeper_mcp.api_clients.models.monster import Monster
+from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.repositories.base import Repository
 
 
@@ -87,7 +89,8 @@ class MonsterRepository(Repository[Monster]):
             return results[:limit] if limit else results
 
         # Cache miss - fetch from API with filters and limit
-        monsters: list[Monster] = await self.client.get_monsters(limit=limit, **filters)
+        api_params = self._map_to_api_params(**filters)
+        monsters: list[Monster] = await self.client.get_monsters(limit=limit, **api_params)
 
         # Store in cache if we got results
         if monsters:
@@ -95,3 +98,39 @@ class MonsterRepository(Repository[Monster]):
             await self.cache.store_entities(monster_dicts, "monsters")
 
         return monsters
+
+    def _map_to_api_params(self, **filters: Any) -> dict[str, Any]:
+        """Map repository parameters to API-specific filter operators.
+
+        Converts repository-level filter parameters to API-specific operators
+        based on the client type. Open5e uses operators like `armor_class__gte`
+        and `hit_points__gte`, while D&D 5e API uses different parameter names.
+
+        Args:
+            **filters: Repository-level filter parameters
+
+        Returns:
+            Dictionary of API-specific parameters ready for API calls
+        """
+        params: dict[str, Any] = {}
+
+        if isinstance(self.client, Open5eV2Client):
+            # Map to Open5e filter operators
+            if "armor_class_min" in filters:
+                params["armor_class__gte"] = filters["armor_class_min"]
+            if "hit_points_min" in filters:
+                params["hit_points__gte"] = filters["hit_points_min"]
+            # Pass through exact matches
+            for key in ["type", "size", "cr_min", "cr_max", "challenge_rating"]:
+                if key in filters:
+                    params[key] = filters[key]
+
+        elif isinstance(self.client, Dnd5eApiClient):
+            # D&D API: pass through filters as-is (API will handle them)
+            params = dict(filters)
+
+        else:
+            # For unknown client types, pass through filters as-is
+            params = dict(filters)
+
+        return params

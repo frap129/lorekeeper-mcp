@@ -68,6 +68,8 @@ async def lookup_creature(
     cr_max: float | None = None,
     type: str | None = None,  # noqa: A002
     size: str | None = None,
+    armor_class_min: int | None = None,
+    hit_points_min: int | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -108,6 +110,10 @@ async def lookup_creature(
             ooze, reptile, undead, plant. Examples: "dragon", "undead", "humanoid"
         size: Size category filter. Valid values: Tiny, Small, Medium, Large, Huge, Gargantuan
             Examples: "Large" for major encounters, "Tiny" for swarms
+        armor_class_min: Minimum Armor Class filter. Returns creatures with AC at or above
+            this value. Useful for finding well-armored threats. Examples: 15, 18, 20
+        hit_points_min: Minimum Hit Points filter. Returns creatures with HP at or above
+            this value. Useful for finding creatures with significant endurance. Examples: 50, 100, 200
         limit: Maximum number of results to return. Default 20, useful for pagination
             or limiting large result sets. Example: 5
 
@@ -149,6 +155,10 @@ async def lookup_creature(
         params["type"] = type
     if size is not None:
         params["size"] = size
+    if armor_class_min is not None:
+        params["armor_class_min"] = armor_class_min
+    if hit_points_min is not None:
+        params["hit_points_min"] = hit_points_min
 
     # Fetch creatures from repository with filters
     # When searching by name, fetch more results to ensure we find matches
