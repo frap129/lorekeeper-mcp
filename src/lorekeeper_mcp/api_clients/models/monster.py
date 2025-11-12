@@ -15,6 +15,9 @@ class Monster(BaseModel):
     hit_points: int = Field(..., ge=0, description="Average hit points")
     hit_dice: str = Field(..., description="Hit dice formula")
     challenge_rating: str = Field(..., description="Challenge rating (CR)")
+    challenge_rating_decimal: float | None = Field(
+        None, ge=0, description="Challenge rating as decimal (for range filtering)"
+    )
 
     # Ability scores (can exceed 30 for legendary creatures)
     strength: int | None = Field(None, ge=1, le=50, description="Strength score")

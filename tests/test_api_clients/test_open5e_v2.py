@@ -757,3 +757,298 @@ async def test_partial_name_match(v2_client: Open5eV2Client) -> None:
     assert len(spells) == 1
     assert spells[0].name == "Magic Missile"
     assert "missile" in spells[0].name.lower()
+
+
+# Task 1.3: Add Range Filter Operators
+@respx.mock
+async def test_level_range_filtering(v2_client: Open5eV2Client) -> None:
+    """Test that get_spells supports level__gte and level__lte range operators.
+
+    Range queries should use server-side filtering with level__gte and level__lte
+    parameters instead of client-side filtering.
+    """
+    # Mock API with level__gte filter for level >= 4
+    respx.get("https://api.open5e.com/v2/spells/?level__gte=4").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "name": "Polymorph",
+                        "slug": "polymorph",
+                        "level": 4,
+                        "school": "Transmutation",
+                        "casting_time": "1 action",
+                        "range": "60 feet",
+                        "components": "V, S, M",
+                        "duration": "Concentration, up to 1 hour",
+                        "desc": "This spell transforms a creature...",
+                    },
+                    {
+                        "name": "Cone of Cold",
+                        "slug": "cone-of-cold",
+                        "level": 5,
+                        "school": "Evocation",
+                        "casting_time": "1 action",
+                        "range": "60 feet",
+                        "components": "V, S, M",
+                        "duration": "Instantaneous",
+                        "desc": "A blast of cold...",
+                    },
+                ]
+            },
+        )
+    )
+
+    spells = await v2_client.get_spells(level_gte=4)
+
+    # Should return spells at level 4 or higher from server
+    assert len(spells) == 2
+    assert all(spell.level >= 4 for spell in spells)
+
+
+@respx.mock
+async def test_level_range_filtering_lte(v2_client: Open5eV2Client) -> None:
+    """Test that get_spells supports level__lte range operator."""
+    # Mock API with level__lte filter for level <= 2
+    respx.get("https://api.open5e.com/v2/spells/?level__lte=2").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "name": "Magic Missile",
+                        "slug": "magic-missile",
+                        "level": 1,
+                        "school": "Evocation",
+                        "casting_time": "1 action",
+                        "range": "120 feet",
+                        "components": "V, S",
+                        "duration": "Instantaneous",
+                        "desc": "A missile of magical force...",
+                    },
+                    {
+                        "name": "Scorching Ray",
+                        "slug": "scorching-ray",
+                        "level": 2,
+                        "school": "Evocation",
+                        "casting_time": "1 action",
+                        "range": "120 feet",
+                        "components": "V, S",
+                        "duration": "Instantaneous",
+                        "desc": "A line of fire...",
+                    },
+                ]
+            },
+        )
+    )
+
+    spells = await v2_client.get_spells(level_lte=2)
+
+    # Should return spells at level 2 or lower from server
+    assert len(spells) == 2
+    assert all(spell.level <= 2 for spell in spells)
+
+
+@respx.mock
+async def test_cr_range_filtering(v2_client: Open5eV2Client) -> None:
+    """Test that get_creatures supports challenge_rating_decimal range operators.
+
+    Challenge rating should support challenge_rating_decimal__gte and
+    challenge_rating_decimal__lte for range filtering server-side.
+    """
+    # Mock API with challenge_rating_decimal__gte filter for CR >= 2.0
+    respx.get("https://api.open5e.com/v2/creatures/?challenge_rating_decimal__gte=2.0").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "ogre",
+                        "name": "Ogre",
+                        "desc": "A large brutish creature...",
+                        "size": "Large",
+                        "type": "giant",
+                        "alignment": "Chaotic Evil",
+                        "armor_class": 11,
+                        "hit_points": 59,
+                        "hit_dice": "7d10+21",
+                        "challenge_rating": "2",
+                        "challenge_rating_decimal": 2.0,
+                    },
+                    {
+                        "slug": "bugbear",
+                        "name": "Bugbear",
+                        "desc": "A large goblinoid creature...",
+                        "size": "Large",
+                        "type": "humanoid",
+                        "alignment": "Chaotic Evil",
+                        "armor_class": 13,
+                        "hit_points": 27,
+                        "hit_dice": "5d10+5",
+                        "challenge_rating": "3",
+                        "challenge_rating_decimal": 3.0,
+                    },
+                ]
+            },
+        )
+    )
+
+    creatures = await v2_client.get_creatures(challenge_rating_decimal_gte=2.0)
+
+    # Should return creatures with CR >= 2.0 from server
+    assert len(creatures) == 2
+    for creature in creatures:
+        assert creature.challenge_rating_decimal is not None
+        assert creature.challenge_rating_decimal >= 2.0
+
+
+@respx.mock
+async def test_cr_range_filtering_lte(v2_client: Open5eV2Client) -> None:
+    """Test that get_creatures supports challenge_rating_decimal__lte."""
+    # Mock API with challenge_rating_decimal__lte filter for CR <= 1.0
+    respx.get("https://api.open5e.com/v2/creatures/?challenge_rating_decimal__lte=1.0").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "goblin",
+                        "name": "Goblin",
+                        "desc": "A common humanoid...",
+                        "size": "Small",
+                        "type": "humanoid",
+                        "alignment": "Neutral Evil",
+                        "armor_class": 15,
+                        "hit_points": 7,
+                        "hit_dice": "2d6",
+                        "challenge_rating": "1/4",
+                        "challenge_rating_decimal": 0.25,
+                    },
+                    {
+                        "slug": "orc",
+                        "name": "Orc",
+                        "desc": "A warrior of the wilds...",
+                        "size": "Medium",
+                        "type": "humanoid",
+                        "alignment": "Chaotic Evil",
+                        "armor_class": 13,
+                        "hit_points": 15,
+                        "hit_dice": "2d8",
+                        "challenge_rating": "1/2",
+                        "challenge_rating_decimal": 0.5,
+                    },
+                ]
+            },
+        )
+    )
+
+    creatures = await v2_client.get_creatures(challenge_rating_decimal_lte=1.0)
+
+    # Should return creatures with CR <= 1.0 from server
+    assert len(creatures) == 2
+    for creature in creatures:
+        assert creature.challenge_rating_decimal is not None
+        assert creature.challenge_rating_decimal <= 1.0
+
+
+@respx.mock
+async def test_cost_range_filtering(v2_client: Open5eV2Client) -> None:
+    """Test that get_weapons/get_armor support cost__gte and cost__lte.
+
+    Cost filtering should support cost__gte and cost__lte for range filtering
+    server-side on weapons and armor.
+    """
+    # Mock API with cost__gte filter for weapons costing >= 50 gp
+    respx.get("https://api.open5e.com/v2/weapons/?cost__gte=50").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "url": "https://api.open5e.com/v2/weapons/srd-2024_longsword/",
+                        "key": "srd-2024_longsword",
+                        "name": "Longsword",
+                        "slug": "longsword",
+                        "damage_dice": "1d8",
+                        "damage_type": {
+                            "name": "Slashing",
+                            "key": "slashing",
+                            "url": "https://api.open5e.com/v2/damagetypes/slashing/",
+                        },
+                        "properties": [],
+                        "range": 0.0,
+                        "long_range": 0.0,
+                        "distance_unit": "feet",
+                        "is_simple": False,
+                        "is_improvised": False,
+                        "cost": "15 gp",
+                    },
+                    {
+                        "url": "https://api.open5e.com/v2/weapons/srd-2024_greatsword/",
+                        "key": "srd-2024_greatsword",
+                        "name": "Greatsword",
+                        "slug": "greatsword",
+                        "damage_dice": "2d6",
+                        "damage_type": {
+                            "name": "Slashing",
+                            "key": "slashing",
+                            "url": "https://api.open5e.com/v2/damagetypes/slashing/",
+                        },
+                        "properties": [],
+                        "range": 0.0,
+                        "long_range": 0.0,
+                        "distance_unit": "feet",
+                        "is_simple": False,
+                        "is_improvised": False,
+                        "cost": "50 gp",
+                    },
+                ]
+            },
+        )
+    )
+
+    weapons = await v2_client.get_weapons(cost_gte=50)
+
+    # Should return weapons with cost >= 50 gp from server
+    assert len(weapons) == 2
+
+
+@respx.mock
+async def test_cost_range_filtering_lte(v2_client: Open5eV2Client) -> None:
+    """Test that get_armor supports cost__lte range operator."""
+    # Mock API with cost__lte filter for armor costing <= 50 gp
+    respx.get("https://api.open5e.com/v2/armor/?cost__lte=50").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "name": "Leather",
+                        "slug": "leather",
+                        "key": "leather",
+                        "category": "Light",
+                        "base_ac": 11,
+                        "cost": "5 gp",
+                        "weight": 10.0,
+                        "stealth_disadvantage": False,
+                    },
+                    {
+                        "name": "Hide",
+                        "slug": "hide",
+                        "key": "hide",
+                        "category": "Medium",
+                        "base_ac": 12,
+                        "cost": "10 gp",
+                        "weight": 15.0,
+                        "stealth_disadvantage": False,
+                    },
+                ]
+            },
+        )
+    )
+
+    armors = await v2_client.get_armor(cost_lte=50)
+
+    # Should return armor with cost <= 50 gp from server
+    assert len(armors) == 2

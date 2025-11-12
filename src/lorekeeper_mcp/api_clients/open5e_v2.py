@@ -22,6 +22,8 @@ class Open5eV2Client(BaseHttpClient):
         level: int | None = None,
         school: str | None = None,
         name: str | None = None,
+        level_gte: int | None = None,
+        level_lte: int | None = None,
         **kwargs: Any,
     ) -> list[Spell]:
         """Get spells from Open5e API v2.
@@ -30,6 +32,8 @@ class Open5eV2Client(BaseHttpClient):
             level: Filter by spell level
             school: Filter by spell school (server-side filtering via school__key)
             name: Filter by spell name (server-side filtering via name__icontains)
+            level_gte: Filter spells with level >= this value (level__gte)
+            level_lte: Filter spells with level <= this value (level__lte)
             **kwargs: Additional API parameters
 
         Returns:
@@ -39,6 +43,12 @@ class Open5eV2Client(BaseHttpClient):
 
         if level is not None:
             params["level"] = level
+
+        # Use server-side range operators for level filtering
+        if level_gte is not None:
+            params["level__gte"] = level_gte
+        if level_lte is not None:
+            params["level__lte"] = level_lte
 
         # Use server-side school__key parameter for filtering
         if school:
@@ -62,11 +72,19 @@ class Open5eV2Client(BaseHttpClient):
 
         return [Spell.model_validate(spell) for spell in spell_dicts]
 
-    async def get_weapons(self, name: str | None = None, **kwargs: Any) -> list[Weapon]:
+    async def get_weapons(
+        self,
+        name: str | None = None,
+        cost_gte: int | float | None = None,
+        cost_lte: int | float | None = None,
+        **kwargs: Any,
+    ) -> list[Weapon]:
         """Get weapons from Open5e API v2.
 
         Args:
             name: Filter by weapon name (server-side filtering via name__icontains)
+            cost_gte: Filter weapons with cost >= this value (cost__gte)
+            cost_lte: Filter weapons with cost <= this value (cost__lte)
             **kwargs: Additional API parameters
 
         Returns:
@@ -77,6 +95,12 @@ class Open5eV2Client(BaseHttpClient):
         # Use server-side name__icontains parameter for partial name matching
         if name:
             params["name__icontains"] = name
+
+        # Use server-side range operators for cost filtering
+        if cost_gte is not None:
+            params["cost__gte"] = cost_gte
+        if cost_lte is not None:
+            params["cost__lte"] = cost_lte
 
         # Add any additional parameters
         params.update(kwargs)
@@ -92,11 +116,19 @@ class Open5eV2Client(BaseHttpClient):
 
         return [Weapon.model_validate(weapon) for weapon in weapon_dicts]
 
-    async def get_armor(self, name: str | None = None, **kwargs: Any) -> list[Armor]:
+    async def get_armor(
+        self,
+        name: str | None = None,
+        cost_gte: int | float | None = None,
+        cost_lte: int | float | None = None,
+        **kwargs: Any,
+    ) -> list[Armor]:
         """Get armor from Open5e API v2.
 
         Args:
             name: Filter by armor name (server-side filtering via name__icontains)
+            cost_gte: Filter armor with cost >= this value (cost__gte)
+            cost_lte: Filter armor with cost <= this value (cost__lte)
             **kwargs: Additional API parameters
 
         Returns:
@@ -107,6 +139,12 @@ class Open5eV2Client(BaseHttpClient):
         # Use server-side name__icontains parameter for partial name matching
         if name:
             params["name__icontains"] = name
+
+        # Use server-side range operators for cost filtering
+        if cost_gte is not None:
+            params["cost__gte"] = cost_gte
+        if cost_lte is not None:
+            params["cost__lte"] = cost_lte
 
         # Add any additional parameters
         params.update(kwargs)
@@ -223,20 +261,40 @@ class Open5eV2Client(BaseHttpClient):
         return result.get("results", [])  # type: ignore[no-any-return]
 
     # Task 1.7: Creature methods
-    async def get_creatures(self, **kwargs: Any) -> list[Monster]:
+    async def get_creatures(
+        self,
+        challenge_rating_decimal_gte: float | None = None,
+        challenge_rating_decimal_lte: float | None = None,
+        **kwargs: Any,
+    ) -> list[Monster]:
         """Get creatures from Open5e API v2.
 
         Creatures are returned as Monster models compatible with v1.
 
         Args:
+            challenge_rating_decimal_gte: Filter creatures with CR >= this value
+                (challenge_rating_decimal__gte)
+            challenge_rating_decimal_lte: Filter creatures with CR <= this value
+                (challenge_rating_decimal__lte)
             **kwargs: Additional API parameters
 
         Returns:
             List of Monster models
         """
+        params: dict[str, Any] = {}
+
+        # Use server-side range operators for challenge rating filtering
+        if challenge_rating_decimal_gte is not None:
+            params["challenge_rating_decimal__gte"] = challenge_rating_decimal_gte
+        if challenge_rating_decimal_lte is not None:
+            params["challenge_rating_decimal__lte"] = challenge_rating_decimal_lte
+
+        # Add any additional parameters
+        params.update(kwargs)
+
         result = await self.make_request(
             "/creatures/",
-            params=kwargs,
+            params=params,
         )
 
         creature_dicts: list[dict[str, Any]] = (
