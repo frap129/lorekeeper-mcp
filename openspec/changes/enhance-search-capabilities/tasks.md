@@ -54,23 +54,23 @@
 ## Phase 2: Unified Search Implementation
 
 ### 2.1 Verify Unified Search Endpoint
-- [ ] **Task**: Manually test `/v2/search/` endpoint with `query`, `fuzzy`, `vector` parameters to confirm documented behavior
-- [ ] **Validation**: Fuzzy matching handles typos, vector search returns semantic matches
-- [ ] **Test**: Manual curl/httpx testing, document actual API responses
+- [x] **Task**: Manually test `/v2/search/` endpoint with `query`, `fuzzy`, `vector` parameters to confirm documented behavior
+- [x] **Validation**: Fuzzy matching handles typos, vector search returns semantic matches
+- [x] **Test**: Manual curl/httpx testing, document actual API responses
 - **Dependencies**: None
 - **Estimated Time**: 2 hours
 
 ### 2.2 Implement Unified Search Client Method
-- [ ] **Task**: Add `unified_search()` method to Open5eV2Client supporting query, fuzzy, vector, object_model parameters
-- [ ] **Validation**: Method correctly calls `/v2/search/` with proper parameters
-- [ ] **Test**: `test_unified_search_method`, `test_fuzzy_parameter`, `test_vector_parameter`, `test_object_model_filter`
+- [x] **Task**: Add `unified_search()` method to Open5eV2Client supporting query, fuzzy, vector, object_model parameters
+- [x] **Validation**: Method correctly calls `/v2/search/` with proper parameters
+- [x] **Test**: `test_unified_search_method`, `test_fuzzy_parameter`, `test_vector_parameter`, `test_object_model_filter`
 - **Dependencies**: 2.1
 - **Estimated Time**: 3 hours
 
 ### 2.3 Create search_dnd_content MCP Tool
-- [ ] **Task**: Implement new `search_dnd_content()` tool that exposes unified search with fuzzy and semantic options
-- [ ] **Validation**: Tool returns cross-entity results, handles content_types filtering
-- [ ] **Test**: `test_search_dnd_content_tool`, `test_cross_entity_search`, `test_content_type_filtering`
+- [x] **Task**: Implement new `search_dnd_content()` tool that exposes unified search with fuzzy and semantic options
+- [x] **Validation**: Tool returns cross-entity results, handles content_types filtering
+- [x] **Test**: `test_search_dnd_content_tool`, `test_cross_entity_search`, `test_content_type_filtering`
 - **Dependencies**: 2.2
 - **Estimated Time**: 3 hours
 
