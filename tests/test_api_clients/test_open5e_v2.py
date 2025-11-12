@@ -52,10 +52,9 @@ async def test_get_spells_basic(v2_client: Open5eV2Client) -> None:
 async def test_get_spells_with_filters(v2_client: Open5eV2Client) -> None:
     """Test spell lookup with level and school filters.
 
-    School filtering is done client-side (not supported by API),
-    so only level is sent to the API.
+    Both level and school are sent as server-side parameters.
     """
-    respx.get("https://api.open5e.com/v2/spells/?level=3").mock(
+    respx.get("https://api.open5e.com/v2/spells/?level=3&school__key=evocation").mock(
         return_value=httpx.Response(200, json={"results": []})
     )
 
@@ -141,14 +140,14 @@ async def test_get_armor(v2_client: Open5eV2Client) -> None:
 
 
 @respx.mock
-async def test_spell_school_filtering(v2_client: Open5eV2Client) -> None:
-    """Test that get_spells filters by school on client side.
+async def test_school_server_side_filtering(v2_client: Open5eV2Client) -> None:
+    """Test that get_spells uses server-side school__key parameter filtering.
 
-    Open5e v2 API doesn't support server-side school filtering, so
-    client must filter results after retrieval.
+    The school parameter should be converted to school__key and sent to the API.
+    The API handles the filtering, not the client.
     """
-    # Mock the API call without school parameter - API returns all spells
-    respx.get("https://api.open5e.com/v2/spells/").mock(
+    # Mock the API call WITH school__key parameter - API returns filtered spells
+    respx.get("https://api.open5e.com/v2/spells/?school__key=evocation").mock(
         return_value=httpx.Response(
             200,
             json={
@@ -175,41 +174,29 @@ async def test_spell_school_filtering(v2_client: Open5eV2Client) -> None:
                         "duration": "Instantaneous",
                         "desc": "A missile of magical force...",
                     },
-                    {
-                        "name": "Detect Magic",
-                        "slug": "detect-magic",
-                        "level": 1,
-                        "school": "Divination",
-                        "casting_time": "1 action",
-                        "range": "Self",
-                        "components": "V, S",
-                        "duration": "Concentration, up to 10 minutes",
-                        "desc": "For the spell's duration...",
-                    },
                 ]
             },
         )
     )
 
-    # Request spells filtered by school
+    # Request spells filtered by school - uses school__key parameter
     spells = await v2_client.get_spells(school="Evocation")
 
-    # Should only return evocation spells
+    # Should return only evocation spells from server
     assert len(spells) == 2
     assert all(spell.school == "Evocation" for spell in spells)
     assert {spell.name for spell in spells} == {"Fireball", "Magic Missile"}
 
 
 @respx.mock
-async def test_spell_school_filtering_case_insensitive(
-    v2_client: Open5eV2Client,
-) -> None:
-    """Test that school filtering is case-insensitive.
+async def test_no_client_side_filtering(v2_client: Open5eV2Client) -> None:
+    """Test that no client-side filtering occurs when school parameter is used.
 
-    The filtering should match spells regardless of the case of the
-    school parameter provided by the user.
+    If the API properly filters server-side, we should get exactly what the
+    API returns without any additional filtering in the client.
     """
-    respx.get("https://api.open5e.com/v2/spells/").mock(
+    # Mock API that returns filtered results
+    respx.get("https://api.open5e.com/v2/spells/?school__key=evocation").mock(
         return_value=httpx.Response(
             200,
             json={
@@ -225,34 +212,14 @@ async def test_spell_school_filtering_case_insensitive(
                         "duration": "Instantaneous",
                         "desc": "A bright streak...",
                     },
-                    {
-                        "name": "Detect Magic",
-                        "slug": "detect-magic",
-                        "level": 1,
-                        "school": "Divination",
-                        "casting_time": "1 action",
-                        "range": "Self",
-                        "components": "V, S",
-                        "duration": "Concentration, up to 10 minutes",
-                        "desc": "For the spell's duration...",
-                    },
                 ]
             },
         )
     )
 
-    # Test with lowercase input
-    spells = await v2_client.get_spells(school="evocation")
-    assert len(spells) == 1
-    assert spells[0].name == "Fireball"
+    spells = await v2_client.get_spells(school="Evocation")
 
-    # Test with uppercase input
-    spells = await v2_client.get_spells(school="EVOCATION")
-    assert len(spells) == 1
-    assert spells[0].name == "Fireball"
-
-    # Test with mixed case input
-    spells = await v2_client.get_spells(school="EvOcAtIoN")
+    # The spell count must be exactly what the API returned (no client filtering)
     assert len(spells) == 1
     assert spells[0].name == "Fireball"
 

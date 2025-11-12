@@ -27,7 +27,7 @@ class Open5eV2Client(BaseHttpClient):
 
         Args:
             level: Filter by spell level
-            school: Filter by spell school (client-side filtering)
+            school: Filter by spell school (server-side filtering via school__key)
             **kwargs: Additional API parameters
 
         Returns:
@@ -38,8 +38,9 @@ class Open5eV2Client(BaseHttpClient):
         if level is not None:
             params["level"] = level
 
-        # Note: school parameter is not supported server-side by Open5e v2 API,
-        # so we filter client-side below
+        # Use server-side school__key parameter for filtering
+        if school:
+            params["school__key"] = school.lower()
 
         # Add any additional parameters
         params.update(kwargs)
@@ -53,13 +54,7 @@ class Open5eV2Client(BaseHttpClient):
             result if isinstance(result, list) else result.get("results", [])
         )
 
-        spells = [Spell.model_validate(spell) for spell in spell_dicts]
-
-        # Client-side filtering for school (not supported server-side)
-        if school:
-            spells = [spell for spell in spells if spell.school.lower() == school.lower()]
-
-        return spells
+        return [Spell.model_validate(spell) for spell in spell_dicts]
 
     async def get_weapons(self, **kwargs: Any) -> list[Weapon]:
         """Get weapons from Open5e API v2."""
