@@ -89,7 +89,8 @@ class SpellRepository(Repository[Spell]):
             return results[:limit] if limit else results
 
         # Cache miss - fetch from API with filters and limit
-        spells: list[Spell] = await self.client.get_spells(limit=limit, **filters)
+        api_params = self._map_to_api_params(**filters)
+        spells: list[Spell] = await self.client.get_spells(limit=limit, **api_params)
 
         # Store in cache if we got results
         if spells:
@@ -143,5 +144,9 @@ class SpellRepository(Repository[Spell]):
             for key in ["school"]:
                 if key in filters:
                     params[key] = filters[key]
+
+        else:
+            # For unknown client types, pass through filters as-is
+            params = dict(filters)
 
         return params
