@@ -401,3 +401,158 @@ async def test_lookup_magic_items_empty_results(repository_context):
     result = await lookup_equipment(type="magic-item", name="NonExistent")
 
     assert len(result) == 0
+
+
+@pytest.mark.asyncio
+async def test_lookup_weapon_by_cost_min(repository_context, sample_longsword):
+    """Test filtering weapons by minimum cost."""
+    repository_context.search.return_value = [sample_longsword]
+
+    result = await lookup_equipment(type="weapon", cost_min=10)
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Longsword"
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["item_type"] == "weapon"
+    assert call_kwargs["cost_min"] == 10
+
+
+@pytest.mark.asyncio
+async def test_lookup_weapon_by_cost_max(repository_context, sample_dagger):
+    """Test filtering weapons by maximum cost."""
+    repository_context.search.return_value = [sample_dagger]
+
+    result = await lookup_equipment(type="weapon", cost_max=5)
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Dagger"
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["item_type"] == "weapon"
+    assert call_kwargs["cost_max"] == 5
+
+
+@pytest.mark.asyncio
+async def test_lookup_armor_by_cost_max(repository_context, sample_leather):
+    """Test filtering armor by maximum cost."""
+    repository_context.search.return_value = [sample_leather]
+
+    result = await lookup_equipment(type="armor", cost_max=10)
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Leather"
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["item_type"] == "armor"
+    assert call_kwargs["cost_max"] == 10
+
+
+@pytest.mark.asyncio
+async def test_lookup_weapon_by_weight_max(repository_context, sample_dagger):
+    """Test filtering weapons by maximum weight."""
+    repository_context.search.return_value = [sample_dagger]
+
+    result = await lookup_equipment(type="weapon", weight_max=3)
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Dagger"
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["item_type"] == "weapon"
+    assert call_kwargs["weight_max"] == 3
+
+
+@pytest.mark.asyncio
+async def test_lookup_weapon_by_is_finesse(repository_context, sample_dagger):
+    """Test filtering weapons by finesse property."""
+    repository_context.search.return_value = [sample_dagger]
+
+    result = await lookup_equipment(type="weapon", is_finesse=True)
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Dagger"
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["item_type"] == "weapon"
+    assert call_kwargs["is_finesse"] is True
+
+
+@pytest.mark.asyncio
+async def test_lookup_weapon_by_is_light(repository_context, sample_dagger):
+    """Test filtering weapons by light property."""
+    repository_context.search.return_value = [sample_dagger]
+
+    result = await lookup_equipment(type="weapon", is_light=True)
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Dagger"
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["item_type"] == "weapon"
+    assert call_kwargs["is_light"] is True
+
+
+@pytest.mark.asyncio
+async def test_lookup_weapon_by_is_magic(repository_context, sample_longsword):
+    """Test filtering weapons by magic property."""
+    repository_context.search.return_value = [sample_longsword]
+
+    result = await lookup_equipment(type="weapon", is_magic=True)
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Longsword"
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["item_type"] == "weapon"
+    assert call_kwargs["is_magic"] is True
+
+
+@pytest.mark.asyncio
+async def test_lookup_weapon_multiple_new_filters(repository_context, sample_longsword):
+    """Test filtering weapons with multiple new parameters."""
+    repository_context.search.return_value = [sample_longsword]
+
+    result = await lookup_equipment(
+        type="weapon",
+        cost_min=5,
+        cost_max=25,
+        weight_max=4,
+        is_finesse=True,
+    )
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Longsword"
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["item_type"] == "weapon"
+    assert call_kwargs["cost_min"] == 5
+    assert call_kwargs["cost_max"] == 25
+    assert call_kwargs["weight_max"] == 4
+    assert call_kwargs["is_finesse"] is True
+
+
+@pytest.mark.asyncio
+async def test_lookup_equipment_backward_compatibility_no_new_params(
+    repository_context, sample_longsword
+):
+    """Test backward compatibility when new parameters are not used."""
+    repository_context.search.return_value = [sample_longsword]
+
+    # Old-style call without new parameters should still work
+    result = await lookup_equipment(type="weapon", name="longsword", limit=20)
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Longsword"
+
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["item_type"] == "weapon"
+    assert call_kwargs["name"] == "longsword"
+    assert call_kwargs["limit"] == 20
+    # New parameters should not be present
+    assert "cost_min" not in call_kwargs
+    assert "cost_max" not in call_kwargs
+    assert "weight_max" not in call_kwargs
+    assert "is_finesse" not in call_kwargs
+    assert "is_light" not in call_kwargs
+    assert "is_magic" not in call_kwargs

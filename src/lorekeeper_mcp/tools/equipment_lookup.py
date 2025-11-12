@@ -59,6 +59,12 @@ async def lookup_equipment(
     damage_dice: str | None = None,
     is_simple: bool | None = None,
     requires_attunement: str | None = None,
+    cost_min: int | float | None = None,
+    cost_max: int | float | None = None,
+    weight_max: float | None = None,
+    is_finesse: bool | None = None,
+    is_light: bool | None = None,
+    is_magic: bool | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -93,10 +99,22 @@ async def lookup_equipment(
             quarterstaff, sickle, spear
             Martial weapons: all other melee and ranged weapons
             Example: True for low-complexity options
-         requires_attunement: Magic item attunement filter. Some powerful items require
-             attunement to a character. Examples: "yes", "no", or specific requirements
-         limit: Maximum number of results to return. Default 20. For type="all" with many
-             matches, limit applies to total results. Examples: 5, 20, 100
+        requires_attunement: Magic item attunement filter. Some powerful items require
+            attunement to a character. Examples: "yes", "no", or specific requirements
+        cost_min: Minimum cost in gold pieces (weapons and armor). Filters items costing
+            at least this amount. Example: 10 for items costing 10+ gp
+        cost_max: Maximum cost in gold pieces (weapons and armor). Filters items costing
+            at most this amount. Example: 25 for items costing 25 gp or less
+        weight_max: Maximum weight in pounds (weapons). Filters weapons weighing at most
+            this amount. Example: 3 for lightweight weapons
+        is_finesse: Finesse property filter (weapons). When True, returns only weapons
+            with the finesse property (can use STR or DEX modifier). Example: True
+        is_light: Light property filter (weapons). When True, returns only light weapons
+            suitable for dual-wielding. Example: True
+        is_magic: Magic property filter (weapons). When True, returns only magical weapons.
+            Example: True
+        limit: Maximum number of results to return. Default 20. For type="all" with many
+            matches, limit applies to total results. Examples: 5, 20, 100
 
     Returns:
         List of equipment dictionaries. Structure varies by type:
@@ -148,6 +166,18 @@ async def lookup_equipment(
             weapon_filters["damage_dice"] = damage_dice
         if is_simple is not None:
             weapon_filters["is_simple"] = is_simple
+        if cost_min is not None:
+            weapon_filters["cost_min"] = cost_min
+        if cost_max is not None:
+            weapon_filters["cost_max"] = cost_max
+        if weight_max is not None:
+            weapon_filters["weight_max"] = weight_max
+        if is_finesse is not None:
+            weapon_filters["is_finesse"] = is_finesse
+        if is_light is not None:
+            weapon_filters["is_light"] = is_light
+        if is_magic is not None:
+            weapon_filters["is_magic"] = is_magic
 
         # Fetch weapons with server-side filters
         weapons = await repository.search(limit=limit, **weapon_filters)
@@ -162,6 +192,10 @@ async def lookup_equipment(
         armor_filters: dict[str, Any] = {"item_type": "armor"}
         if name is not None:
             armor_filters["name"] = name
+        if cost_min is not None:
+            armor_filters["cost_min"] = cost_min
+        if cost_max is not None:
+            armor_filters["cost_max"] = cost_max
 
         # Fetch armor with server-side filters
         armors = await repository.search(limit=limit, **armor_filters)
