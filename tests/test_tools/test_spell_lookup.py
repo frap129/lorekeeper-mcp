@@ -254,3 +254,168 @@ async def test_lookup_spell_by_class_key(repository_context):
     assert len(results) == 1
     assert results[0]["name"] == "Fireball"
     assert "wizard" in results[0]["classes"]
+
+
+@pytest.mark.asyncio
+async def test_lookup_spell_with_level_min(repository_context):
+    """Test filtering spells by minimum level."""
+    spell_obj = Spell(
+        name="Fireball",
+        slug="fireball",
+        level=3,
+        school="evocation",
+        casting_time="1 action",
+        range="150 feet",
+        components="V,S,M",
+        material="a tiny ball of bat guano and sulfur",
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A bright streak flashes...",
+        document_url="https://example.com/fireball",
+        higher_level="When you cast this spell...",
+        damage_type=None,
+    )
+
+    repository_context.search.return_value = [spell_obj]
+
+    result = await lookup_spell(level_min=3)
+
+    assert len(result) == 1
+    assert result[0]["level"] == 3
+    # Verify repository.search was called with level_min parameter
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["level_min"] == 3
+
+
+@pytest.mark.asyncio
+async def test_lookup_spell_with_level_max(repository_context):
+    """Test filtering spells by maximum level."""
+    spell_obj = Spell(
+        name="Magic Missile",
+        slug="magic-missile",
+        level=1,
+        school="evocation",
+        casting_time="1 action",
+        range="120 feet",
+        components="V,S",
+        material=None,
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A missile of magical force...",
+        document_url="https://example.com/magic-missile",
+        higher_level="When you cast this spell...",
+        damage_type=None,
+    )
+
+    repository_context.search.return_value = [spell_obj]
+
+    result = await lookup_spell(level_max=3)
+
+    assert len(result) == 1
+    assert result[0]["level"] == 1
+    # Verify repository.search was called with level_max parameter
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["level_max"] == 3
+
+
+@pytest.mark.asyncio
+async def test_lookup_spell_with_level_range(repository_context):
+    """Test filtering spells by level range using both min and max."""
+    spell_obj = Spell(
+        name="Fireball",
+        slug="fireball",
+        level=3,
+        school="evocation",
+        casting_time="1 action",
+        range="150 feet",
+        components="V,S,M",
+        material="a tiny ball of bat guano and sulfur",
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A bright streak flashes...",
+        document_url="https://example.com/fireball",
+        higher_level="When you cast this spell...",
+        damage_type=None,
+    )
+
+    repository_context.search.return_value = [spell_obj]
+
+    result = await lookup_spell(level_min=1, level_max=5)
+
+    assert len(result) == 1
+    assert result[0]["level"] == 3
+    # Verify both parameters were passed to repository
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["level_min"] == 1
+    assert call_kwargs["level_max"] == 5
+
+
+@pytest.mark.asyncio
+async def test_lookup_spell_with_damage_type(repository_context):
+    """Test filtering spells by damage type."""
+    fire_spell = Spell(
+        name="Fireball",
+        slug="fireball",
+        level=3,
+        school="evocation",
+        casting_time="1 action",
+        range="150 feet",
+        components="V,S,M",
+        material="a tiny ball of bat guano and sulfur",
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A bright streak flashes...",
+        document_url="https://example.com/fireball",
+        higher_level="When you cast this spell...",
+        damage_type=["fire"],
+    )
+
+    repository_context.search.return_value = [fire_spell]
+
+    result = await lookup_spell(damage_type="fire")
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Fireball"
+    # Verify repository.search was called with damage_type parameter
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["damage_type"] == "fire"
+
+
+@pytest.mark.asyncio
+async def test_lookup_spell_backward_compatibility(repository_context):
+    """Test that lookup_spell is backward compatible without new parameters."""
+    spell_obj = Spell(
+        name="Fireball",
+        slug="fireball",
+        level=3,
+        school="evocation",
+        casting_time="1 action",
+        range="150 feet",
+        components="V,S,M",
+        material="a tiny ball of bat guano and sulfur",
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A bright streak flashes...",
+        document_url="https://example.com/fireball",
+        higher_level="When you cast this spell...",
+        damage_type=None,
+    )
+
+    repository_context.search.return_value = [spell_obj]
+
+    # Call without new parameters - should work as before
+    result = await lookup_spell(name="Fireball")
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Fireball"
+    # Verify only name parameter was passed (not level_min, level_max, damage_type)
+    call_kwargs = repository_context.search.call_args[1]
+    assert "name" in call_kwargs
+    assert "level_min" not in call_kwargs
+    assert "level_max" not in call_kwargs
+    assert "damage_type" not in call_kwargs

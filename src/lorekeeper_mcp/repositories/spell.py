@@ -124,6 +124,8 @@ class SpellRepository(Repository[Spell]):
                 params["level__gte"] = filters["level_min"]
             if "level_max" in filters:
                 params["level__lte"] = filters["level_max"]
+            if "damage_type" in filters:
+                params["damage_type__icontains"] = filters["damage_type"]
             # Pass through exact matches
             for key in ["level", "concentration", "ritual", "casting_time"]:
                 if key in filters:
@@ -141,7 +143,7 @@ class SpellRepository(Repository[Spell]):
             elif "level" in filters:
                 params["level"] = filters["level"]
             # Pass through other filters
-            for key in ["school"]:
+            for key in ["school", "damage_type"]:
                 if key in filters:
                     params[key] = filters[key]
 

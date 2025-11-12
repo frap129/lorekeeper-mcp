@@ -64,11 +64,14 @@ def clear_spell_cache() -> None:
 async def lookup_spell(
     name: str | None = None,
     level: int | None = None,
+    level_min: int | None = None,
+    level_max: int | None = None,
     school: str | None = None,
     class_key: str | None = None,
     concentration: bool | None = None,
     ritual: bool | None = None,
     casting_time: str | None = None,
+    damage_type: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -90,6 +93,13 @@ async def lookup_spell(
             spells = await lookup_spell(level=3, school="evocation")
             spells = await lookup_spell(class_key="wizard", concentration=True)
 
+        With level ranges:
+            mid_level_spells = await lookup_spell(level_min=3, level_max=5)
+            high_damage_spells = await lookup_spell(level_min=5)
+
+        Filtering by damage type:
+            fire_spells = await lookup_spell(damage_type="fire")
+
         With test context injection (testing):
             from lorekeeper_mcp.tools.spell_lookup import _repository_context
             custom_repo = SpellRepository(cache=my_cache)
@@ -106,6 +116,10 @@ async def lookup_spell(
             Example: "fireball", "magic", "shield"
         level: Spell level ranging from 0-9, where 0 represents cantrips/0-level spells
             and 9 represents 9th level spells. Example: 3 for 3rd level spells
+        level_min: Minimum spell level (inclusive). Returns spells at this level or higher.
+            Example: 3 for 3rd level and above spells
+        level_max: Maximum spell level (inclusive). Returns spells at this level or lower.
+            Example: 5 for spells up to 5th level
         school: Magic school filter. Valid values: abjuration, conjuration, divination,
             enchantment, evocation, illusion, necromancy, transmutation
             Example: "evocation" for damage-dealing spells
@@ -118,6 +132,7 @@ async def lookup_spell(
             Example: True
         casting_time: Casting time filter for spells. Examples: "1 action", "1 bonus action",
             "1 reaction", "1 minute", "10 minutes"
+        damage_type: Filter spells by damage type dealt. Example: "fire", "cold", "necrotic"
         limit: Maximum number of results to return. Default 20, useful for pagination
             or limiting large result sets. Example: 5
 
@@ -137,6 +152,7 @@ async def lookup_spell(
             - higher_level: Effect when cast at higher levels
             - classes: List of classes that can learn this spell
             - document__slug: Source document reference
+            - damage_type: Damage types dealt by the spell (if applicable)
 
     Raises:
         ApiError: If the API request fails due to network issues or server errors
@@ -151,6 +167,10 @@ async def lookup_spell(
         params["name"] = name
     if level is not None:
         params["level"] = level
+    if level_min is not None:
+        params["level_min"] = level_min
+    if level_max is not None:
+        params["level_max"] = level_max
     if school is not None:
         params["school"] = school
     # class_key filtering happens client-side below
@@ -160,6 +180,8 @@ async def lookup_spell(
         params["ritual"] = ritual
     if casting_time is not None:
         params["casting_time"] = casting_time
+    if damage_type is not None:
+        params["damage_type"] = damage_type
 
     # Fetch spells from repository with filters
     # API will filter by name server-side for better performance
