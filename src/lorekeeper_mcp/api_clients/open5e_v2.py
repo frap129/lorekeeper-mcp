@@ -21,6 +21,7 @@ class Open5eV2Client(BaseHttpClient):
         self,
         level: int | None = None,
         school: str | None = None,
+        name: str | None = None,
         **kwargs: Any,
     ) -> list[Spell]:
         """Get spells from Open5e API v2.
@@ -28,6 +29,7 @@ class Open5eV2Client(BaseHttpClient):
         Args:
             level: Filter by spell level
             school: Filter by spell school (server-side filtering via school__key)
+            name: Filter by spell name (server-side filtering via name__icontains)
             **kwargs: Additional API parameters
 
         Returns:
@@ -41,6 +43,10 @@ class Open5eV2Client(BaseHttpClient):
         # Use server-side school__key parameter for filtering
         if school:
             params["school__key"] = school.lower()
+
+        # Use server-side name__icontains parameter for partial name matching
+        if name:
+            params["name__icontains"] = name
 
         # Add any additional parameters
         params.update(kwargs)
@@ -56,11 +62,28 @@ class Open5eV2Client(BaseHttpClient):
 
         return [Spell.model_validate(spell) for spell in spell_dicts]
 
-    async def get_weapons(self, **kwargs: Any) -> list[Weapon]:
-        """Get weapons from Open5e API v2."""
+    async def get_weapons(self, name: str | None = None, **kwargs: Any) -> list[Weapon]:
+        """Get weapons from Open5e API v2.
+
+        Args:
+            name: Filter by weapon name (server-side filtering via name__icontains)
+            **kwargs: Additional API parameters
+
+        Returns:
+            List of Weapon models
+        """
+        params: dict[str, Any] = {}
+
+        # Use server-side name__icontains parameter for partial name matching
+        if name:
+            params["name__icontains"] = name
+
+        # Add any additional parameters
+        params.update(kwargs)
+
         result = await self.make_request(
             "/weapons/",
-            params=kwargs,
+            params=params,
         )
 
         weapon_dicts: list[dict[str, Any]] = (
@@ -69,11 +92,28 @@ class Open5eV2Client(BaseHttpClient):
 
         return [Weapon.model_validate(weapon) for weapon in weapon_dicts]
 
-    async def get_armor(self, **kwargs: Any) -> list[Armor]:
-        """Get armor from Open5e API v2."""
+    async def get_armor(self, name: str | None = None, **kwargs: Any) -> list[Armor]:
+        """Get armor from Open5e API v2.
+
+        Args:
+            name: Filter by armor name (server-side filtering via name__icontains)
+            **kwargs: Additional API parameters
+
+        Returns:
+            List of Armor models
+        """
+        params: dict[str, Any] = {}
+
+        # Use server-side name__icontains parameter for partial name matching
+        if name:
+            params["name__icontains"] = name
+
+        # Add any additional parameters
+        params.update(kwargs)
+
         result = await self.make_request(
             "/armor/",
-            params=kwargs,
+            params=params,
         )
 
         armor_dicts: list[dict[str, Any]] = (

@@ -20,7 +20,7 @@ async def v2_client(test_db) -> AsyncGenerator[Open5eV2Client]:
 @respx.mock
 async def test_get_spells_basic(v2_client: Open5eV2Client) -> None:
     """Test basic spell lookup."""
-    respx.get("https://api.open5e.com/v2/spells/?name=fireball").mock(
+    respx.get("https://api.open5e.com/v2/spells/?name__icontains=fireball").mock(
         return_value=httpx.Response(
             200,
             json={
@@ -66,7 +66,7 @@ async def test_get_spells_with_filters(v2_client: Open5eV2Client) -> None:
 @respx.mock
 async def test_get_weapons(v2_client: Open5eV2Client) -> None:
     """Test weapon lookup."""
-    respx.get("https://api.open5e.com/v2/weapons/?name=longsword").mock(
+    respx.get("https://api.open5e.com/v2/weapons/?name__icontains=longsword").mock(
         return_value=httpx.Response(
             200,
             json={
@@ -113,7 +113,7 @@ async def test_get_weapons(v2_client: Open5eV2Client) -> None:
 @respx.mock
 async def test_get_armor(v2_client: Open5eV2Client) -> None:
     """Test armor lookup."""
-    respx.get("https://api.open5e.com/v2/armor/?name=chain-mail").mock(
+    respx.get("https://api.open5e.com/v2/armor/?name__icontains=chain-mail").mock(
         return_value=httpx.Response(
             200,
             json={
@@ -669,3 +669,91 @@ async def test_get_services(v2_client: Open5eV2Client) -> None:
 
     assert len(services) == 1
     assert services[0]["name"] == "Service 1"
+
+
+# Task 1.2: Implement Name Partial Matching
+@respx.mock
+async def test_name_icontains_usage(v2_client: Open5eV2Client) -> None:
+    """Test that get_spells uses server-side name__icontains parameter filtering.
+
+    The name parameter should be converted to name__icontains and sent to the API.
+    This enables partial name matching server-side (e.g., "fire" matches "Fireball").
+    """
+    # Mock the API call WITH name__icontains parameter - API returns filtered spells
+    respx.get("https://api.open5e.com/v2/spells/?name__icontains=fire").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "name": "Fireball",
+                        "slug": "fireball",
+                        "level": 3,
+                        "school": "Evocation",
+                        "casting_time": "1 action",
+                        "range": "150 feet",
+                        "components": "V, S, M",
+                        "duration": "Instantaneous",
+                        "desc": "A bright streak...",
+                    },
+                    {
+                        "name": "Fire Storm",
+                        "slug": "fire-storm",
+                        "level": 7,
+                        "school": "Evocation",
+                        "casting_time": "1 action",
+                        "range": "150 feet",
+                        "components": "V, S",
+                        "duration": "Instantaneous",
+                        "desc": "A storm of fire...",
+                    },
+                ]
+            },
+        )
+    )
+
+    # Request spells with name filter - uses name__icontains parameter
+    spells = await v2_client.get_spells(name="fire")
+
+    # Should return all spells matching partial name
+    assert len(spells) == 2
+    assert {spell.name for spell in spells} == {"Fireball", "Fire Storm"}
+    # Verify both spells have "Fire" in their name
+    assert all("Fire" in spell.name for spell in spells)
+
+
+@respx.mock
+async def test_partial_name_match(v2_client: Open5eV2Client) -> None:
+    """Test that partial name searches work server-side via name__icontains.
+
+    This test verifies that the client properly implements name partial matching
+    for common search patterns like searching for "missile" to find "Magic Missile".
+    """
+    # Mock API that returns spells matching partial name
+    respx.get("https://api.open5e.com/v2/spells/?name__icontains=missile").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "name": "Magic Missile",
+                        "slug": "magic-missile",
+                        "level": 1,
+                        "school": "Evocation",
+                        "casting_time": "1 action",
+                        "range": "120 feet",
+                        "components": "V, S",
+                        "duration": "Instantaneous",
+                        "desc": "A missile of magical force...",
+                    }
+                ]
+            },
+        )
+    )
+
+    spells = await v2_client.get_spells(name="missile")
+
+    # Should find "Magic Missile" when searching for "missile"
+    assert len(spells) == 1
+    assert spells[0].name == "Magic Missile"
+    assert "missile" in spells[0].name.lower()

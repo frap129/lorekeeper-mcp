@@ -3,16 +3,16 @@
 ## Phase 1: Fix Bugs and Server-Side Filtering
 
 ### 1.1 Fix Open5e School Filtering Bug
-- [ ] **Task**: Remove client-side school filtering and use `school__key` parameter in Open5e v2 API requests
-- [ ] **Validation**: School filtering works without client-side code, verify in API logs
-- [ ] **Test**: `test_school_server_side_filtering`, `test_no_client_side_filtering`
+- [x] **Task**: Remove client-side school filtering and use `school__key` parameter in Open5e v2 API requests
+- [x] **Validation**: School filtering works without client-side code, verify in API logs
+- [x] **Test**: `test_school_server_side_filtering`, `test_no_client_side_filtering`
 - **Dependencies**: None
 - **Estimated Time**: 1 hour
 
 ### 1.2 Implement Name Partial Matching
-- [ ] **Task**: Replace client-side name filtering with `name__icontains` for Open5e v2
-- [ ] **Validation**: Partial name searches work server-side, reduce data transfer
-- [ ] **Test**: `test_name_icontains_usage`, `test_partial_name_match`
+- [x] **Task**: Replace client-side name filtering with `name__icontains` for Open5e v2
+- [x] **Validation**: Partial name searches work server-side, reduce data transfer
+- [x] **Test**: `test_name_icontains_usage`, `test_partial_name_match`
 - **Dependencies**: None
 - **Estimated Time**: 1 hour
 
