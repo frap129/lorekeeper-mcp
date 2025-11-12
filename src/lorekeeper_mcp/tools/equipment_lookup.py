@@ -142,24 +142,16 @@ async def lookup_equipment(
     if type in ("weapon", "all"):
         # Build weapon filters
         weapon_filters: dict[str, Any] = {"item_type": "weapon"}
+        if name is not None:
+            weapon_filters["name"] = name
         if damage_dice is not None:
             weapon_filters["damage_dice"] = damage_dice
         if is_simple is not None:
             weapon_filters["is_simple"] = is_simple
 
-        # Fetch weapons with filters
-        # When searching by name, fetch more results to ensure we find matches
-        # Use multiplier of 11 to balance finding matches with performance
-        fetch_limit = limit * 11 if name else limit
-        weapons = await repository.search(limit=fetch_limit, **weapon_filters)
+        # Fetch weapons with server-side filters
+        weapons = await repository.search(limit=limit, **weapon_filters)
 
-        # Client-side filtering by name
-        if name:
-            name_lower = name.lower()
-            weapons = [w for w in weapons if name_lower in w.name.lower()]
-
-        # Limit results to requested count
-        weapons = weapons[:limit]
         # Convert to dicts
         weapon_dicts = [w.model_dump() for w in weapons]
         results.extend(weapon_dicts)
@@ -168,19 +160,12 @@ async def lookup_equipment(
     if type in ("armor", "all"):
         # Build armor filters
         armor_filters: dict[str, Any] = {"item_type": "armor"}
+        if name is not None:
+            armor_filters["name"] = name
 
-        # Fetch armor with filters
-        # When searching by name, fetch more results to ensure we find matches
-        fetch_limit = limit * 11 if name else limit
-        armors = await repository.search(limit=fetch_limit, **armor_filters)
+        # Fetch armor with server-side filters
+        armors = await repository.search(limit=limit, **armor_filters)
 
-        # Client-side filtering by name
-        if name:
-            name_lower = name.lower()
-            armors = [a for a in armors if name_lower in a.name.lower()]
-
-        # Limit results to requested count
-        armors = armors[:limit]
         # Convert to dicts
         armor_dicts = [a.model_dump() for a in armors]
         results.extend(armor_dicts)
@@ -189,6 +174,8 @@ async def lookup_equipment(
     if type in ("magic-item", "all"):
         # Build magic item filters
         magic_item_filters: dict[str, Any] = {"item_type": "magic-item"}
+        if name is not None:
+            magic_item_filters["name"] = name
         if rarity is not None:
             magic_item_filters["rarity"] = rarity
         if requires_attunement is not None:
@@ -198,18 +185,9 @@ async def lookup_equipment(
             else:
                 magic_item_filters["requires_attunement"] = False
 
-        # Fetch magic items with filters
-        # When searching by name, fetch more results to ensure we find matches
-        fetch_limit = limit * 11 if name else limit
-        magic_items = await repository.search(limit=fetch_limit, **magic_item_filters)
+        # Fetch magic items with server-side filters
+        magic_items = await repository.search(limit=limit, **magic_item_filters)
 
-        # Client-side filtering by name
-        if name:
-            name_lower = name.lower()
-            magic_items = [m for m in magic_items if name_lower in m.name.lower()]
-
-        # Limit results to requested count
-        magic_items = magic_items[:limit]
         # Convert to dicts
         magic_item_dicts = [m.model_dump() for m in magic_items]
         results.extend(magic_item_dicts)

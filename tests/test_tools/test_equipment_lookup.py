@@ -206,24 +206,26 @@ async def test_lookup_equipment_network_error(repository_context):
 async def test_equipment_search_by_name_client_side(
     repository_context, sample_longsword, sample_dagger
 ):
-    """Test that equipment lookup filters by name client-side."""
-    # Repository returns both weapons
-    repository_context.search.return_value = [sample_longsword, sample_dagger]
+    """Test that equipment lookup passes name filter to repository for server-side filtering."""
+    # Repository returns only matching weapon when called with name filter
+    repository_context.search.return_value = [sample_longsword]
 
-    # Call with name filter - should filter client-side
+    # Call with name filter - should pass to repository
     result = await lookup_equipment(type="weapon", name="longsword")
 
-    # Should only return Longsword, not Dagger
+    # Should only return Longsword
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
 
-    # Verify repository.search was called
-    repository_context.search.assert_awaited_once()
+    # Verify repository.search was called with name parameter
+    repository_context.search.assert_awaited_once_with(
+        limit=20, item_type="weapon", name="longsword"
+    )
 
 
 @pytest.mark.asyncio
 async def test_lookup_equipment_limit_applied(repository_context):
-    """Test that lookup_equipment applies limit to results."""
+    """Test that lookup_equipment passes limit to repository for server-side limiting."""
     weapons = [
         Weapon(
             name=f"Weapon {i}",
@@ -242,15 +244,17 @@ async def test_lookup_equipment_limit_applied(repository_context):
             is_simple=False,
             is_improvised=False,
         )
-        for i in range(1, 30)
+        for i in range(1, 6)  # Only 5 weapons since limit=5
     ]
 
     repository_context.search.return_value = weapons
 
     result = await lookup_equipment(type="weapon", limit=5)
 
-    # Should only return 5 weapons even though repository returned 29
+    # Should return 5 weapons from repository (server-side limit)
     assert len(result) == 5
+    # Verify repository was called with limit parameter
+    repository_context.search.assert_awaited_once_with(limit=5, item_type="weapon")
 
 
 @pytest.mark.asyncio
