@@ -1,6 +1,6 @@
 """Client for Open5e API v2 (spells, weapons, armor, etc.)."""
 
-from typing import Any, Optional
+from typing import Any
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
 from lorekeeper_mcp.api_clients.models import Armor, Monster, Spell, Weapon

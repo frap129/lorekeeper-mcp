@@ -2,7 +2,6 @@
 
 from typing import Any, Protocol
 
-from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 from lorekeeper_mcp.api_clients.models.monster import Monster
 from lorekeeper_mcp.api_clients.open5e_v1 import Open5eV1Client
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
@@ -82,14 +81,30 @@ class MonsterRepository(Repository[Monster]):
         # Extract limit parameter (not a cache filter field)
         limit = filters.pop("limit", None)
 
-        # Try cache first with valid filter fields only
-        cached = await self.cache.get_entities("creatures", **filters)
+        # Separate cache-compatible filters from API-only filters
+        # Cache allows: challenge_rating, name, size, slug, source_api, type
+        cache_filters = {}
+        api_only_filters = {}
+
+        cache_allowed_fields = {"challenge_rating", "name", "size", "slug", "source_api", "type"}
+
+        for key, value in filters.items():
+            if key in cache_allowed_fields:
+                cache_filters[key] = value
+            else:
+                api_only_filters[key] = value
+
+        # Try cache first with cache-compatible filter fields only
+        cached = await self.cache.get_entities("creatures", **cache_filters)
 
         if cached:
             results = [Monster.model_validate(monster) for monster in cached]
+            # Apply API-only filters client-side if needed
+            if api_only_filters:
+                results = self._apply_api_filters(results, **api_only_filters)
             return results[:limit] if limit else results
 
-        # Cache miss - fetch from API with filters and limit
+        # Cache miss - fetch from API with all filters
         api_params = self._map_to_api_params(**filters)
         monsters: list[Monster] = await self.client.get_creatures(limit=limit, **api_params)
 
@@ -97,7 +112,6 @@ class MonsterRepository(Repository[Monster]):
         if monsters:
             monster_dicts = [monster.model_dump() for monster in monsters]
             await self.cache.store_entities(monster_dicts, "creatures")
-
         return monsters
 
     def _map_to_api_params(self, **filters: Any) -> dict[str, Any]:
@@ -125,8 +139,10 @@ class MonsterRepository(Repository[Monster]):
                 params["challenge_rating_decimal__gte"] = filters["cr_min"]
             if "cr_max" in filters:
                 params["challenge_rating_decimal__lte"] = filters["cr_max"]
-            # Pass through exact matches
-            for key in ["type", "size", "challenge_rating"]:
+            if "name" in filters:
+                params["name__icontains"] = filters["name"]
+            # Pass through exact matches and API-specific parameters
+            for key in ["type", "size", "challenge_rating", "name__icontains"]:
                 if key in filters:
                     params[key] = filters[key]
 
@@ -134,12 +150,57 @@ class MonsterRepository(Repository[Monster]):
             # V1 API: pass through filters as-is
             params = dict(filters)
 
-        elif isinstance(self.client, Dnd5eApiClient):
-            # D&D API: pass through filters as-is (API will handle them)
-            params = dict(filters)
-
         else:
             # For unknown client types, pass through filters as-is
             params = dict(filters)
 
         return params
+
+    def _apply_api_filters(self, monsters: list[Monster], **api_filters: Any) -> list[Monster]:
+        """Apply API-only filters client-side to cached results.
+
+        Args:
+            monsters: List of Monster objects from cache
+            **api_filters: API-only filter parameters
+
+        Returns:
+            Filtered list of Monster objects
+        """
+        filtered = monsters
+
+        # Apply name__icontains filter (case-insensitive substring search)
+        if "name__icontains" in api_filters:
+            search_term = api_filters["name__icontains"].lower()
+            filtered = [m for m in filtered if search_term in m.name.lower()]
+
+        # Apply challenge_rating_decimal__gte filter
+        if "challenge_rating_decimal__gte" in api_filters:
+            min_cr = api_filters["challenge_rating_decimal__gte"]
+            filtered = [
+                m
+                for m in filtered
+                if m.challenge_rating_decimal is not None and m.challenge_rating_decimal >= min_cr
+            ]
+
+        # Apply challenge_rating_decimal__lte filter
+        if "challenge_rating_decimal__lte" in api_filters:
+            max_cr = api_filters["challenge_rating_decimal__lte"]
+            filtered = [
+                m
+                for m in filtered
+                if m.challenge_rating_decimal is not None and m.challenge_rating_decimal <= max_cr
+            ]
+
+        # Apply armor_class__gte filter
+        if "armor_class__gte" in api_filters:
+            min_ac = api_filters["armor_class__gte"]
+            filtered = [
+                m for m in filtered if m.armor_class is not None and m.armor_class >= min_ac
+            ]
+
+        # Apply hit_points__gte filter
+        if "hit_points__gte" in api_filters:
+            min_hp = api_filters["hit_points__gte"]
+            filtered = [m for m in filtered if m.hit_points is not None and m.hit_points >= min_hp]
+
+        return filtered
