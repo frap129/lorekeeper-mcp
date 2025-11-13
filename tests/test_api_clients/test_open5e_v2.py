@@ -284,24 +284,70 @@ async def test_get_item_categories(v2_client: Open5eV2Client) -> None:
 
 # Task 1.7: Creature methods
 @respx.mock
-async def test_get_creatures(v2_client: Open5eV2Client) -> None:
-    """Test get_creatures returns list of Monster models."""
+async def test_get_creatures_transforms_v2_response_to_monster_model(
+    v2_client: Open5eV2Client,
+) -> None:
+    """Test get_creatures transforms Open5e v2 API response to Monster model.
+
+    This test verifies that the Open5eV2Client properly transforms the v2 API
+    response format to match the Monster model expectations.
+
+    Key transformations needed:
+    1. API `key` → Monster `slug`
+    2. API `type` object {"name": "Humanoid", "key": "humanoid"} → Monster string "Humanoid"
+    3. API `size` object {"name": "Small", "key": "small"} → Monster string "Small"
+    4. API `challenge_rating_text` + `challenge_rating_decimal` → Monster fields
+    5. API `speed` with `unit` → Monster speed dict without unit
+    6. API `ability_scores` nested → Monster flat ability fields
+    7. API `traits` → Monster `special_abilities`
+    8. API nested `document` → Monster `document_url`
+    """
     respx.get("https://api.open5e.com/v2/creatures/").mock(
         return_value=httpx.Response(
             200,
             json={
                 "results": [
                     {
-                        "slug": "goblin",
+                        # API v2 format - what the API actually returns
+                        "key": "goblin",
                         "name": "Goblin",
-                        "desc": "A common humanoid...",
-                        "size": "Small",
-                        "type": "humanoid",
-                        "alignment": "Neutral Evil",
-                        "armor_class": 15,
+                        "desc": "A small, cunning creature that often serves as fodder for larger threats.",
+                        "type": {
+                            "name": "Humanoid",
+                            "key": "humanoid",
+                            "url": "https://api.open5e.com/v2/creaturetypes/humanoid/",
+                        },
+                        "size": {
+                            "name": "Small",
+                            "key": "small",
+                            "url": "https://api.open5e.com/v2/sizes/small/",
+                        },
+                        "alignment": "neutral evil",
+                        "armor_class": [{"type": "armor", "value": 15}],
                         "hit_points": 7,
                         "hit_dice": "2d6",
-                        "challenge_rating": "1/4",
+                        "challenge_rating_text": "1/4",
+                        "challenge_rating_decimal": "0.250",
+                        "speed": {"walk": 30.0, "unit": "feet"},
+                        "ability_scores": {
+                            "strength": 8,
+                            "dexterity": 14,
+                            "constitution": 10,
+                            "intelligence": 10,
+                            "wisdom": 8,
+                            "charisma": 6,
+                        },
+                        "traits": [
+                            {
+                                "name": "Nimble Escape",
+                                "desc": "The goblin can take the Disengage or Hide action as a bonus action on each of its turns.",
+                            }
+                        ],
+                        "document": {
+                            "key": "srd-5e",
+                            "name": "Systems Reference Document 5.1",
+                            "url": "https://api.open5e.com/v2/documents/srd-5e/",
+                        },
                     }
                 ]
             },
@@ -311,8 +357,85 @@ async def test_get_creatures(v2_client: Open5eV2Client) -> None:
     creatures = await v2_client.get_creatures()
 
     assert len(creatures) == 1
-    assert creatures[0].name == "Goblin"
-    assert creatures[0].size == "Small"
+    creature = creatures[0]
+
+    # Verify basic fields
+    assert creature.name == "Goblin"
+    assert creature.slug == "goblin"  # Transformed from API `key`
+    assert creature.size == "Small"  # Extracted from API `size.name`
+    assert creature.type == "Humanoid"  # Extracted from API `type.name`
+    assert creature.alignment == "neutral evil"
+    assert creature.armor_class == 15
+    assert creature.hit_points == 7
+    assert creature.hit_dice == "2d6"
+
+    # Verify challenge rating transformation
+    assert creature.challenge_rating == "1/4"  # From API `challenge_rating_text`
+    assert (
+        creature.challenge_rating_decimal == 0.25
+    )  # From API `challenge_rating_decimal` string to float
+
+    # Verify speed transformation (unit removed)
+    assert creature.speed == {"walk": 30}
+
+    # Verify ability scores transformation (nested to flat)
+    assert creature.strength == 8
+    assert creature.dexterity == 14
+    assert creature.constitution == 10
+    assert creature.intelligence == 10
+    assert creature.wisdom == 8
+    assert creature.charisma == 6
+
+    # Verify traits transformation to special_abilities
+    assert creature.special_abilities is not None
+    assert len(creature.special_abilities) == 1
+    assert creature.special_abilities[0]["name"] == "Nimble Escape"
+
+
+@respx.mock
+async def test_get_creatures_handles_missing_optional_fields(v2_client: Open5eV2Client) -> None:
+    """Test get_creatures handles missing optional fields gracefully."""
+    respx.get("https://api.open5e.com/v2/creatures/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        # Minimal v2 creature data
+                        "key": "basic-creature",
+                        "name": "Basic Creature",
+                        "desc": "A simple creature.",
+                        "type": {"name": "Beast", "key": "beast"},
+                        "size": {"name": "Medium", "key": "medium"},
+                        "alignment": "unaligned",
+                        "armor_class": [{"type": "natural", "value": 10}],
+                        "hit_points": 10,
+                        "hit_dice": "2d10",
+                        "challenge_rating_text": "1/8",
+                        "challenge_rating_decimal": "0.125",
+                        # Missing: speed, ability_scores, traits, document
+                    }
+                ]
+            },
+        )
+    )
+
+    creatures = await v2_client.get_creatures()
+
+    assert len(creatures) == 1
+    creature = creatures[0]
+
+    assert creature.name == "Basic Creature"
+    assert creature.slug == "basic-creature"
+    assert creature.size == "Medium"
+    assert creature.type == "Beast"
+    assert creature.challenge_rating == "1/8"
+    assert creature.challenge_rating_decimal == 0.125
+
+    # Optional fields should be None when missing
+    assert creature.speed is None
+    assert creature.strength is None
+    assert creature.special_abilities is None
 
 
 @respx.mock

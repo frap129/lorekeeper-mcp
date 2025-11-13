@@ -1,6 +1,6 @@
 """Client for Open5e API v2 (spells, weapons, armor, etc.)."""
 
-from typing import Any
+from typing import Any, Optional
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
 from lorekeeper_mcp.api_clients.models import Armor, Monster, Spell, Weapon
@@ -16,6 +16,91 @@ class Open5eV2Client(BaseHttpClient):
             **kwargs: Additional arguments for BaseHttpClient
         """
         super().__init__(base_url="https://api.open5e.com/v2", **kwargs)
+
+    def _transform_creature_response(self, creature: dict[str, Any]) -> dict[str, Any] | None:
+        """Transform Open5e v2 creature response to Monster model format.
+
+        Args:
+            creature: Raw creature data from Open5e v2 API
+
+        Returns:
+            Transformed creature data compatible with Monster model,
+            or None if creature should be filtered out (missing required fields)
+        """
+        # Skip creatures with missing required fields (e.g., hit_dice: None)
+        if creature.get("hit_dice") is None:
+            return None
+
+        transformed = creature.copy()
+
+        # 1. API `key` → Monster `slug`
+        if "key" in creature and "slug" not in creature:
+            transformed["slug"] = creature["key"]
+
+        # 2. API `type` object → Monster string
+        if isinstance(creature.get("type"), dict):
+            transformed["type"] = creature["type"].get("name", "")
+
+        # 3. API `size` object → Monster string
+        if isinstance(creature.get("size"), dict):
+            transformed["size"] = creature["size"].get("name", "")
+
+        # 4. API `challenge_rating_text` → Monster `challenge_rating`
+        if "challenge_rating_text" in creature and "challenge_rating" not in creature:
+            transformed["challenge_rating"] = creature["challenge_rating_text"]
+
+        # 5. API `challenge_rating_decimal` string → Monster float
+        if isinstance(creature.get("challenge_rating_decimal"), str):
+            try:
+                transformed["challenge_rating_decimal"] = float(
+                    creature["challenge_rating_decimal"]
+                )
+            except ValueError:
+                # If conversion fails, set to None
+                transformed["challenge_rating_decimal"] = None
+
+        # 6. API `speed` with `unit` → Monster speed dict without unit
+        if isinstance(creature.get("speed"), dict):
+            speed = creature["speed"].copy()
+            # Remove unit field as Monster model expects only speed values
+            speed.pop("unit", None)
+            # Convert float values to int for Monster model compatibility
+            for key, value in speed.items():
+                if isinstance(value, float) and value.is_integer():
+                    speed[key] = int(value)
+            transformed["speed"] = speed
+
+        # 7. API `ability_scores` nested → Monster flat ability fields
+        if isinstance(creature.get("ability_scores"), dict):
+            ability_scores = creature["ability_scores"]
+            for ability, score in ability_scores.items():
+                if ability in [
+                    "strength",
+                    "dexterity",
+                    "constitution",
+                    "intelligence",
+                    "wisdom",
+                    "charisma",
+                ]:
+                    transformed[ability] = score
+
+        # 8. API `traits` → Monster `special_abilities`
+        if "traits" in creature and "special_abilities" not in creature:
+            transformed["special_abilities"] = creature["traits"]
+
+        # 9. API nested `document` → Monster `document_url`
+        if isinstance(creature.get("document"), dict):
+            document_url = creature["document"].get("url", "")
+            if document_url:
+                transformed["document_url"] = document_url
+
+        # 10. API `armor_class` array → Monster integer (take first value)
+        if isinstance(creature.get("armor_class"), list) and creature["armor_class"]:
+            first_ac = creature["armor_class"][0]
+            if isinstance(first_ac, dict) and "value" in first_ac:
+                transformed["armor_class"] = first_ac["value"]
+
+        return transformed
 
     async def get_spells(
         self,
@@ -301,7 +386,15 @@ class Open5eV2Client(BaseHttpClient):
             result if isinstance(result, list) else result.get("results", [])
         )
 
-        return [Monster.model_validate(creature) for creature in creature_dicts]
+        # Transform each creature response to match Monster model format
+        transformed_creatures = []
+        for creature in creature_dicts:
+            transformed = self._transform_creature_response(creature)
+            # Skip creatures with missing required fields (e.g., hit_dice: None)
+            if transformed is not None:
+                transformed_creatures.append(transformed)
+
+        return [Monster.model_validate(creature) for creature in transformed_creatures]
 
     async def get_creature_types(self, **kwargs: Any) -> list[dict[str, Any]]:
         """Get creature type definitions from Open5e API v2.
