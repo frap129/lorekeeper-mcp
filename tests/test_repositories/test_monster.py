@@ -322,8 +322,8 @@ async def test_monster_repository_search_uses_creatures_table_and_get_creatures(
 
 
 @pytest.mark.asyncio
-async def test_repository_maps_v2_challenge_rating_params(mock_cache: MagicMock) -> None:
-    """Verify repository maps cr_min/cr_max to v2 parameters."""
+async def test_repository_maps_v2_type_to_type_key_with_lowercase(mock_cache: MagicMock) -> None:
+    """Verify repository maps type to type__key with lowercase conversion."""
     from unittest.mock import AsyncMock
 
     from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
@@ -334,9 +334,78 @@ async def test_repository_maps_v2_challenge_rating_params(mock_cache: MagicMock)
     mock_cache.get_entities = AsyncMock(return_value=[])
 
     repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
-    await repository.search(cr_min=5, cr_max=10)
+    await repository.search(type="Beast")
 
-    # Verify v2 client was called with correct decimal parameters
+    # Verify v2 client was called with type__key and lowercase value
     call_kwargs = mock_v2_client.get_creatures.call_args.kwargs
-    assert call_kwargs.get("challenge_rating_decimal__gte") == 5
-    assert call_kwargs.get("challenge_rating_decimal__lte") == 10
+    assert call_kwargs.get("type__key") == "beast"
+    # Ensure original type parameter is not passed
+    assert "type" not in call_kwargs
+
+
+@pytest.mark.asyncio
+async def test_repository_maps_v2_size_to_size_key_with_lowercase(mock_cache: MagicMock) -> None:
+    """Verify repository maps size to size__key with lowercase conversion."""
+    from unittest.mock import AsyncMock
+
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_v2_client = AsyncMock(spec=Open5eV2Client)
+    mock_v2_client.get_creatures = AsyncMock(return_value=[])
+
+    mock_cache.get_entities = AsyncMock(return_value=[])
+
+    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    await repository.search(size="Large")
+
+    # Verify v2 client was called with size__key and lowercase value
+    call_kwargs = mock_v2_client.get_creatures.call_args.kwargs
+    assert call_kwargs.get("size__key") == "large"
+    # Ensure original size parameter is not passed
+    assert "size" not in call_kwargs
+
+
+@pytest.mark.asyncio
+async def test_repository_maps_v2_cr_exact_to_challenge_rating_decimal(
+    mock_cache: MagicMock,
+) -> None:
+    """Verify repository maps exact cr to challenge_rating_decimal as float."""
+    from unittest.mock import AsyncMock
+
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_v2_client = AsyncMock(spec=Open5eV2Client)
+    mock_v2_client.get_creatures = AsyncMock(return_value=[])
+
+    mock_cache.get_entities = AsyncMock(return_value=[])
+
+    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    await repository.search(cr=1)
+
+    # Verify v2 client was called with challenge_rating_decimal as float
+    call_kwargs = mock_v2_client.get_creatures.call_args.kwargs
+    assert call_kwargs.get("challenge_rating_decimal") == 1.0
+    assert isinstance(call_kwargs.get("challenge_rating_decimal"), float)
+
+
+@pytest.mark.asyncio
+async def test_repository_maps_v2_challenge_rating_to_challenge_rating_decimal(
+    mock_cache: MagicMock,
+) -> None:
+    """Verify repository maps cache field challenge_rating to challenge_rating_decimal."""
+    from unittest.mock import AsyncMock
+
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_v2_client = AsyncMock(spec=Open5eV2Client)
+    mock_v2_client.get_creatures = AsyncMock(return_value=[])
+
+    mock_cache.get_entities = AsyncMock(return_value=[])
+
+    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    await repository.search(challenge_rating=21)
+
+    # Verify v2 client was called with challenge_rating_decimal as float
+    call_kwargs = mock_v2_client.get_creatures.call_args.kwargs
+    assert call_kwargs.get("challenge_rating_decimal") == 21.0
+    assert isinstance(call_kwargs.get("challenge_rating_decimal"), float)

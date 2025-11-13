@@ -139,10 +139,19 @@ class MonsterRepository(Repository[Monster]):
                 params["challenge_rating_decimal__gte"] = filters["cr_min"]
             if "cr_max" in filters:
                 params["challenge_rating_decimal__lte"] = filters["cr_max"]
+            if "cr" in filters:
+                params["challenge_rating_decimal"] = float(filters["cr"])
+            if "challenge_rating" in filters:
+                params["challenge_rating_decimal"] = float(filters["challenge_rating"])
             if "name" in filters:
                 params["name__icontains"] = filters["name"]
-            # Pass through exact matches and API-specific parameters
-            for key in ["type", "size", "challenge_rating", "name__icontains"]:
+            # Map type and size to __key variants with lowercase
+            if "type" in filters:
+                params["type__key"] = filters["type"].lower()
+            if "size" in filters:
+                params["size__key"] = filters["size"].lower()
+            # Pass through API-specific parameters
+            for key in ["name__icontains"]:
                 if key in filters:
                     params[key] = filters[key]
 

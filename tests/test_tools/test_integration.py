@@ -187,7 +187,7 @@ async def test_creature_lookup_basic(test_db):
         ]
     }
 
-    respx.get("https://api.open5e.com/v1/monsters/?").mock(
+    respx.get("https://api.open5e.com/v2/creatures/?limit=220").mock(
         return_value=httpx.Response(200, json=monster_response)
     )
 
@@ -228,7 +228,7 @@ async def test_creature_lookup_by_cr(test_db):
         ]
     }
 
-    respx.get("https://api.open5e.com/v1/monsters/?").mock(
+    respx.get("https://api.open5e.com/v2/creatures/?limit=20&challenge_rating_decimal=21.0").mock(
         return_value=httpx.Response(200, json=monster_response)
     )
 
