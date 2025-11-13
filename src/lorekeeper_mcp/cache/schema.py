@@ -113,6 +113,7 @@ INDEXED_FIELDS = {
     "itemcategories": [],
     # Task 1.7: Creatures
     "creatures": [
+        ("challenge_rating", "REAL"),
         ("type", "TEXT"),
         ("size", "TEXT"),
     ],
