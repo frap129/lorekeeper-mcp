@@ -3,7 +3,6 @@
 from typing import Any, Protocol
 
 from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
-from lorekeeper_mcp.api_clients.open5e_v1 import Open5eV1Client
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.cache.sqlite import SQLiteCache
 from lorekeeper_mcp.config import settings
@@ -74,14 +73,14 @@ class RepositoryFactory:
         """Create a MonsterRepository instance.
 
         Args:
-            client: Optional custom client instance. Defaults to Open5eV1Client.
+            client: Optional custom client instance. Defaults to Open5eV2Client.
             cache: Optional custom cache instance. Defaults to shared SQLiteCache.
 
         Returns:
             A configured MonsterRepository instance.
         """
         if client is None:
-            client = Open5eV1Client()
+            client = Open5eV2Client()
         if cache is None:
             cache = RepositoryFactory._get_cache()
         return MonsterRepository(client=client, cache=cache)

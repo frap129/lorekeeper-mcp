@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.repositories.character_option import CharacterOptionRepository
 from lorekeeper_mcp.repositories.equipment import EquipmentRepository
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
@@ -154,3 +155,15 @@ async def test_factory_all_repositories_created_successfully():
         assert hasattr(repo, "search"), f"{name} repository missing search"
         assert hasattr(repo, "client"), f"{name} repository missing client"
         assert hasattr(repo, "cache"), f"{name} repository missing cache"
+
+
+def test_create_monster_repository_default_uses_v2():
+    """Test that create_monster_repository uses Open5eV2Client by default."""
+    from lorekeeper_mcp.repositories.factory import RepositoryFactory
+
+    # Clear any cached instance
+    RepositoryFactory._cache_instance = None
+
+    repo = RepositoryFactory.create_monster_repository()
+
+    assert isinstance(repo.client, Open5eV2Client)
