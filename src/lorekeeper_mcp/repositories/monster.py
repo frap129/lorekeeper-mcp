@@ -11,8 +11,8 @@ from lorekeeper_mcp.repositories.base import Repository
 class MonsterClient(Protocol):
     """Protocol for monster API client."""
 
-    async def get_monsters(self, **filters: Any) -> list[Monster]:
-        """Fetch monsters from API with optional filters."""
+    async def get_creatures(self, **filters: Any) -> list[Monster]:
+        """Fetch creatures from API with optional filters."""
         ...
 
 
@@ -42,7 +42,7 @@ class MonsterRepository(Repository[Monster]):
         """Initialize MonsterRepository.
 
         Args:
-            client: API client with get_monsters() method
+            client: API client with get_creatures() method
             cache: Cache implementation conforming to CacheProtocol
         """
         self.client = client
@@ -55,17 +55,17 @@ class MonsterRepository(Repository[Monster]):
             List of all Monster objects
         """
         # Try cache first
-        cached = await self.cache.get_entities("monsters")
+        cached = await self.cache.get_entities("creatures")
 
         if cached:
             return [Monster.model_validate(monster) for monster in cached]
 
         # Cache miss - fetch from API
-        monsters: list[Monster] = await self.client.get_monsters()
+        monsters: list[Monster] = await self.client.get_creatures()
 
         # Store in cache
         monster_dicts = [monster.model_dump() for monster in monsters]
-        await self.cache.store_entities(monster_dicts, "monsters")
+        await self.cache.store_entities(monster_dicts, "creatures")
 
         return monsters
 
@@ -82,7 +82,7 @@ class MonsterRepository(Repository[Monster]):
         limit = filters.pop("limit", None)
 
         # Try cache first with valid filter fields only
-        cached = await self.cache.get_entities("monsters", **filters)
+        cached = await self.cache.get_entities("creatures", **filters)
 
         if cached:
             results = [Monster.model_validate(monster) for monster in cached]
@@ -90,12 +90,12 @@ class MonsterRepository(Repository[Monster]):
 
         # Cache miss - fetch from API with filters and limit
         api_params = self._map_to_api_params(**filters)
-        monsters: list[Monster] = await self.client.get_monsters(limit=limit, **api_params)
+        monsters: list[Monster] = await self.client.get_creatures(limit=limit, **api_params)
 
         # Store in cache if we got results
         if monsters:
             monster_dicts = [monster.model_dump() for monster in monsters]
-            await self.cache.store_entities(monster_dicts, "monsters")
+            await self.cache.store_entities(monster_dicts, "creatures")
 
         return monsters
 

@@ -47,6 +47,25 @@ class Open5eV1Client(BaseHttpClient):
         # Convert dictionaries to Monster objects
         return [Monster(**monster_data) for monster_data in entities]
 
+    async def get_creatures(
+        self,
+        challenge_rating: str | None = None,
+        **filters: Any,
+    ) -> list[Monster]:
+        """Get creatures from Open5e API v1 (alias for get_monsters).
+
+        This method exists for protocol compatibility. V1 uses /monsters/ endpoint,
+        while v2 uses /creatures/ endpoint. Both return Monster models.
+
+        Args:
+            challenge_rating: Filter by CR (e.g., "1/4", "5")
+            **filters: Additional API parameters
+
+        Returns:
+            List of Monster models
+        """
+        return await self.get_monsters(challenge_rating=challenge_rating, **filters)
+
     async def get_classes(self, **filters: Any) -> list[dict[str, Any]]:
         """Get character classes from Open5e API v1.
 

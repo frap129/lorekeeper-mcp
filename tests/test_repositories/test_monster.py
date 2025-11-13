@@ -22,7 +22,7 @@ def mock_cache() -> MagicMock:
 def mock_client() -> MagicMock:
     """Create mock API client for testing."""
     client = MagicMock()
-    client.get_monsters = AsyncMock()
+    client.get_creatures = AsyncMock()
     return client
 
 
@@ -79,7 +79,7 @@ async def test_monster_repository_get_all_from_cache(
     """Test that get_all returns cached monsters when available."""
     # Cache hit - monsters already cached
     mock_cache.get_entities.return_value = monster_data
-    mock_client.get_monsters.return_value = []
+    mock_client.get_creatures.return_value = []
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
     results = await repo.get_all()
@@ -87,9 +87,9 @@ async def test_monster_repository_get_all_from_cache(
     assert len(results) == 3
     assert results[0].name == "Goblin"
     # API should not be called since cache hit
-    mock_client.get_monsters.assert_not_called()
-    # Cache should be queried
-    mock_cache.get_entities.assert_called_once_with("monsters")
+    mock_client.get_creatures.assert_not_called()
+    # Cache should be queried with "creatures" table
+    mock_cache.get_entities.assert_called_once_with("creatures")
 
 
 @pytest.mark.asyncio
@@ -101,7 +101,7 @@ async def test_monster_repository_get_all_cache_miss(
     mock_cache.get_entities.return_value = []
     # Create Monster objects from monster_data
     monsters = [Monster.model_validate(data) for data in monster_data]
-    mock_client.get_monsters.return_value = monsters
+    mock_client.get_creatures.return_value = monsters
     mock_cache.store_entities.return_value = 3
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
@@ -109,9 +109,11 @@ async def test_monster_repository_get_all_cache_miss(
 
     assert len(results) == 3
     # API should be called since cache miss
-    mock_client.get_monsters.assert_called_once()
-    # Results should be stored in cache
+    mock_client.get_creatures.assert_called_once()
+    # Results should be stored in cache with "creatures" table
     mock_cache.store_entities.assert_called_once()
+    call_args = mock_cache.store_entities.call_args
+    assert call_args[0][1] == "creatures"
 
 
 @pytest.mark.asyncio
@@ -122,14 +124,14 @@ async def test_monster_repository_search_by_type(
     # Cache hit with type filter
     humanoid_monsters = [monster_data[0], monster_data[1]]  # Goblin and Orc
     mock_cache.get_entities.return_value = humanoid_monsters
-    mock_client.get_monsters.return_value = []
+    mock_client.get_creatures.return_value = []
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
     results = await repo.search(type="humanoid")
 
     assert len(results) == 2
     assert all(monster.type == "humanoid" for monster in results)
-    mock_cache.get_entities.assert_called_once_with("monsters", type="humanoid")
+    mock_cache.get_entities.assert_called_once_with("creatures", type="humanoid")
 
 
 @pytest.mark.asyncio
@@ -147,7 +149,7 @@ async def test_monster_repository_search_by_size(
     assert len(results) == 1
     assert results[0].name == "Dragon"
     assert results[0].size == "Huge"
-    mock_cache.get_entities.assert_called_once_with("monsters", size="Huge")
+    mock_cache.get_entities.assert_called_once_with("creatures", size="Huge")
 
 
 @pytest.mark.asyncio
@@ -159,7 +161,7 @@ async def test_monster_repository_search_cache_miss_with_filters(
     mock_cache.get_entities.return_value = []
     # API returns filtered results
     humanoid_monsters = [Monster.model_validate(monster_data[0])]
-    mock_client.get_monsters.return_value = humanoid_monsters
+    mock_client.get_creatures.return_value = humanoid_monsters
     mock_cache.store_entities.return_value = 1
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
@@ -167,8 +169,11 @@ async def test_monster_repository_search_cache_miss_with_filters(
 
     assert len(results) == 1
     assert results[0].type == "humanoid"
-    mock_client.get_monsters.assert_called_once_with(limit=None, type="humanoid")
+    mock_client.get_creatures.assert_called_once_with(limit=None, type="humanoid")
     mock_cache.store_entities.assert_called_once()
+    # Verify store_entities uses "creatures" table
+    call_args = mock_cache.store_entities.call_args
+    assert call_args[0][1] == "creatures"
 
 
 @pytest.mark.asyncio
@@ -180,7 +185,7 @@ async def test_monster_repository_search_by_challenge_rating(
     mock_cache.get_entities.return_value = []
     # Filter by CR
     high_cr_monsters = [Monster.model_validate(monster_data[2])]
-    mock_client.get_monsters.return_value = high_cr_monsters
+    mock_client.get_creatures.return_value = high_cr_monsters
     mock_cache.store_entities.return_value = 1
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
@@ -188,7 +193,7 @@ async def test_monster_repository_search_by_challenge_rating(
 
     assert len(results) == 1
     assert results[0].challenge_rating == "16"
-    mock_client.get_monsters.assert_called_once_with(limit=None, challenge_rating="16")
+    mock_client.get_creatures.assert_called_once_with(limit=None, challenge_rating="16")
 
 
 @pytest.mark.asyncio
@@ -197,14 +202,14 @@ async def test_monster_repository_search_multiple_filters(
 ) -> None:
     """Test search with multiple filters."""
     mock_cache.get_entities.return_value = []
-    mock_client.get_monsters.return_value = []
+    mock_client.get_creatures.return_value = []
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
     await repo.search(type="humanoid", size="Medium")
 
     # Client should be called with all filters
-    mock_client.get_monsters.assert_called_once_with(limit=None, type="humanoid", size="Medium")
-    mock_cache.get_entities.assert_called_once_with("monsters", type="humanoid", size="Medium")
+    mock_client.get_creatures.assert_called_once_with(limit=None, type="humanoid", size="Medium")
+    mock_cache.get_entities.assert_called_once_with("creatures", type="humanoid", size="Medium")
 
 
 @pytest.mark.asyncio
@@ -218,7 +223,7 @@ async def test_monster_repository_search_no_filters_returns_all(
     results = await repo.search()
 
     assert len(results) == 3
-    mock_cache.get_entities.assert_called_once_with("monsters")
+    mock_cache.get_entities.assert_called_once_with("creatures")
 
 
 @pytest.mark.asyncio
@@ -227,13 +232,13 @@ async def test_monster_repository_search_empty_result(
 ) -> None:
     """Test search that returns no results."""
     mock_cache.get_entities.return_value = []
-    mock_client.get_monsters.return_value = []
+    mock_client.get_creatures.return_value = []
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
     results = await repo.search(type="nonexistent")
 
     assert results == []
-    mock_client.get_monsters.assert_called_once_with(limit=None, type="nonexistent")
+    mock_client.get_creatures.assert_called_once_with(limit=None, type="nonexistent")
 
 
 @pytest.mark.asyncio
@@ -251,18 +256,66 @@ async def test_monster_repository_cache_aside_pattern(
     # First call returns empty (cache miss)
     mock_cache.get_entities.return_value = []
     monsters = [Monster.model_validate(data) for data in monster_data]
-    mock_client.get_monsters.return_value = monsters
+    mock_client.get_creatures.return_value = monsters
     mock_cache.store_entities.return_value = len(monster_data)
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
     results = await repo.get_all()
 
     # Verify cache-aside pattern:
-    # 1. Check cache first
-    mock_cache.get_entities.assert_called_once_with("monsters")
-    # 2. On miss, fetch from API
-    mock_client.get_monsters.assert_called_once_with()
-    # 3. Store in cache
+    # 1. Check cache first with "creatures" table
+    mock_cache.get_entities.assert_called_once_with("creatures")
+    # 2. On miss, fetch from API using get_creatures
+    mock_client.get_creatures.assert_called_once_with()
+    # 3. Store in cache with "creatures" table
     mock_cache.store_entities.assert_called_once()
     # 4. Return results
     assert len(results) == 3
+
+
+@pytest.mark.asyncio
+async def test_monster_repository_uses_creatures_table_and_get_creatures(
+    mock_cache: MagicMock, mock_client: MagicMock, monster_data: list[dict[str, Any]]
+) -> None:
+    """Test that repository uses 'creatures' table and calls get_creatures method."""
+    # Cache miss - empty cache
+    mock_cache.get_entities.return_value = []
+    monsters = [Monster.model_validate(data) for data in monster_data]
+    mock_client.get_creatures.return_value = monsters
+    mock_cache.store_entities.return_value = 3
+
+    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    await repo.get_all()
+
+    # Should use "creatures" table for cache operations
+    mock_cache.get_entities.assert_called_once_with("creatures")
+    # Should call get_creatures instead of get_monsters
+    mock_client.get_creatures.assert_called_once_with()
+    # Should store in "creatures" table
+    mock_cache.store_entities.assert_called_once()
+    # Verify the store_entities call uses "creatures" table
+    call_args = mock_cache.store_entities.call_args
+    assert call_args[0][1] == "creatures"
+
+
+@pytest.mark.asyncio
+async def test_monster_repository_search_uses_creatures_table_and_get_creatures(
+    mock_cache: MagicMock, mock_client: MagicMock, monster_data: list[dict[str, Any]]
+) -> None:
+    """Test that search uses 'creatures' table and calls get_creatures method."""
+    # Cache miss
+    mock_cache.get_entities.return_value = []
+    humanoid_monsters = [Monster.model_validate(monster_data[0])]
+    mock_client.get_creatures.return_value = humanoid_monsters
+    mock_cache.store_entities.return_value = 1
+
+    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    await repo.search(type="humanoid")
+
+    # Should use "creatures" table for cache operations
+    mock_cache.get_entities.assert_called_once_with("creatures", type="humanoid")
+    # Should call get_creatures instead of get_monsters
+    mock_client.get_creatures.assert_called_once_with(limit=None, type="humanoid")
+    # Should store in "creatures" table
+    call_args = mock_cache.store_entities.call_args
+    assert call_args[0][1] == "creatures"
