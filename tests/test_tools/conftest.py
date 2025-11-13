@@ -10,6 +10,7 @@ from lorekeeper_mcp.api_clients.models import Monster, Spell
 @pytest.fixture(autouse=True)
 def cleanup_tool_contexts():
     """Clear all tool repository contexts after each test."""
+    from lorekeeper_mcp.repositories.factory import RepositoryFactory
     from lorekeeper_mcp.tools import (
         character_option_lookup,
         creature_lookup,
@@ -24,6 +25,9 @@ def cleanup_tool_contexts():
     character_option_lookup._repository_context.clear()
     equipment_lookup._repository_context.clear()
     rule_lookup._repository_context.clear()
+
+    # Clear the factory cache singleton to prevent test isolation issues
+    RepositoryFactory._cache_instance = None
 
 
 @pytest.fixture
