@@ -226,34 +226,18 @@ async def test_lookup_spell_by_class_key(repository_context):
         classes=["wizard", "sorcerer"],
     )
 
-    cleric_spell = Spell(
-        name="Cure Wounds",
-        slug="cure-wounds",
-        level=1,
-        school="evocation",
-        casting_time="1 action",
-        range="Touch",
-        components="V,S",
-        material=None,
-        duration="Instantaneous",
-        concentration=False,
-        ritual=False,
-        desc="A creature you touch...",
-        document_url="https://example.com/cure-wounds",
-        higher_level=None,
-        damage_type=None,
-        classes=["cleric", "bard"],
-    )
-
-    # Repository returns all spells, tool filters by class
-    repository_context.search.return_value = [wizard_spell, cleric_spell]
+    # Repository filters by class (server-side) and returns only wizard spells
+    repository_context.search.return_value = [wizard_spell]
 
     results = await lookup_spell(class_key="wizard", limit=10)
 
-    # Should only return wizard spells
+    # Should return wizard spells
     assert len(results) == 1
     assert results[0]["name"] == "Fireball"
     assert "wizard" in results[0]["classes"]
+    # Verify repository.search was called with class_key parameter
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["class_key"] == "wizard"
 
 
 @pytest.mark.asyncio

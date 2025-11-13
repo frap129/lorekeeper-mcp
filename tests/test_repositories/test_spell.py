@@ -400,3 +400,88 @@ def test_repository_mixed_parameters() -> None:
     # Verify old parameter names are not present
     assert "name" not in result
     assert "school" not in result or result.get("school") != "abjuration"
+
+
+def test_repository_class_key_mapping() -> None:
+    """Test that class_key is mapped to classes__key with srd_ prefix."""
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_cache = MagicMock()
+    mock_client = MagicMock(spec=Open5eV2Client)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Test class_key mapping - should add srd_ prefix
+    result = repo._map_to_api_params(class_key="wizard")
+
+    assert "classes__key" in result
+    assert result["classes__key"] == "srd_wizard"
+    assert "class_key" not in result
+
+
+def test_repository_class_key_lowercase() -> None:
+    """Test that class_key is converted to lowercase with srd_ prefix."""
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_cache = MagicMock()
+    mock_client = MagicMock(spec=Open5eV2Client)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Test class_key lowercase conversion with srd_ prefix
+    result = repo._map_to_api_params(class_key="Wizard")
+
+    assert result["classes__key"] == "srd_wizard"
+
+
+def test_repository_school_lowercase() -> None:
+    """Test that school is converted to lowercase."""
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_cache = MagicMock()
+    mock_client = MagicMock(spec=Open5eV2Client)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Test school lowercase conversion
+    result = repo._map_to_api_params(school="Evocation")
+
+    assert result["school__key"] == "evocation"
+
+
+def test_repository_concentration_passthrough() -> None:
+    """Test that concentration parameter is passed through correctly."""
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_cache = MagicMock()
+    mock_client = MagicMock(spec=Open5eV2Client)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Test concentration passthrough - True
+    result = repo._map_to_api_params(concentration=True)
+    assert result["concentration"] is True
+
+    # Test concentration passthrough - False
+    result = repo._map_to_api_params(concentration=False)
+    assert result["concentration"] is False
+
+
+def test_repository_class_and_school_together() -> None:
+    """Test class_key and school mapping together."""
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_cache = MagicMock()
+    mock_client = MagicMock(spec=Open5eV2Client)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    result = repo._map_to_api_params(
+        class_key="Sorcerer",
+        school="Abjuration",
+        concentration=True,
+    )
+
+    assert result["classes__key"] == "srd_sorcerer"
+    assert result["school__key"] == "abjuration"
+    assert result["concentration"] is True

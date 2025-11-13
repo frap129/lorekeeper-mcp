@@ -141,3 +141,84 @@ async def test_client_close(base_client: BaseHttpClient) -> None:
 
     # Verify client is closed
     assert base_client._client is None
+
+
+@respx.mock
+async def test_make_request_400_validation_error(base_client: BaseHttpClient) -> None:
+    """Test that 400 validation errors return empty result set instead of raising."""
+    respx.get("https://api.example.com/creatures").mock(
+        return_value=httpx.Response(
+            400,
+            json={
+                "type": ["Select a valid choice. That choice is not one of the available choices."]
+            },
+        )
+    )
+
+    response = await base_client.make_request("/creatures")
+
+    assert response == {"results": [], "count": 0}
+
+
+@respx.mock
+async def test_make_request_400_with_invalid_json(base_client: BaseHttpClient) -> None:
+    """Test that 400 errors with invalid JSON still return empty result set."""
+    respx.get("https://api.example.com/creatures").mock(
+        return_value=httpx.Response(400, text="Invalid request")
+    )
+
+    response = await base_client.make_request("/creatures")
+
+    assert response == {"results": [], "count": 0}
+
+
+@respx.mock
+async def test_make_request_401_still_raises(base_client: BaseHttpClient) -> None:
+    """Test that 401 authentication errors still raise ApiError."""
+    respx.get("https://api.example.com/protected").mock(
+        return_value=httpx.Response(401, json={"error": "Unauthorized"})
+    )
+
+    with pytest.raises(ApiError) as exc_info:
+        await base_client.make_request("/protected")
+
+    assert exc_info.value.status_code == 401
+
+
+@respx.mock
+async def test_make_request_403_still_raises(base_client: BaseHttpClient) -> None:
+    """Test that 403 forbidden errors still raise ApiError."""
+    respx.get("https://api.example.com/forbidden").mock(
+        return_value=httpx.Response(403, json={"error": "Forbidden"})
+    )
+
+    with pytest.raises(ApiError) as exc_info:
+        await base_client.make_request("/forbidden")
+
+    assert exc_info.value.status_code == 403
+
+
+@respx.mock
+async def test_make_request_404_still_raises(base_client: BaseHttpClient) -> None:
+    """Test that 404 not found errors still raise ApiError."""
+    respx.get("https://api.example.com/missing").mock(
+        return_value=httpx.Response(404, json={"error": "Not found"})
+    )
+
+    with pytest.raises(ApiError) as exc_info:
+        await base_client.make_request("/missing")
+
+    assert exc_info.value.status_code == 404
+
+
+@respx.mock
+async def test_make_request_500_still_raises(base_client: BaseHttpClient) -> None:
+    """Test that 500 server errors still raise ApiError."""
+    respx.get("https://api.example.com/error").mock(
+        return_value=httpx.Response(500, json={"error": "Internal server error"})
+    )
+
+    with pytest.raises(ApiError) as exc_info:
+        await base_client.make_request("/error")
+
+    assert exc_info.value.status_code == 500

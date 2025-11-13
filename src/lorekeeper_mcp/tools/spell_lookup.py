@@ -187,7 +187,6 @@ async def lookup_spell(
     repository = _get_repository()
 
     # Build query parameters for repository search
-    # Note: class_key filtering happens client-side (not supported by API)
     params: dict[str, Any] = {}
     if name is not None:
         params["name"] = name
@@ -199,7 +198,8 @@ async def lookup_spell(
         params["level_max"] = level_max
     if school is not None:
         params["school"] = school
-    # class_key filtering happens client-side below
+    if class_key is not None:
+        params["class_key"] = class_key
     if concentration is not None:
         params["concentration"] = concentration
     if ritual is not None:
@@ -210,16 +210,8 @@ async def lookup_spell(
         params["damage_type"] = damage_type
 
     # Fetch spells from repository with filters
-    # API will filter by name server-side for better performance
+    # API will filter by name, school, class_key, and concentration server-side
     spells = await repository.search(limit=limit, **params)
-
-    # Client-side filtering for class_key (not supported by cache/API)
-    if class_key:
-        spells = [
-            spell
-            for spell in spells
-            if hasattr(spell, "classes") and class_key.lower() in [c.lower() for c in spell.classes]
-        ]
 
     # Limit results to requested count
     spells = spells[:limit]

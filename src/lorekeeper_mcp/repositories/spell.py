@@ -81,15 +81,31 @@ class SpellRepository(Repository[Spell]):
         # Extract limit parameter (not a cache filter field)
         limit = filters.pop("limit", None)
 
-        # Try cache first with valid filter fields only
+        # Extract class_key as it's not a cacheable field
+        # (spells have multiple classes, not a simple scalar field)
+        class_key = filters.pop("class_key", None)
+
+        # Try cache first with valid cache filter fields only
         cached = await self.cache.get_entities("spells", **filters)
 
         if cached:
             results = [Spell.model_validate(spell) for spell in cached]
+            # Client-side filter by class_key if specified
+            if class_key:
+                results = [
+                    spell
+                    for spell in results
+                    if hasattr(spell, "classes")
+                    and class_key.lower() in [c.lower() for c in spell.classes]
+                ]
             return results[:limit] if limit else results
 
         # Cache miss - fetch from API with filters and limit
-        api_params = self._map_to_api_params(**filters)
+        # Pass class_key to API for server-side filtering
+        api_filters = dict(filters)
+        if class_key is not None:
+            api_filters["class_key"] = class_key
+        api_params = self._map_to_api_params(**api_filters)
         spells: list[Spell] = await self.client.get_spells(limit=limit, **api_params)
 
         # Store in cache if we got results
@@ -119,7 +135,11 @@ class SpellRepository(Repository[Spell]):
             if "name" in filters:
                 params["name__icontains"] = filters["name"]
             if "school" in filters:
-                params["school__key"] = filters["school"]
+                params["school__key"] = filters["school"].lower()
+            if "class_key" in filters:
+                # Classes in Open5e API use srd_ prefix (e.g., srd_wizard, srd_cleric)
+                class_key = filters["class_key"].lower()
+                params["classes__key"] = f"srd_{class_key}"
             if "level_min" in filters:
                 params["level__gte"] = filters["level_min"]
             if "level_max" in filters:

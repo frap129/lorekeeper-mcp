@@ -86,6 +86,20 @@ class BaseHttpClient:
                 response = await client.request(method, url, **kwargs)
 
                 if response.status_code >= HTTP_ERROR_STATUS_CODE:
+                    # Handle 400 validation errors gracefully
+                    if response.status_code == HTTP_ERROR_STATUS_CODE:
+                        try:
+                            error_data = response.json()
+                            # Log the validation error for debugging
+                            logger.warning(f"API validation error for {endpoint}: {error_data}")
+                        except Exception:
+                            # If JSON parsing fails, just log the status
+                            logger.warning(
+                                f"API validation error for {endpoint}: HTTP {HTTP_ERROR_STATUS_CODE}"
+                            )
+                        # Return empty result set for filter validation errors
+                        return {"results": [], "count": 0}
+
                     raise ApiError(
                         f"API error: {response.status_code}",
                         status_code=response.status_code,
