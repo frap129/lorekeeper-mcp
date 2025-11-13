@@ -319,3 +319,24 @@ async def test_monster_repository_search_uses_creatures_table_and_get_creatures(
     # Should store in "creatures" table
     call_args = mock_cache.store_entities.call_args
     assert call_args[0][1] == "creatures"
+
+
+@pytest.mark.asyncio
+async def test_repository_maps_v2_challenge_rating_params(mock_cache: MagicMock) -> None:
+    """Verify repository maps cr_min/cr_max to v2 parameters."""
+    from unittest.mock import AsyncMock
+
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_v2_client = AsyncMock(spec=Open5eV2Client)
+    mock_v2_client.get_creatures = AsyncMock(return_value=[])
+
+    mock_cache.get_entities = AsyncMock(return_value=[])
+
+    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    await repository.search(cr_min=5, cr_max=10)
+
+    # Verify v2 client was called with correct decimal parameters
+    call_kwargs = mock_v2_client.get_creatures.call_args.kwargs
+    assert call_kwargs.get("challenge_rating_decimal__gte") == 5
+    assert call_kwargs.get("challenge_rating_decimal__lte") == 10
