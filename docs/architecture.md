@@ -237,7 +237,7 @@ async def lookup_spell(
 
 **Repository Types**:
 - `SpellRepository` - D&D 5e spells (uses Open5e v2 API)
-- `MonsterRepository` - Creature stat blocks (uses Open5e v1 API)
+- `MonsterRepository` - Creature stat blocks (uses Open5e v2 `/creatures/` endpoint)
 - `EquipmentRepository` - Weapons, armor, magic items (uses D&D 5e API)
 - `CharacterOptionRepository` - Classes, races, backgrounds, feats (uses D&D 5e API)
 - `RuleRepository` - Rules, conditions, reference data (uses D&D 5e API)
@@ -645,7 +645,8 @@ User Query: "lookup_creature name:goblin"
         │               │
         ▼               ▼
     Return from    Call API
-    Cache       (Open5e v1)
+    Cache       (Open5e v2
+        │         /creatures/)
         │           │
         └─────┬─────┘
               ▼
@@ -683,6 +684,16 @@ The repository layer implements a **cache-aside pattern**:
    - **Reliability**: Cached data provides fallback on API errors
    - **Efficiency**: Reduces API rate limit consumption
    - **Flexibility**: TTL values configurable per entity type
+
+### Monster/Creature Repository
+
+The MonsterRepository handles D&D creature data from Open5e API v2. It:
+- Uses the `/v2/creatures/` endpoint (v1 `/monsters/` is deprecated)
+- Caches results in the `creatures` database table
+- Supports filtering by CR, type, size, armor class, and hit points
+- Maps repository parameters to API-specific operators
+
+**Note**: Despite the "Monster" name in the class, this repository uses the modern "creatures" endpoint and terminology for compatibility with Open5e v2 API.
 
 ### Multi-Source Repositories
 

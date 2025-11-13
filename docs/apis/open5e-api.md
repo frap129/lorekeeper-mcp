@@ -17,6 +17,32 @@ The API provides two main versions:
 
 ---
 
+## Creatures vs Monsters Terminology
+
+### Open5e API Version Differences
+
+**Open5e v1**: Used `/monsters/` endpoint (deprecated)
+**Open5e v2**: Uses `/creatures/` endpoint (current)
+
+### Key Changes
+- **Endpoint**: `/v1/monsters/` → `/v2/creatures/`
+- **Challenge Rating**: `cr` (string) → `challenge_rating_decimal` (float)
+- **Filtering**: Basic filters → Advanced filter operators (`__gte`, `__lte`, etc.)
+
+### LoreKeeper MCP Implementation
+- **Database Table**: `creatures` (not `monsters`)
+- **Repository**: `MonsterRepository` (name kept for compatibility)
+- **API Client**: `Open5eV2Client.get_creatures()`
+- **Parameter Mapping**: Repository handles v1→v2 parameter conversion
+
+### Migration Notes
+- Both terms refer to the same entity type (D&D monsters/creatures)
+- v2 provides better filtering and more structured data
+- LoreKeeper MCP automatically handles the terminology differences
+- Existing code using `MonsterRepository` requires no changes
+
+---
+
 ## API V2 Endpoints (Current)
 
 ### Core Content Endpoints
@@ -35,6 +61,7 @@ The API provides two main versions:
 
 #### `/v2/creatures/`
 - **Description**: List and retrieve creatures/monsters
+- **Note**: Open5e v2 uses "creatures" terminology (v1 used "monsters")
 - **Filters**:
   - `key`, `name` (exact, icontains)
   - `document__key`, `document__gamesystem__key`
@@ -208,7 +235,7 @@ The API provides two main versions:
 
 ### Character Content
 - `/spells/` - Spells with v1 format
-- `/monsters/` - Monsters with v1 format
+- `/monsters/` - **Deprecated** - Use `/v2/creatures/` instead
 - `/backgrounds/` - Backgrounds
 - `/feats/` - Feats
 - `/races/` - Races
