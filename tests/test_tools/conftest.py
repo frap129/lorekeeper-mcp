@@ -69,13 +69,14 @@ def mock_open5e_v1_client():
         armor_class=22,
         hit_points=546,
         hit_dice="28d20+252",
+        challenge_rating="24",
+        challenge_rating_decimal=24.0,
         strength=30,
         dexterity=10,
         constitution=29,
         intelligence=18,
         wisdom=15,
         charisma=23,
-        challenge_rating="24",
         speed={"walk": 40, "climb": 40, "fly": 80},
         actions=None,
         legendary_actions=None,
@@ -85,6 +86,7 @@ def mock_open5e_v1_client():
 
     client = MagicMock()
     client.get_monsters = AsyncMock(return_value=[monster_obj])
+    client.get_creatures = AsyncMock(return_value=[monster_obj])
     client.get_classes = AsyncMock(return_value={"count": 0, "results": []})
     client.get_races = AsyncMock(return_value={"count": 0, "results": []})
     client.get_magic_items = AsyncMock(return_value={"count": 0, "results": []})
@@ -115,6 +117,7 @@ def mock_open5e_v2_client(mock_spell_response):
 
     client = MagicMock()
     client.get_spells = AsyncMock(return_value=[spell_obj])
+    client.get_creatures = AsyncMock(return_value=[])
     client.get_backgrounds = AsyncMock(return_value=[])
     client.get_feats = AsyncMock(return_value=[])
     client.get_weapons = AsyncMock(return_value=[])
