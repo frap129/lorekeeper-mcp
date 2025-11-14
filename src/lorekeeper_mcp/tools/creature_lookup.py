@@ -156,8 +156,10 @@ async def lookup_creature(
     repository = _get_repository()
 
     # Build query parameters for repository search
-    # Note: name/search filtering happens client-side since the API doesn't filter by search
     params: dict[str, Any] = {}
+    if name is not None:
+        # Pass name search to repository - it maps to name__icontains for API
+        params["name"] = name
     if cr is not None:
         # Map 'cr' parameter to 'challenge_rating' for cache compatibility
         # Convert to float to match database schema (REAL type)
@@ -176,15 +178,8 @@ async def lookup_creature(
         params["hit_points_min"] = hit_points_min
 
     # Fetch creatures from repository with filters
-    # When searching by name, fetch more results to ensure we find matches
-    # Use multiplier of 11 to balance finding matches with performance
-    fetch_limit = limit * 11 if name else limit
-    creatures = await repository.search(limit=fetch_limit, **params)
-
-    # Client-side filtering by name (the API search parameter doesn't actually filter)
-    if name:
-        name_lower = name.lower()
-        creatures = [creature for creature in creatures if name_lower in creature.name.lower()]
+    # Repository handles name filtering via name__icontains parameter
+    creatures = await repository.search(limit=limit, **params)
 
     # Limit results to requested count
     creatures = creatures[:limit]
