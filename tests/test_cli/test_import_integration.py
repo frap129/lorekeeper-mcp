@@ -1,7 +1,9 @@
 """Integration tests for import command."""
 
+import asyncio
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 from lorekeeper_mcp.cache.db import get_cached_entity, query_cached_entities
@@ -124,3 +126,36 @@ def test_import_nonexistent_file() -> None:
     assert (
         "does not exist" in output_lower or "not found" in output_lower or "error" in output_lower
     ), f"Expected error message in output. output: {result.output}"
+
+
+@pytest.mark.live
+@pytest.mark.slow
+def test_import_megapak_file(tmp_path: Path, monkeypatch) -> None:
+    """Test importing the full MegaPak file (live test)."""
+    megapak_file = Path("MegaPak_-_WotC_Books.orcbrew")
+
+    if not megapak_file.exists():
+        pytest.skip("MegaPak file not found")
+
+    from lorekeeper_mcp.cache.db import init_db
+    from lorekeeper_mcp.config import settings
+
+    # Setup test database
+    test_db = tmp_path / "megapak_test.db"
+    monkeypatch.setattr(settings, "db_path", str(test_db))
+    asyncio.run(init_db())
+
+    # Run import
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--db-path", str(test_db), "-v", "import", str(megapak_file)])
+
+    assert result.exit_code == 0, f"Import failed: {result.output or result.exception}"
+    assert "Import complete!" in result.output
+
+    # Verify counts
+    spells = asyncio.run(query_cached_entities("spells", db_path=str(test_db)))
+    creatures = asyncio.run(query_cached_entities("creatures", db_path=str(test_db)))
+
+    # MegaPak should have hundreds of entities
+    assert len(spells) > 100, f"Expected > 100 spells, got {len(spells)}"
+    assert len(creatures) > 50, f"Expected > 50 creatures, got {len(creatures)}"
