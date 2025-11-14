@@ -7,6 +7,7 @@ from fastmcp import FastMCP
 
 from lorekeeper_mcp.cache.db import init_db
 from lorekeeper_mcp.tools import (
+    list_documents,
     lookup_character_option,
     lookup_creature,
     lookup_equipment,
@@ -35,6 +36,7 @@ mcp = FastMCP(
 )
 
 # Register tools with FastMCP
+mcp.tool()(list_documents)
 mcp.tool()(lookup_spell)
 mcp.tool()(lookup_creature)
 mcp.tool()(lookup_character_option)
