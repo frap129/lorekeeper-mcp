@@ -73,7 +73,7 @@ class SpellRepository(Repository[Spell]):
         """Search for spells with optional filters using cache-aside pattern.
 
         Args:
-            **filters: Optional filters (level, school, etc.)
+            **filters: Optional filters (level, school, document, etc.)
 
         Returns:
             List of Spell objects matching the filters
@@ -86,6 +86,7 @@ class SpellRepository(Repository[Spell]):
         class_key = filters.pop("class_key", None)
 
         # Try cache first with valid cache filter fields only
+        # Note: document filter is kept in filters for cache (cache-only filter)
         cached = await self.cache.get_entities("spells", **filters)
 
         if cached:
@@ -103,6 +104,8 @@ class SpellRepository(Repository[Spell]):
         # Cache miss - fetch from API with filters and limit
         # Pass class_key to API for server-side filtering
         api_filters = dict(filters)
+        # Remove document from API filters (cache-only filter)
+        api_filters.pop("document", None)
         if class_key is not None:
             api_filters["class_key"] = class_key
         api_params = self._map_to_api_params(**api_filters)

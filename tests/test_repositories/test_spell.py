@@ -248,6 +248,53 @@ async def test_spell_repository_cache_aside_pattern(
 
 
 @pytest.mark.asyncio
+async def test_spell_repository_search_with_document_filter() -> None:
+    """Test SpellRepository.search passes document filter to cache."""
+    # Mock client and cache
+    mock_client = MagicMock()
+    mock_client.get_spells = AsyncMock(return_value=[])
+
+    mock_cache = MagicMock()
+    mock_cache.get_entities = AsyncMock(return_value=[])
+    mock_cache.store_entities = AsyncMock(return_value=0)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Search with document filter
+    await repo.search(document=["srd-5e"])
+
+    # Verify cache was called with document filter
+    mock_cache.get_entities.assert_called_once()
+    call_args = mock_cache.get_entities.call_args
+    # Check that document was passed to cache
+    assert call_args[1].get("document") == ["srd-5e"]
+
+
+@pytest.mark.asyncio
+async def test_spell_repository_search_document_not_passed_to_api() -> None:
+    """Test that document filter is NOT passed to API (cache-only filter)."""
+    # Mock client and cache
+    mock_client = MagicMock()
+    mock_client.get_spells = AsyncMock(return_value=[])
+
+    mock_cache = MagicMock()
+    mock_cache.get_entities = AsyncMock(return_value=[])  # Cache miss
+    mock_cache.store_entities = AsyncMock(return_value=0)
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+
+    # Search with document filter (cache miss)
+    await repo.search(level=3, document="srd-5e")
+
+    # Verify API was called WITHOUT document parameter
+    mock_client.get_spells.assert_called_once()
+    call_kwargs = mock_client.get_spells.call_args[1]
+    assert "document" not in call_kwargs
+    # But level should be passed
+    assert call_kwargs.get("level") == 3
+
+
+@pytest.mark.asyncio
 async def test_search_spells_by_document(
     mock_cache: MagicMock, mock_client: MagicMock, spell_data: list[dict[str, Any]]
 ) -> None:
