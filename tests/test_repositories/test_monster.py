@@ -323,7 +323,7 @@ async def test_monster_repository_search_uses_creatures_table_and_get_creatures(
 
 @pytest.mark.asyncio
 async def test_repository_maps_v2_type_to_type_key_with_lowercase(mock_cache: MagicMock) -> None:
-    """Verify repository maps type to type__key with lowercase conversion."""
+    """Verify repository maps type to lowercase (type parameter, not type__key)."""
     from unittest.mock import AsyncMock
 
     from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
@@ -336,16 +336,16 @@ async def test_repository_maps_v2_type_to_type_key_with_lowercase(mock_cache: Ma
     repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
     await repository.search(type="Beast")
 
-    # Verify v2 client was called with type__key and lowercase value
+    # Verify v2 client was called with type and lowercase value
     call_kwargs = mock_v2_client.get_creatures.call_args.kwargs
-    assert call_kwargs.get("type__key") == "beast"
-    # Ensure original type parameter is not passed
-    assert "type" not in call_kwargs
+    assert call_kwargs.get("type") == "beast"
+    # Ensure type__key parameter is not passed
+    assert "type__key" not in call_kwargs
 
 
 @pytest.mark.asyncio
 async def test_repository_maps_v2_size_to_size_key_with_lowercase(mock_cache: MagicMock) -> None:
-    """Verify repository maps size to size__key with lowercase conversion."""
+    """Verify repository maps size to lowercase (size parameter, not size__key)."""
     from unittest.mock import AsyncMock
 
     from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
@@ -358,11 +358,11 @@ async def test_repository_maps_v2_size_to_size_key_with_lowercase(mock_cache: Ma
     repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
     await repository.search(size="Large")
 
-    # Verify v2 client was called with size__key and lowercase value
+    # Verify v2 client was called with size and lowercase value
     call_kwargs = mock_v2_client.get_creatures.call_args.kwargs
-    assert call_kwargs.get("size__key") == "large"
-    # Ensure original size parameter is not passed
-    assert "size" not in call_kwargs
+    assert call_kwargs.get("size") == "large"
+    # Ensure size__key parameter is not passed
+    assert "size__key" not in call_kwargs
 
 
 @pytest.mark.asyncio
@@ -409,3 +409,47 @@ async def test_repository_maps_v2_challenge_rating_to_challenge_rating_decimal(
     call_kwargs = mock_v2_client.get_creatures.call_args.kwargs
     assert call_kwargs.get("challenge_rating_decimal") == 21.0
     assert isinstance(call_kwargs.get("challenge_rating_decimal"), float)
+
+
+@pytest.mark.asyncio
+async def test_repository_maps_v2_type_to_type_without_key_suffix(mock_cache: MagicMock) -> None:
+    """Verify repository maps type parameter WITHOUT __key suffix (API expects 'type' not 'type__key')."""
+    from unittest.mock import AsyncMock
+
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_v2_client = AsyncMock(spec=Open5eV2Client)
+    mock_v2_client.get_creatures = AsyncMock(return_value=[])
+
+    mock_cache.get_entities = AsyncMock(return_value=[])
+
+    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    await repository.search(type="Beast")
+
+    # Verify v2 client was called with 'type' (not 'type__key') and lowercase value
+    call_kwargs = mock_v2_client.get_creatures.call_args.kwargs
+    assert call_kwargs.get("type") == "beast", "Should use 'type' parameter, not 'type__key'"
+    # Ensure type__key parameter is not passed
+    assert "type__key" not in call_kwargs, "Should not use 'type__key' parameter"
+
+
+@pytest.mark.asyncio
+async def test_repository_maps_v2_size_to_size_without_key_suffix(mock_cache: MagicMock) -> None:
+    """Verify repository maps size parameter WITHOUT __key suffix (API expects 'size' not 'size__key')."""
+    from unittest.mock import AsyncMock
+
+    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+    mock_v2_client = AsyncMock(spec=Open5eV2Client)
+    mock_v2_client.get_creatures = AsyncMock(return_value=[])
+
+    mock_cache.get_entities = AsyncMock(return_value=[])
+
+    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    await repository.search(size="Large")
+
+    # Verify v2 client was called with 'size' (not 'size__key') and lowercase value
+    call_kwargs = mock_v2_client.get_creatures.call_args.kwargs
+    assert call_kwargs.get("size") == "large", "Should use 'size' parameter, not 'size__key'"
+    # Ensure size__key parameter is not passed
+    assert "size__key" not in call_kwargs, "Should not use 'size__key' parameter"
