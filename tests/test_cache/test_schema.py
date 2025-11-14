@@ -8,6 +8,7 @@ import pytest
 
 from lorekeeper_mcp.cache.schema import (
     ENTITY_TYPES,
+    INDEXED_FIELDS,
     SCHEMA_VERSION,
     get_create_table_sql,
     get_index_sql,
@@ -142,3 +143,39 @@ def test_get_index_sql():
     assert len(indexes) > 0
     assert any("idx_spells_level" in sql for sql in indexes)
     assert any("ON spells(level)" in sql for sql in indexes)
+
+
+def test_document_field_in_schema():
+    """Test that all entity tables include document column."""
+    sql = get_create_table_sql("spells")
+
+    # Document field should be present
+    assert "document TEXT" in sql
+
+
+def test_document_is_indexed():
+    """Test that document is added to indexed fields for filtering."""
+    # Document field should be in indexed fields for all entity types
+    for entity_type in ["spells", "creatures", "weapons", "armor"]:
+        indexed = INDEXED_FIELDS.get(entity_type, [])
+        field_names = [name for name, _ in indexed]
+        assert "document" in field_names
+
+
+@pytest.mark.asyncio
+async def test_document_index_created():
+    """Test that document index is created during initialization."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+
+        await init_entity_cache(str(db_path))
+
+        async with aiosqlite.connect(db_path) as db:
+            cursor = await db.execute("SELECT name FROM sqlite_master WHERE type='index'")
+            indexes = {row[0] for row in await cursor.fetchall()}
+
+            # Check for document indexes on core tables
+            assert "idx_spells_document" in indexes
+            assert "idx_creatures_document" in indexes
+            assert "idx_weapons_document" in indexes
+            assert "idx_armor_document" in indexes

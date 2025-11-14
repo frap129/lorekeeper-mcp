@@ -63,91 +63,90 @@ ENTITY_TYPES = [
 # Indexed fields per entity type for filtering
 # Each field is a tuple of (field_name, field_type)
 # Note: 'name' and 'slug' are always available for filtering as they're in the base schema
+# Document field for ALL entity types (user-facing filter)
+DOCUMENT_FIELD = ("document", "TEXT")
+
 INDEXED_FIELDS = {
     "spells": [
+        DOCUMENT_FIELD,
         ("level", "INTEGER"),
         ("school", "TEXT"),
         ("concentration", "BOOLEAN"),
         ("ritual", "BOOLEAN"),
     ],
     "monsters": [
+        DOCUMENT_FIELD,
         ("challenge_rating", "REAL"),
         ("type", "TEXT"),
         ("size", "TEXT"),
     ],
     "weapons": [
+        DOCUMENT_FIELD,
         ("category", "TEXT"),
         ("damage_type", "TEXT"),
     ],
     "armor": [
+        DOCUMENT_FIELD,
         ("category", "TEXT"),
         ("armor_class", "INTEGER"),
     ],
     "magicitems": [
+        DOCUMENT_FIELD,
         ("type", "TEXT"),
         ("rarity", "TEXT"),
         ("requires_attunement", "BOOLEAN"),
     ],
-    "classes": [
-        ("hit_die", "INTEGER"),
-    ],
-    "races": [
-        ("size", "TEXT"),
-    ],
-    "backgrounds": [],
-    "feats": [],
-    "conditions": [],
-    "rules": [
-        ("parent", "TEXT"),
-    ],
-    "rule_sections": [
-        ("parent", "TEXT"),
-    ],
-    "planes": [],
-    "sections": [
-        ("parent", "TEXT"),
-    ],
+    "classes": [DOCUMENT_FIELD, ("hit_die", "INTEGER")],
+    "races": [DOCUMENT_FIELD, ("size", "TEXT")],
+    "backgrounds": [DOCUMENT_FIELD],
+    "feats": [DOCUMENT_FIELD],
+    "conditions": [DOCUMENT_FIELD],
+    "rules": [DOCUMENT_FIELD, ("parent", "TEXT")],
+    "rule_sections": [DOCUMENT_FIELD, ("parent", "TEXT")],
+    "planes": [DOCUMENT_FIELD],
+    "sections": [DOCUMENT_FIELD, ("parent", "TEXT")],
     # Task 1.6: Item-related (no special indexed fields)
-    "items": [],
-    "itemsets": [],
-    "itemcategories": [],
+    "items": [DOCUMENT_FIELD],
+    "itemsets": [DOCUMENT_FIELD],
+    "itemcategories": [DOCUMENT_FIELD],
     # Task 1.7: Creatures
     "creatures": [
+        DOCUMENT_FIELD,
         ("challenge_rating", "REAL"),
         ("type", "TEXT"),
         ("size", "TEXT"),
     ],
-    "creaturetypes": [],
-    "creaturesets": [],
+    "creaturetypes": [DOCUMENT_FIELD],
+    "creaturesets": [DOCUMENT_FIELD],
     # Task 1.8: Reference data (no special indexed fields)
-    "damagetypes": [],
-    "languages": [],
-    "alignments": [],
-    "spellschools": [],
-    "sizes": [],
-    "itemrarities": [],
-    "environments": [],
-    "abilities": [],
-    "ability_scores": [],
-    "skills": [],
+    "damagetypes": [DOCUMENT_FIELD],
+    "languages": [DOCUMENT_FIELD],
+    "alignments": [DOCUMENT_FIELD],
+    "spellschools": [DOCUMENT_FIELD],
+    "sizes": [DOCUMENT_FIELD],
+    "itemrarities": [DOCUMENT_FIELD],
+    "environments": [DOCUMENT_FIELD],
+    "abilities": [DOCUMENT_FIELD],
+    "ability_scores": [DOCUMENT_FIELD],
+    "skills": [DOCUMENT_FIELD],
     # Task 1.9: Character options
-    "species": [],
+    "species": [DOCUMENT_FIELD],
     # Task 1.10: Rules and metadata
-    "rulesets": [],
-    "documents": [],
-    "licenses": [],
-    "publishers": [],
-    "gamesystems": [],
+    "rulesets": [DOCUMENT_FIELD],
+    "documents": [DOCUMENT_FIELD],
+    "licenses": [DOCUMENT_FIELD],
+    "publishers": [DOCUMENT_FIELD],
+    "gamesystems": [DOCUMENT_FIELD],
     # Task 1.11: Additional content
-    "images": [],
-    "weaponproperties": [],
-    "services": [],
+    "images": [DOCUMENT_FIELD],
+    "weaponproperties": [DOCUMENT_FIELD],
+    "services": [DOCUMENT_FIELD],
     # Task 1.12-1.15: D&D 5e API specific entities
-    "subclasses": [],
-    "subraces": [],
-    "traits": [],
-    "equipment": [],
-    "features": [],
+    "subclasses": [DOCUMENT_FIELD],
+    "subraces": [DOCUMENT_FIELD],
+    "traits": [DOCUMENT_FIELD],
+    "equipment": [DOCUMENT_FIELD],
+    "features": [DOCUMENT_FIELD],
 }
 
 
@@ -172,6 +171,7 @@ def get_create_table_sql(entity_type: str) -> str:
     if fields_sql:
         fields_sql = ",\n" + fields_sql
 
+    # Note: document field is now part of indexed_fields for all entity types
     return f"""CREATE TABLE IF NOT EXISTS {entity_type} (
     slug TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -227,6 +227,11 @@ async def init_entity_cache(db_path: str) -> None:
             # Create index on name field for all entity types (for filtering)
             await db.execute(
                 f"CREATE INDEX IF NOT EXISTS idx_{entity_type}_name ON {entity_type}(name)"
+            )
+
+            # Create index on document for document filtering
+            await db.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_{entity_type}_document ON {entity_type}(document)"
             )
 
             # Create indexes for entity-specific fields
