@@ -97,13 +97,17 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         limit = filters.pop("limit", None)
 
         # Try cache first with valid filter fields only
+        # Note: document filter is kept in filters for cache (cache-only filter)
         cached = await self.cache.get_entities("classes", **filters)
 
         if cached:
             return cached[:limit] if limit else cached
 
-        # Fetch from API with filters and limit
-        classes: list[dict[str, Any]] = await self.client.get_classes(limit=limit, **filters)
+        # Cache miss - fetch from API with filters and limit
+        api_filters = dict(filters)
+        # Remove document from API filters (cache-only filter)
+        api_filters.pop("document", None)
+        classes: list[dict[str, Any]] = await self.client.get_classes(limit=limit, **api_filters)
 
         if classes:
             await self.cache.store_entities(classes, "classes")
@@ -116,13 +120,17 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         limit = filters.pop("limit", None)
 
         # Try cache first with valid filter fields only
+        # Note: document filter is kept in filters for cache (cache-only filter)
         cached = await self.cache.get_entities("races", **filters)
 
         if cached:
             return cached[:limit] if limit else cached
 
-        # Fetch from API with filters and limit
-        races: list[dict[str, Any]] = await self.client.get_races(limit=limit, **filters)
+        # Cache miss - fetch from API with filters and limit
+        api_filters = dict(filters)
+        # Remove document from API filters (cache-only filter)
+        api_filters.pop("document", None)
+        races: list[dict[str, Any]] = await self.client.get_races(limit=limit, **api_filters)
 
         if races:
             await self.cache.store_entities(races, "races")
@@ -135,14 +143,18 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         limit = filters.pop("limit", None)
 
         # Try cache first with valid filter fields only
+        # Note: document filter is kept in filters for cache (cache-only filter)
         cached = await self.cache.get_entities("backgrounds", **filters)
 
         if cached:
             return cached[:limit] if limit else cached
 
-        # Fetch from API with filters and limit
+        # Cache miss - fetch from API with filters and limit
+        api_filters = dict(filters)
+        # Remove document from API filters (cache-only filter)
+        api_filters.pop("document", None)
         backgrounds: list[dict[str, Any]] = await self.client.get_backgrounds(
-            limit=limit, **filters
+            limit=limit, **api_filters
         )
 
         if backgrounds:
@@ -163,10 +175,16 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         api_limit = limit if limit else 100
 
         # Try cache first with valid filter fields only
+        # Note: document filter is kept in filters for cache (cache-only filter)
         cached = await self.cache.get_entities("feats", **filters)
 
         if cached:
             return cached[:limit] if limit else cached
+
+        # Cache miss - fetch from API with filters and limit
+        api_filters = dict(filters)
+        # Remove document from API filters (cache-only filter)
+        api_filters.pop("document", None)
 
         # Use Open5e v2 API for feats (has 91 feats) instead of D&D 5e (has 1)
         # However, in tests we may have a mock client provided
@@ -174,10 +192,12 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         # If we have the D&D 5e API client, use Open5e v2 instead for better feat data
         if isinstance(self.client, Dnd5eApiClient):
             open5e_client = Open5eV2Client()
-            feats: list[dict[str, Any]] = await open5e_client.get_feats(limit=api_limit, **filters)
+            feats: list[dict[str, Any]] = await open5e_client.get_feats(
+                limit=api_limit, **api_filters
+            )
         else:
             # Use provided client (e.g., in tests with mocks)
-            feats = await self.client.get_feats(limit=api_limit, **filters)
+            feats = await self.client.get_feats(limit=api_limit, **api_filters)
 
         if feats:
             await self.cache.store_entities(feats, "feats")
@@ -190,13 +210,19 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         limit = filters.pop("limit", None)
 
         # Try cache first with valid filter fields only
+        # Note: document filter is kept in filters for cache (cache-only filter)
         cached = await self.cache.get_entities("conditions", **filters)
 
         if cached:
             return cached[:limit] if limit else cached
 
-        # Fetch from API with filters and limit
-        conditions: list[dict[str, Any]] = await self.client.get_conditions(limit=limit, **filters)
+        # Cache miss - fetch from API with filters and limit
+        api_filters = dict(filters)
+        # Remove document from API filters (cache-only filter)
+        api_filters.pop("document", None)
+        conditions: list[dict[str, Any]] = await self.client.get_conditions(
+            limit=limit, **api_filters
+        )
 
         if conditions:
             await self.cache.store_entities(conditions, "conditions")

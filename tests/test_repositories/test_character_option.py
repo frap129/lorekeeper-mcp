@@ -141,3 +141,48 @@ async def test_character_option_repository_search_feats_with_explicit_limit(
     assert len(results) == 5
     # Verify client.get_feats was called with limit=5 (not the default 100)
     mock_client.get_feats.assert_called_once_with(limit=5)
+
+
+@pytest.mark.asyncio
+async def test_character_option_repository_search_with_document_filter() -> None:
+    """Test CharacterOptionRepository.search passes document filter to cache."""
+    # Mock client and cache
+    mock_client = MagicMock()
+    mock_client.get_classes = AsyncMock(return_value=[])
+
+    mock_cache = MagicMock()
+    mock_cache.get_entities = AsyncMock(return_value=[])
+    mock_cache.store_entities = AsyncMock(return_value=0)
+
+    repo = CharacterOptionRepository(client=mock_client, cache=mock_cache)
+
+    # Search with document filter
+    await repo.search(option_type="class", document=["srd-5e"])
+
+    # Verify cache was called with document filter
+    mock_cache.get_entities.assert_called_once()
+    call_args = mock_cache.get_entities.call_args
+    # Check that document was passed to cache
+    assert call_args[1].get("document") == ["srd-5e"]
+
+
+@pytest.mark.asyncio
+async def test_character_option_repository_search_document_not_passed_to_api() -> None:
+    """Test that document filter is NOT passed to API (cache-only filter)."""
+    # Mock client and cache
+    mock_client = MagicMock()
+    mock_client.get_classes = AsyncMock(return_value=[])
+
+    mock_cache = MagicMock()
+    mock_cache.get_entities = AsyncMock(return_value=[])  # Cache miss
+    mock_cache.store_entities = AsyncMock(return_value=0)
+
+    repo = CharacterOptionRepository(client=mock_client, cache=mock_cache)
+
+    # Search with document filter (cache miss)
+    await repo.search(option_type="class", document="srd-5e")
+
+    # Verify API was called WITHOUT document parameter
+    mock_client.get_classes.assert_called_once()
+    call_kwargs = mock_client.get_classes.call_args[1]
+    assert "document" not in call_kwargs
