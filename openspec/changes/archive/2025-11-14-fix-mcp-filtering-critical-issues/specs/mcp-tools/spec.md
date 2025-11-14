@@ -7,7 +7,7 @@ Update the MCP tools specification to use enhanced database-level filtering with
 
 ## MODIFIED Requirements
 
-### Requirement: Enhanced Spell Lookup Filtering
+### Requirement: Spell Lookup Tool
 The system SHALL update the `lookup_spell` tool to use enhanced database-level filtering with existing parameters only.
 
 **MODIFIED Implementation:**
@@ -55,7 +55,7 @@ The system SHALL update the `lookup_spell` tool to use enhanced database-level f
 
 ---
 
-### Requirement: Enhanced Creature Lookup Filtering
+### Requirement: Creature Lookup Tool
 The system SHALL update the `lookup_creature` tool to eliminate client-side filtering and use enhanced database-level filtering.
 
 **MODIFIED Implementation:**
@@ -96,7 +96,7 @@ The system SHALL update the `lookup_creature` tool to eliminate client-side filt
 
 ---
 
-### Requirement: Enhanced Equipment Lookup Filtering
+### Requirement: Equipment Lookup Tool
 The system SHALL update the `lookup_equipment` tool to eliminate client-side filtering across all equipment types.
 
 **MODIFIED Implementation:**
@@ -138,7 +138,7 @@ The system SHALL update the `lookup_equipment` tool to eliminate client-side fil
 
 ---
 
-### Requirement: Enhanced Character Option Lookup Filtering
+### Requirement: Character Option Lookup Tool
 The system SHALL update the `lookup_character_option` tool to eliminate client-side filtering and use enhanced database-level filtering.
 
 **MODIFIED Implementation:**
@@ -180,7 +180,7 @@ The system SHALL update the `lookup_character_option` tool to eliminate client-s
 
 ---
 
-### Requirement: Enhanced Rule Lookup Filtering
+### Requirement: Rule Lookup Tool
 The system SHALL update the `lookup_rule` tool to use enhanced database-level filtering with existing parameters.
 
 **MODIFIED Implementation:**
@@ -214,15 +214,17 @@ The system SHALL update the `lookup_rule` tool to use enhanced database-level fi
 
 ---
 
+## ADDED Requirements
+
 ### Requirement: Consistent Tool Interface Standards
 The system SHALL ensure all 5 MCP tools have consistent enhanced search behavior using existing parameters.
 
-**MODIFIED Parameters:**
+**Parameters:**
 - All tools maintain exactly the same parameters as before: `name`, `limit`, plus tool-specific filters
 - The existing `name` parameter is enhanced transparently with case-insensitive, wildcard, and automatic slug fallback matching
 - Zero new parameters added to any tools
 
-**MODIFIED Implementation:**
+**Implementation:**
 - All filtering performed at database level (no client-side filtering)
 - Eliminate 11x over-fetching bug completely
 - Consistent SQL parameter binding for security

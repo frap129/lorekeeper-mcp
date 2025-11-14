@@ -3,7 +3,7 @@
 ## Purpose
 Complete the Open5e v1 API client by implementing all available endpoints, providing full coverage of the v1 API for monsters, classes, races, magic items, planes, sections, and spell lists.
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Open5e v1 Comprehensive Endpoint Coverage
 The system SHALL provide client methods for all Open5e v1 API endpoints beyond the currently implemented monsters, classes, and races.
@@ -55,7 +55,7 @@ When introspecting available API resources, the client should fetch from the `/v
 - Caches manifest with extended TTL (30 days)
 - Provides document source information
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Open5e v1 Client Response Normalization
 The system SHALL normalize Open5e v1 API responses to use consistent 'slug' field naming, already partially implemented in `_extract_entities()`.

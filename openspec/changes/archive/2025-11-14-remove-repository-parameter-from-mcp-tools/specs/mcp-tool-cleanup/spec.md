@@ -3,7 +3,7 @@
 ## Purpose
 Remove the erroneous `repository` parameter from all MCP tool function signatures. This parameter was mistakenly exposed as part of the public MCP tool interface during the repository pattern implementation, violating encapsulation principles and confusing external clients.
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Spell Lookup Tool Has Clean Interface
 The system SHALL remove the `repository` parameter from the `lookup_spell` function signature, making it an internal implementation detail rather than a public API parameter.
@@ -173,14 +173,5 @@ When reading tool function docstrings, developers should see accurate parameters
 - Module-level docstrings mention repository pattern is used internally
 - Examples in docstrings show usage without repository parameter
 - Comments about repository usage clarify it's internal only
-
----
-
-## REMOVED Requirements
-
-### Requirement: [OLD] Tools Accept Repository Parameter
-~~The system SHALL allow tools to accept an optional repository parameter for dependency injection.~~
-
-**Reason for Removal:** This requirement was the source of the problem. Repository injection should be internal, not part of the public tool interface.
 
 ---

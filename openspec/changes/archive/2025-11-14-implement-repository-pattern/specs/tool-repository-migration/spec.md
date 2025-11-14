@@ -3,7 +3,7 @@
 ## Purpose
 Migrate all MCP tools from direct API client usage to repository pattern, improving testability, separation of concerns, and enabling easy mock-based unit testing.
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Spell Lookup Tool Uses Repository
 The system SHALL refactor the `lookup_spell` tool to use SpellRepository instead of directly instantiating Open5eV2Client.

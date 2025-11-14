@@ -4,290 +4,209 @@
 TBD - created by archiving change implement-mcp-tools. Update Purpose after archive.
 ## Requirements
 ### Requirement: Spell Lookup Tool
-The system SHALL provide a `lookup_spell` tool that searches and retrieves spell information from the Open5e v2 API.
+The system SHALL update the `lookup_spell` tool to use enhanced database-level filtering with existing parameters only.
 
-**Parameters:**
-- `name` (string, optional): Spell name or partial name search
-- `level` (integer, optional): Spell level (0-9, where 0 represents cantrips)
-- `school` (string, optional): Magic school (abjuration, conjuration, divination, enchantment, evocation, illusion, necromancy, transmutation)
-- `class_key` (string, optional): Filter by class (wizard, cleric, druid, etc.)
-- `concentration` (boolean, optional): Filter for concentration spells only
-- `ritual` (boolean, optional): Filter for ritual spells only
-- `casting_time` (string, optional): Casting time filter (e.g., "1 Action", "1 Bonus Action", "Reaction")
-- `limit` (integer, optional, default=20): Maximum number of results to return
+**MODIFIED Implementation:**
+- Enhance existing `name` parameter to use case-insensitive, wildcard, and automatic slug fallback matching
+- Perform all filtering at database level (no client-side filtering)
+- Maintain exact same parameter interface for backward compatibility
 
-**Returns:** List of spell objects containing:
-- Name, level, school
-- Components (verbal, somatic, material) with material details
-- Casting time, range, duration
-- Concentration requirement
-- Full description text
-- Higher level effects (if applicable)
-- Available classes
-- Source document attribution
+#### Scenario: Enhanced case-insensitive spell search
+**Given** a user searches with `name="fireball"`
+**When** the `lookup_spell` tool is invoked
+**Then** the system performs case-insensitive database filtering
+**And** returns "Fireball" spell data regardless of input case
+**And** uses efficient `LOWER(name) = LOWER(?)` SQL query
+**And** response time is under 100ms
 
-#### Scenario: Lookup spell by exact name
-**Given** a user queries for spell with `name="Fireball"`
+#### Scenario: Wildcard partial spell name search
+**Given** a user searches with `name="fire*"` or `name="%fire"`
+**When** the `lookup_spell` tool is invoked
+**Then** the system detects wildcards and performs database-level partial matching
+**And** returns spells like "Fireball", "Fire Bolt", "Wall of Fire"
+**And** uses `LOWER(name) LIKE LOWER(?)` SQL query with processed wildcards
+**And** respects the `limit` parameter
+
+#### Scenario: Automatic slug fallback for spells
+**Given** a user searches with `name="fireball"` and no name match exists
+**When** the `lookup_spell` tool is invoked
+**Then** the system automatically tries slug search as fallback
+**And** returns spell data if slug="fireball" exists
+**And** provides this fallback transparently without parameter changes
+
+#### Scenario: Enhanced combined spell filtering
+**Given** a user searches with `name="fire*", level=3, school="evocation"`
+**When** the `lookup_spell` tool is invoked
+**Then** the system builds single SQL query with all conditions
+**And** performs wildcard matching for "fire" with other filters
+**And** returns only 3rd-level evocation spells containing "fire"
+**And** respects the `limit` parameter without over-fetching
+
+#### Scenario: Perfect backward compatibility preservation
+**Given** existing code uses `lookup_spell(name="Fireball", level=3)`
 **When** the tool is invoked
-**Then** the system returns the Fireball spell details from Open5e v2 API
-**And** includes damage dice, saving throw, and area of effect information
-
-#### Scenario: Filter spells by level and class
-**Given** a user queries with `level=3` and `class_key="wizard"`
-**When** the tool is invoked
-**Then** the system returns all 3rd-level wizard spells up to the limit
-**And** results are sorted by name
-
-#### Scenario: Find concentration spells
-**Given** a user queries with `concentration=true`
-**When** the tool is invoked
-**Then** the system returns only spells that require concentration
-**And** the limit parameter restricts the result count
-
-#### Scenario: Handle spell not found
-**Given** a user queries for `name="NonexistentSpell123"`
-**When** the tool is invoked
-**Then** the system returns an empty list
-**And** does not raise an error
+**Then** the system returns identical results as before
+**And** adds enhanced case-insensitive capability transparently
+**And** improves performance with database-level filtering
 
 ---
 
 ### Requirement: Creature Lookup Tool
-The system SHALL provide a `lookup_creature` tool that searches and retrieves monster/creature stat blocks from the Open5e v1 API.
+The system SHALL update the `lookup_creature` tool to eliminate client-side filtering and use enhanced database-level filtering.
 
-**Parameters:**
-- `name` (string, optional): Creature name or partial name search
-- `cr` (float, optional): Exact challenge rating (supports 0.125, 0.25, 0.5, 1-30)
-- `cr_min` (float, optional): Minimum CR for range searches
-- `cr_max` (float, optional): Maximum CR for range searches
-- `type` (string, optional): Creature type (aberration, beast, celestial, construct, dragon, elemental, fey, fiend, giant, humanoid, monstrosity, ooze, plant, undead)
-- `size` (string, optional): Size category (Tiny, Small, Medium, Large, Huge, Gargantuan)
-- `limit` (integer, optional, default=20): Maximum number of results
+**MODIFIED Implementation:**
+- Remove client-side filtering that fetched 11x data immediately
+- Enhance existing `name` parameter to use case-insensitive, wildcard, and automatic slug fallback matching
+- Perform all filtering at database level with single parameter interface
 
-**Returns:** List of creature stat blocks containing:
-- Name, size, type, alignment
-- Armor class, hit points, speed
-- Ability scores (STR, DEX, CON, INT, WIS, CHA)
-- Saving throws, skills, proficiencies
-- Damage vulnerabilities, resistances, immunities
-- Condition immunities
-- Senses, languages
-- Challenge rating and experience points
-- Special abilities and traits
-- Actions, bonus actions, reactions
-- Legendary actions (if applicable)
-- Source document attribution
+#### Scenario: Eliminate 11x over-fetching performance bug
+**Given** a user searches with `lookup_creature(limit=20)` without name filters
+**When** the `lookup_creature` tool is invoked
+**Then** the system fetches exactly 20 records (not 220)
+**And** memory usage is reduced by 90%
+**And** no client-side filtering loops exist
+**And** response time improves by factor of 5 or more
 
-#### Scenario: Lookup creature by exact name
-**Given** a user queries for `name="Ancient Red Dragon"`
-**When** the tool is invoked
-**Then** the system returns the complete stat block for Ancient Red Dragon
-**And** includes legendary actions and lair actions
+#### Scenario: Efficient case-insensitive creature search
+**Given** a user searches with `name="ancient red dragon"`
+**When** the `lookup_creature` tool is invoked
+**Then** the system performs case-insensitive database filtering
+**And** returns Ancient Red Dragon stat block
+**And** uses efficient `LOWER(name) = LOWER(?)` SQL query
+**And** no client-side filtering occurs
 
-#### Scenario: Filter by challenge rating and type
-**Given** a user queries with `cr=5` and `type="undead"`
-**When** the tool is invoked
-**Then** the system returns all CR 5 undead creatures
-**And** results include creatures like Wraith
+#### Scenario: Wildcard partial creature name search
+**Given** a user searches with `name="*dragon*"`, type="dragon", limit=10`
+**When** the `lookup_creature` tool is invoked
+**Then** the system detects wildcards and performs database-level LIKE query
+**And** returns dragons containing "dragon" in name
+**And** filters efficiently without over-fetching
+**And** respects limit parameter exactly (not limit * 11)
 
-#### Scenario: Filter by CR range
-**Given** a user queries with `cr_min=1` and `cr_max=3`
-**When** the tool is invoked
-**Then** the system returns creatures with CR between 1 and 3 inclusive
-**And** respects the limit parameter
-
-#### Scenario: Handle fractional CR values
-**Given** a user queries with `cr=0.25`
-**When** the tool is invoked
-**Then** the system correctly filters for CR 1/4 creatures
-**And** returns appropriate low-level monsters
+#### Scenario: Automatic slug fallback for creatures
+**Given** a user searches with `name="ancient-red-dragon"` (exact slug format)
+**When** the `lookup_creature` tool is invoked
+**Then** name search fails, automatic slug search succeeds
+**And** returns creature data via efficient PRIMARY KEY lookup
+**And** provides transparent fallback behavior
 
 ---
 
 ### Requirement: Character Option Lookup Tool
-The system SHALL provide a `lookup_character_option` tool that retrieves character creation and advancement options including classes, races, backgrounds, and feats.
+The system SHALL update the `lookup_character_option` tool to eliminate client-side filtering and use enhanced database-level filtering.
 
-**Parameters:**
-- `type` (string, required): One of: `class`, `race`, `background`, `feat`
-- `name` (string, optional): Name or partial name search
-- `limit` (integer, optional, default=20): Maximum number of results
+**MODIFIED Implementation:**
+- Remove client-side filtering from character option queries completely
+- Enhance existing `name` parameter to use case-insensitive, wildcard, and automatic slug fallback matching
+- Perform database-level filtering for all character option types with exact limit adherence
 
-**API Routing:**
-- `class` → Open5e v1 `/classes/`
-- `race` → Open5e v1 `/races/`
-- `background` → Open5e v2 `/backgrounds/`
-- `feat` → Open5e v2 `/feats/`
+#### Scenario: Eliminate character options 11x over-fetching bug
+**Given** a user searches with `type="class", limit=20`
+**When** the `lookup_character_option` tool is invoked
+**Then** the system fetches exactly 20 character options (not 220)
+**And** eliminates all client-side filtering loops
+**And** memory usage reduces by 90% for filtered queries
+**And** response time improves significantly
 
-**Returns (varies by type):**
+#### Scenario: Efficient case-insensitive class filtering
+**Given** a user searches with `type="class", name="paladin"`
+**When** the `lookup_character_option` tool is invoked
+**Then** the system performs case-insensitive database filtering
+**And** returns Paladin class details efficiently
+**And** uses `LOWER(name) = LOWER(?)` SQL query
+**And** no client-side filtering occurs
 
-**Classes:**
-- Hit dice, HP progression
-- Proficiencies (armor, weapons, tools, saving throws, skills)
-- Starting equipment
-- Class features by level
-- Subclasses/archetypes
-- Spellcasting ability (if applicable)
+#### Scenario: Wildcard partial character option search
+**Given** a user searches with `type="race", name="*elf*", limit=5`
+**When** the `lookup_character_option` tool is invoked
+**Then** the system detects wildcards and performs database-level LIKE query
+**And** returns elf races including subraces efficiently
+**And** respects exact limit parameter (not limit * 11)
+**And** filters at database level with proper indexes
 
-**Races:**
-- Ability score increases
-- Age, alignment, size
-- Speed, languages
-- Racial traits
-- Subraces (if applicable)
-
-**Backgrounds:**
-- Skill proficiencies
-- Tool/language proficiencies
-- Equipment
-- Special features
-
-**Feats:**
-- Prerequisites
-- Benefits and mechanical effects
-- Type classification
-
-#### Scenario: Lookup class by name
-**Given** a user queries with `type="class"` and `name="Paladin"`
-**When** the tool is invoked
-**Then** the system returns Paladin class details from Open5e v1
-**And** includes all class features and subclasses
-
-#### Scenario: Lookup race with subraces
-**Given** a user queries with `type="race"` and `name="Elf"`
-**When** the tool is invoked
-**Then** the system returns Elf racial traits
-**And** includes High Elf, Wood Elf, and Drow subraces
-
-#### Scenario: Find feat by name
-**Given** a user queries with `type="feat"` and `name="Sharpshooter"`
-**When** the tool is invoked
-**Then** the system returns the Sharpshooter feat from Open5e v2
-**And** includes prerequisites and benefits
-
-#### Scenario: Invalid type parameter
-**Given** a user queries with `type="invalid-type"`
-**When** the tool is invoked
-**Then** the system returns a validation error
-**And** provides valid type options (class, race, background, feat)
+#### Scenario: Automatic slug fallback for feats
+**Given** a user searches with `type="feat", name="sharpshooter"`
+**When** the `lookup_character_option` tool is invoked
+**Then** system performs case-insensitive name search
+**And** automatically falls back to slug search if needed
+**And** returns Sharpshooter feat details via optimal lookup
+**And** eliminates client-side memory overhead
 
 ---
 
 ### Requirement: Equipment Lookup Tool
-The system SHALL provide a `lookup_equipment` tool that searches for weapons, armor, adventuring gear, and magic items.
+The system SHALL update the `lookup_equipment` tool to eliminate client-side filtering across all equipment types.
 
-**Parameters:**
-- `type` (string, optional, default="all"): One of: `weapon`, `armor`, `magic-item`, `all`
-- `name` (string, optional): Item name or partial name search
-- `rarity` (string, optional): Magic item rarity (common, uncommon, rare, very rare, legendary, artifact)
-- `damage_dice` (string, optional): Weapon damage dice filter (e.g., "1d8", "2d6")
-- `is_simple` (boolean, optional): Filter for simple weapons only
-- `requires_attunement` (string, optional): Attunement requirement filter
-- `limit` (integer, optional, default=20): Maximum number of results
+**MODIFIED Implementation:**
+- Remove client-side filtering from weapons, armor, and magic-items queries completely
+- Enhance existing `name` parameter to use case-insensitive, wildcard, and automatic slug fallback matching
+- Perform database-level filtering for each equipment type with exact limit adherence
 
-**API Routing:**
-- `weapon` → Open5e v2 `/weapons/`
-- `armor` → Open5e v2 `/armor/`
-- `magic-item` → Open5e v1 `/magicitems/`
-- `all` → Query all endpoints and merge results
+#### Scenario: Eliminate equipment 11x over-fetching bug
+**Given** a user searches with `type="weapon", limit=15`
+**When** the `lookup_equipment` tool is invoked
+**Then** the system fetches exactly 15 weapons (not 165)
+**And** eliminates all client-side filtering loops
+**And** memory usage reduces by 90% for filtered queries
+**And** response time improves significantly
 
-**Returns (varies by type):**
+#### Scenario: Case-insensitive equipment search
+**Given** a user searches with `type="armor", name="chain mail"`
+**When** the `lookup_equipment` tool is invoked
+**Then** the system performs case-insensitive database filtering
+**And** returns chain mail and related armor items efficiently
+**And** uses `LOWER(name) = LOWER(?)` SQL query with proper indexes
+**And** no client-side filtering occurs
 
-**Weapons:**
-- Name, category (simple/martial)
-- Damage dice and damage type
-- Properties (light, finesse, two-handed, versatile, etc.)
-- Range (for ranged weapons)
-- Weight, cost
+#### Scenario: Wildcard partial equipment name search
+**Given** a user searches with `type="weapon", name="*sword*", limit=10`
+**When** the `lookup_equipment` tool is invoked
+**Then** the system detects wildcards and performs database-level LIKE query
+**And** returns weapons containing "sword" efficiently
+**And** respects exact limit (not limit * 11)
+**And** filters at database level with proper indexes
 
-**Armor:**
-- Name, armor category (light/medium/heavy/shield)
-- AC value and calculation
-- Strength requirement
-- Stealth disadvantage
-- Weight, cost
-
-**Magic Items:**
-- Name, type, rarity
-- Description and magical effects
-- Attunement requirement
-- Source document
-
-#### Scenario: Lookup weapon by name
-**Given** a user queries with `type="weapon"` and `name="Longsword"`
-**When** the tool is invoked
-**Then** the system returns longsword details from Open5e v2
-**And** includes damage (1d8/1d10 versatile) and properties
-
-#### Scenario: Filter simple weapons
-**Given** a user queries with `type="weapon"` and `is_simple=true`
-**When** the tool is invoked
-**Then** the system returns only simple weapons
-**And** excludes martial weapons
-
-#### Scenario: Find rare magic items
-**Given** a user queries with `type="magic-item"` and `rarity="rare"`
-**When** the tool is invoked
-**Then** the system returns all rare magic items
-**And** includes items like Flame Tongue and Cloak of Displacement
-
-#### Scenario: Search all equipment types
-**Given** a user queries with `type="all"` and `name="chain"`
-**When** the tool is invoked
-**Then** the system searches weapons, armor, and magic items
-**And** returns chain mail armor and chain weapons in merged results
+#### Scenario: Automatic slug fallback for magic items
+**Given** a user searches with `type="magic-item", name="wand-of-magic-missiles"`
+**When** the `lookup_equipment` tool is invoked
+**Then** name search may fail, automatic slug search succeeds
+**And** returns exact magic item via PRIMARY KEY lookup
+**And** provides transparent fallback behavior
+**And** eliminates memory overhead from client-side over-fetching
 
 ---
 
 ### Requirement: Rule Lookup Tool
-The system SHALL provide a `lookup_rule` tool that retrieves game rules, conditions, and reference information.
+The system SHALL update the `lookup_rule` tool to use enhanced database-level filtering with existing parameters.
 
-**Parameters:**
-- `type` (string, required): One of: `rule`, `condition`, `damage-type`, `weapon-property`, `skill`, `ability-score`, `magic-school`, `language`, `proficiency`, `alignment`
-- `name` (string, optional): Name or partial name search
-- `section` (string, optional): For rules - section name (combat, spellcasting, adventuring, etc.)
-- `limit` (integer, optional, default=20): Maximum number of results
+**MODIFIED Implementation:**
+- Enhance existing `name` parameter to use case-insensitive, wildcard, and automatic slug fallback matching
+- Change rule searches from case-sensitive to case-insensitive filtering
+- Enable wildcard-based partial matching for rule discovery
 
-**API Routing:**
-- `rule` → D&D 5e API `/rules/`
-- `condition` → Open5e v2 `/conditions/`
-- `damage-type` → D&D 5e API `/damage-types/`
-- `weapon-property` → D&D 5e API `/weapon-properties/`
-- `skill` → D&D 5e API `/skills/`
-- `ability-score` → D&D 5e API `/ability-scores/`
-- `magic-school` → D&D 5e API `/magic-schools/`
-- `language` → D&D 5e API `/languages/`
-- `proficiency` → D&D 5e API `/proficiencies/`
-- `alignment` → D&D 5e API `/alignments/`
+#### Scenario: Efficient case-insensitive rule search
+**Given** a user searches with `type="rule", name="opportunity attack"`
+**When** the `lookup_rule` tool is invoked
+**Then** the system performs case-insensitive database filtering
+**And** returns opportunity attack rules
+**And** uses efficient `LOWER(name) = LOWER(?)` SQL query
+**And** eliminates case-sensitivity issues
 
-**Returns (varies by type):**
-- Name and description
-- Mechanical effects
-- Related rules and references
-- Source document attribution
+#### Scenario: Automatic slug fallback for rules
+**Given** a user searches with `type="condition", name="grappled"`
+**When** the `lookup_rule` tool is invoked
+**Then** the system performs case-insensitive name search first
+**And** automatically tries slug search if name match fails
+**And** returns Grappled condition details via optimal lookup
+**And** results are consistent across different capitalizations
 
-#### Scenario: Lookup condition by name
-**Given** a user queries with `type="condition"` and `name="Grappled"`
-**When** the tool is invoked
-**Then** the system returns the Grappled condition from Open5e v2
-**And** includes full description of mechanical effects
-
-#### Scenario: Find combat rules
-**Given** a user queries with `type="rule"` and `section="combat"`
-**When** the tool is invoked
-**Then** the system returns combat rules from D&D 5e API
-**And** includes rules like opportunity attacks and initiative
-
-#### Scenario: Lookup damage type
-**Given** a user queries with `type="damage-type"` and `name="radiant"`
-**When** the tool is invoked
-**Then** the system returns radiant damage type information
-**And** includes description and examples
-
-#### Scenario: Invalid rule type
-**Given** a user queries with `type="invalid-rule-type"`
-**When** the tool is invoked
-**Then** the system returns a validation error
-**And** lists valid type options
+#### Scenario: Wildcard partial rule search
+**Given** a user searches with `type="damage-type", name="*radiant*"`
+**When** the `lookup_rule` tool is invoked
+**Then** the system detects wildcards and performs partial matching
+**And** returns radiant damage type information efficiently
+**And** uses `LOWER(name) LIKE LOWER(?)` database query
+**And** provides consistent behavior with other tools
 
 ---
 
@@ -398,3 +317,41 @@ The system SHALL register all tools with the FastMCP server for MCP protocol exp
 **And** the response conforms to MCP response format
 
 ---
+
+### Requirement: Consistent Tool Interface Standards
+The system SHALL ensure all 5 MCP tools have consistent enhanced search behavior using existing parameters.
+
+**Parameters:**
+- All tools maintain exactly the same parameters as before: `name`, `limit`, plus tool-specific filters
+- The existing `name` parameter is enhanced transparently with case-insensitive, wildcard, and automatic slug fallback matching
+- Zero new parameters added to any tools
+
+**Implementation:**
+- All filtering performed at database level (no client-side filtering)
+- Eliminate 11x over-fetching bug completely
+- Consistent SQL parameter binding for security
+- Uniform error handling and validation unchanged
+
+#### Scenario: Identical parameter availability
+**Given** examining all 5 MCP tool interfaces
+**When** checking parameter definitions
+**Then** all tools have exactly the same parameters as before enhancement
+**And** all tools maintain their tool-specific parameters unchanged
+**And** parameter types and defaults remain identical
+**And** FastMCP parameter validation works as before
+
+#### Scenario: Consistent enhanced filtering behavior
+**Given** using the same search parameters across different tools
+**When** performing searches with `name="fire*"`
+**Then** all tools return consistent wildcard-based results for their domains
+**And** all tools use database-level filtering only
+**And** all tools respect limit parameters exactly (not limit * 11)
+**And** performance characteristics are similar and optimized across tools
+
+#### Scenario: Unchanged error handling consistency
+**Given** invalid parameters provided to any tool
+**When** the tool is invoked
+**Then** all tools show identical error messages as before
+**And** parameter validation behavior is exactly the same
+**And** FastMCP handles errors consistently without changes
+**And** user experience is predictable and unchanged
