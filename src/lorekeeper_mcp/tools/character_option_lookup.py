@@ -64,6 +64,7 @@ def clear_character_option_cache() -> None:
 async def lookup_character_option(
     type: OptionType,  # noqa: A002
     name: str | None = None,
+    document_keys: list[str] | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -105,6 +106,10 @@ async def lookup_character_option(
         name: Optional name or partial name search. Filters options containing this substring.
             Examples: "ranger" for classes, "dragon" for feats, "noble" for backgrounds
             Case-insensitive matching.
+        document_keys: Filter to specific source documents. Provide a list of
+            document names/identifiers from list_documents() tool. Examples:
+            ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
+            Use list_documents() to see available documents.
         limit: Maximum number of results to return. Default 20, useful for limiting
             output or pagination. Examples: 1, 5, 50
 
@@ -162,6 +167,9 @@ async def lookup_character_option(
     }
     # Note: search/name filtering is done client-side, not passed to cache
     # The cache layer doesn't support filtering by name
+    # Pass document_keys to repository
+    if document_keys is not None:
+        params["document"] = document_keys  # Repository expects "document"
 
     # Fetch options from repository
     results: list[dict[str, Any]] = await repository.search(**params)

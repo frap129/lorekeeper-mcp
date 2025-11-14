@@ -131,6 +131,23 @@ async def test_lookup_character_option_no_repository_parameter():
     assert "repository" not in sig.parameters
 
 
+@pytest.mark.asyncio
+async def test_lookup_character_option_with_document_keys(
+    repository_context,
+) -> None:
+    """Test lookup_character_option with document_keys filter."""
+    repository_context.search.return_value = [{"name": "Barbarian", "document": "srd-5e"}]
+
+    result = await lookup_character_option(type="class", document_keys=["srd-5e"])
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Barbarian"
+    # Verify document parameter is passed to repository
+    call_kwargs = repository_context.search.call_args[1]
+    assert "document" in call_kwargs
+    assert call_kwargs["document"] == ["srd-5e"]
+
+
 @pytest.fixture
 def repository_context(mock_character_option_repository):
     """Fixture to inject mock repository via context for tests."""
