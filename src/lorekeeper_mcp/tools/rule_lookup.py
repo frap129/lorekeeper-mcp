@@ -69,6 +69,7 @@ async def lookup_rule(
     rule_type: RuleType,
     name: str | None = None,
     section: str | None = None,
+    document_keys: list[str] | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -87,6 +88,8 @@ async def lookup_rule(
         - lookup_rule(rule_type="ability-score") - Get all ability score info
         - lookup_rule(rule_type="alignment") - Find alignment descriptions
         - lookup_rule(rule_type="magic-school", name="evocation") - Find evocation school info
+        - lookup_rule(rule_type="rule", document_keys=["srd-5e"]) - Find rules from SRD only
+        - lookup_rule(rule_type="condition", name="grappled", document_keys=["srd-5e", "tce"]) - Filter conditions by documents
 
     Args:
         rule_type: **REQUIRED.** Type of game reference to lookup. Must be one of:
@@ -113,6 +116,10 @@ async def lookup_rule(
         section: For rule_type="rule" only. Filter rules by section/chapter.
             Examples: "combat", "spellcasting", "movement", "actions-in-combat"
             Ignored for other rule types.
+        document_keys: Filter to specific source documents. Provide a list of
+            document names/identifiers from list_documents() tool. Examples:
+            ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
+            Use list_documents() to see available documents. NEW parameter.
         limit: Maximum number of results to return. Default 20 for performance.
             Examples: 1, 10, 50
 
@@ -196,6 +203,9 @@ async def lookup_rule(
         params["limit"] = limit
     if rule_type == "rule" and section is not None:
         params["section"] = section
+    # New document_keys parameter takes precedence
+    if document_keys is not None:
+        params["document"] = document_keys  # Repository expects "document"
 
     # Fetch rules from repository with routing
     return await repository.search(**params)
