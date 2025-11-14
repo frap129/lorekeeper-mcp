@@ -253,3 +253,90 @@ async def test_search_combines_results_within_limit(mock_client_factory):
 
     # Should not exceed limit even if searches return more results
     assert len(result) <= 10
+
+
+@pytest.mark.asyncio
+async def test_search_dnd_content_with_document_keys(mock_client_factory):
+    """Test search_dnd_content with document_keys post-filtering."""
+    # Mock search results with different documents
+    mock_results = [
+        {
+            "object_name": "Fireball",
+            "object_model": "Spell",
+            "document": "srd-5e",
+            "document__slug": "srd-5e",
+        },
+        {
+            "object_name": "Fire Bolt",
+            "object_model": "Spell",
+            "document": "tce",
+            "document__slug": "tce",
+        },
+        {
+            "object_name": "Meteor Storm",
+            "object_model": "Spell",
+            "document": "srd-5e",
+            "document__slug": "srd-5e",
+        },
+    ]
+    mock_client_factory.unified_search.return_value = mock_results
+
+    # Filter to only srd-5e
+    result = await search_dnd_content(query="fire", document_keys=["srd-5e"], limit=10)
+
+    # Should only have results from srd-5e document
+    assert len(result) == 2
+    for item in result:
+        assert item.get("document") in ["srd-5e"]
+
+
+@pytest.mark.asyncio
+async def test_search_dnd_content_empty_document_keys(mock_client_factory):
+    """Test search_dnd_content short-circuits on empty document_keys list."""
+    # Should return empty list without calling unified_search
+    result = await search_dnd_content(query="fire", document_keys=[], limit=10)
+
+    assert result == []
+    # Should not have called the API
+    mock_client_factory.unified_search.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_search_dnd_content_document_keys_with_content_types(mock_client_factory):
+    """Test document_keys post-filtering with content_types specified."""
+    # First call for "Spell"
+    spell_results = [
+        {
+            "object_name": "Fireball",
+            "object_model": "Spell",
+            "document": "srd-5e",
+        },
+        {
+            "object_name": "Fire Bolt",
+            "object_model": "Spell",
+            "document": "tce",
+        },
+    ]
+
+    # Second call for "Creature"
+    creature_results = [
+        {
+            "object_name": "Fire Elemental",
+            "object_model": "Creature",
+            "document": "srd-5e",
+        }
+    ]
+
+    mock_client_factory.unified_search.side_effect = [
+        spell_results,
+        creature_results,
+    ]
+
+    result = await search_dnd_content(
+        query="fire", content_types=["Spell", "Creature"], document_keys=["srd-5e"], limit=10
+    )
+
+    # Should only have results from srd-5e
+    assert len(result) == 2
+    for item in result:
+        assert item.get("document") == "srd-5e"
