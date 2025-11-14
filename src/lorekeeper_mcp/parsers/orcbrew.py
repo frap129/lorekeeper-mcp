@@ -36,13 +36,35 @@ class OrcBrewParser:
         try:
             with file_path.open(encoding="utf-8-sig") as f:
                 content = f.read()
-                parsed = edn_format.loads(content)
+                sanitized_content = self._sanitize_edn_content(content)
+                parsed = edn_format.loads(sanitized_content)
 
             # Convert EDN data structure to plain Python dicts/lists
             result = self._edn_to_python(parsed)
             return result if isinstance(result, dict) else {}
         except Exception as e:
             raise ValueError(f"Failed to parse EDN file: {e}") from e
+
+    def _sanitize_edn_content(self, content: str) -> str:
+        """Sanitize EDN content before parsing.
+
+        Replaces unsupported EDN special float tokens (##NaN, ##Inf, ##-Inf)
+        with nil so that the edn_format parser can handle the file.
+
+        Args:
+            content: Raw EDN text.
+
+        Returns:
+            Sanitized EDN text safe for parsing.
+        """
+        if "##NaN" not in content and "##Inf" not in content and "##-Inf" not in content:
+            return content
+
+        sanitized = content.replace("##NaN", "nil").replace("##Inf", "nil").replace("##-Inf", "nil")
+        logger.warning(
+            "Replaced unsupported EDN special float tokens (##NaN/##Inf/##-Inf) with nil"
+        )
+        return sanitized
 
     def _edn_to_python(self, obj: Any) -> Any:
         """Convert EDN data types to Python equivalents.

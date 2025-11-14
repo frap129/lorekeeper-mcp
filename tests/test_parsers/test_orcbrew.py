@@ -82,6 +82,27 @@ def test_parse_invalid_edn(tmp_path: Path) -> None:
         parser.parse_file(test_file)
 
 
+def test_parse_edn_file_with_nan_tokens(tmp_path: Path) -> None:
+    """Test parsing EDN file containing unsupported NaN tokens.
+
+    OrcBrew MegaPak files can contain values like ``##NaN`` for fields such as
+    stealth. The underlying ``edn_format`` library does not support these
+    tokens, so the parser should sanitize them to ``nil`` (Python ``None``)
+    before parsing.
+    """
+    test_file = tmp_path / "nan_tokens.orcbrew"
+    test_file.write_text(
+        '{"Test Book" {:orcpub.dnd.e5/monsters {:weird '
+        '{:key :weird :name "Weird" :challenge ##NaN, :stealth ##NaN}}}}'
+    )
+
+    parser = OrcBrewParser()
+    result = parser.parse_file(test_file)
+
+    assert result["Test Book"]["orcpub.dnd.e5/monsters"]["weird"]["challenge"] is None
+    assert result["Test Book"]["orcpub.dnd.e5/monsters"]["weird"]["stealth"] is None
+
+
 def test_extract_entities_with_empty_data() -> None:
     """Test extracting entities from empty data."""
     parser = OrcBrewParser()
