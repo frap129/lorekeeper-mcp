@@ -322,10 +322,13 @@ class Dnd5eApiClient(BaseHttpClient):
         )
 
         results = result if isinstance(result, list) else result.get("results", [])
-        # Normalize index to slug
+        # Normalize index to slug and add SRD document name
         for item in results:
-            if isinstance(item, dict) and "index" in item and "slug" not in item:
-                item["slug"] = item["index"]
+            if isinstance(item, dict):
+                if "index" in item and "slug" not in item:
+                    item["slug"] = item["index"]
+                # Add SRD document name (D&D 5e API is all SRD content)
+                item["document"] = SRD_DOCUMENT_NAME
         return results
 
     async def get_classes_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
@@ -346,10 +349,13 @@ class Dnd5eApiClient(BaseHttpClient):
         )
 
         results = result if isinstance(result, list) else result.get("results", [])
-        # Normalize index to slug
+        # Normalize index to slug and add SRD document name
         for item in results:
-            if isinstance(item, dict) and "index" in item and "slug" not in item:
-                item["slug"] = item["index"]
+            if isinstance(item, dict):
+                if "index" in item and "slug" not in item:
+                    item["slug"] = item["index"]
+                # Add SRD document name (D&D 5e API is all SRD content)
+                item["document"] = SRD_DOCUMENT_NAME
         return results
 
     async def get_subclasses(self, **filters: Any) -> list[dict[str, Any]]:
@@ -394,10 +400,13 @@ class Dnd5eApiClient(BaseHttpClient):
         )
 
         results = result if isinstance(result, list) else result.get("results", [])
-        # Normalize index to slug
+        # Normalize index to slug and add SRD document name
         for item in results:
-            if isinstance(item, dict) and "index" in item and "slug" not in item:
-                item["slug"] = item["index"]
+            if isinstance(item, dict):
+                if "index" in item and "slug" not in item:
+                    item["slug"] = item["index"]
+                # Add SRD document name (D&D 5e API is all SRD content)
+                item["document"] = SRD_DOCUMENT_NAME
         return results
 
     async def get_subraces(self, **filters: Any) -> list[dict[str, Any]]:
@@ -442,10 +451,13 @@ class Dnd5eApiClient(BaseHttpClient):
         )
 
         results = result if isinstance(result, list) else result.get("results", [])
-        # Normalize index to slug
+        # Normalize index to slug and add SRD document name
         for item in results:
-            if isinstance(item, dict) and "index" in item and "slug" not in item:
-                item["slug"] = item["index"]
+            if isinstance(item, dict):
+                if "index" in item and "slug" not in item:
+                    item["slug"] = item["index"]
+                # Add SRD document name (D&D 5e API is all SRD content)
+                item["document"] = SRD_DOCUMENT_NAME
         return results
 
     async def get_traits(self, **filters: Any) -> list[dict[str, Any]]:
