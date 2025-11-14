@@ -66,6 +66,7 @@ async def lookup_equipment(
     is_light: bool | None = None,
     is_magic: bool | None = None,
     document: str | None = None,
+    document_keys: list[str] | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -152,6 +153,10 @@ async def lookup_equipment(
          is_magic: Magic property filter (weapons). When True, returns only magical weapons.
              Example: True
          document: Filter by document name (e.g., "System Reference Document 5.1", "Adventurer's Guide")
+         document_keys: Filter to specific source documents. Provide a list of
+             document names/identifiers from list_documents() tool. Examples:
+             ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
+             Use list_documents() to see available documents. NEW parameter.
          limit: Maximum number of results to return. Default 20. For type="all" with many
              matches, limit applies to total results. Examples: 5, 20, 100
 
@@ -217,8 +222,12 @@ async def lookup_equipment(
             weapon_filters["is_light"] = is_light
         if is_magic is not None:
             weapon_filters["is_magic"] = is_magic
+        # Backward compatibility: document parameter (deprecated, use document_keys)
         if document is not None:
             weapon_filters["document"] = document
+        # New document_keys parameter takes precedence
+        if document_keys is not None:
+            weapon_filters["document"] = document_keys
 
         # Fetch weapons with server-side filters
         weapons = await repository.search(limit=limit, **weapon_filters)
@@ -237,8 +246,12 @@ async def lookup_equipment(
             armor_filters["cost_min"] = cost_min
         if cost_max is not None:
             armor_filters["cost_max"] = cost_max
+        # Backward compatibility: document parameter (deprecated, use document_keys)
         if document is not None:
             armor_filters["document"] = document
+        # New document_keys parameter takes precedence
+        if document_keys is not None:
+            armor_filters["document"] = document_keys
 
         # Fetch armor with server-side filters
         armors = await repository.search(limit=limit, **armor_filters)
@@ -261,8 +274,12 @@ async def lookup_equipment(
                 magic_item_filters["requires_attunement"] = True
             else:
                 magic_item_filters["requires_attunement"] = False
+        # Backward compatibility: document parameter (deprecated, use document_keys)
         if document is not None:
             magic_item_filters["document"] = document
+        # New document_keys parameter takes precedence
+        if document_keys is not None:
+            magic_item_filters["document"] = document_keys
 
         # Fetch magic items with server-side filters
         magic_items = await repository.search(limit=limit, **magic_item_filters)

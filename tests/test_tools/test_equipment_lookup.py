@@ -601,3 +601,44 @@ async def test_lookup_magic_item_with_document_filter(repository_context, sample
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["item_type"] == "magic-item"
     assert call_kwargs["document"] == "System Reference Document 5.1"
+
+
+@pytest.mark.asyncio
+async def test_lookup_equipment_with_document_keys() -> None:
+    """Test lookup_equipment with document_keys filter."""
+    from lorekeeper_mcp.tools.equipment_lookup import _repository_context, lookup_equipment
+
+    # Mock repository
+    class MockRepository:
+        async def search(self, **kwargs: Any) -> list[Any]:
+            # Verify document parameter is passed
+            assert "document" in kwargs
+            assert kwargs["document"] == ["srd-5e"]
+            return [
+                Weapon(
+                    name="Longsword",
+                    key="longsword",
+                    desc="A longsword with a straight blade",
+                    document_url="https://example.com/longsword",
+                    damage_dice="1d8",
+                    damage_type={
+                        "name": "Slashing",
+                        "key": "slashing",
+                        "url": "/api/damage-types/slashing",
+                    },
+                    range=5,
+                    long_range=5,
+                    distance_unit="feet",
+                    is_simple=False,
+                    is_improvised=False,
+                )
+            ]
+
+    _repository_context["repository"] = MockRepository()
+
+    try:
+        results = await lookup_equipment(type="weapon", name="longsword", document_keys=["srd-5e"])
+        assert len(results) == 1
+        assert results[0]["name"] == "Longsword"
+    finally:
+        _repository_context.clear()

@@ -47,8 +47,8 @@
 - [ ] Write unit tests and integration tests
 
 ### 3.2 Add document_keys to Lookup Tools
-- [ ] Add `document_keys: list[str] | None` parameter to `lookup_spell()` in `tools/spell_lookup.py`
-- [ ] Add `document_keys` parameter to `lookup_creature()` in `tools/creature_lookup.py`
+- [x] Add `document_keys: list[str] | None` parameter to `lookup_spell()` in `tools/spell_lookup.py`
+- [x] Add `document_keys` parameter to `lookup_creature()` in `tools/creature_lookup.py`
 - [ ] Add `document_keys` parameter to `lookup_equipment()` in `tools/equipment_lookup.py`
 - [ ] Add `document_keys` parameter to `lookup_character_option()` in `tools/character_option_lookup.py`
 - [ ] Add `document_keys` parameter to `lookup_rule()` in `tools/rule_lookup.py`
