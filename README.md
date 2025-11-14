@@ -57,6 +57,21 @@ LoreKeeper provides 5 MCP tools for querying D&D 5e game data:
 
 See [docs/tools.md](docs/tools.md) for detailed usage and examples.
 
+## CLI Usage
+
+LoreKeeper includes a command-line interface for importing D&D content:
+
+```bash
+# Import content from OrcBrew file
+lorekeeper import MegaPak_-_WotC_Books.orcbrew
+
+# Show help
+lorekeeper --help
+lorekeeper import --help
+```
+
+See [docs/cli-usage.md](docs/cli-usage.md) for detailed CLI documentation.
+
 ## Configuration
 
 LoreKeeper uses environment variables for configuration. Create a `.env` file:
