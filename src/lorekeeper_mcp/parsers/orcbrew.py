@@ -7,7 +7,7 @@ and DungeonMastersVault for exporting D&D content.
 import logging
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import edn_format
 
@@ -77,7 +77,7 @@ class OrcBrewParser:
             return keyword
         # EDN keywords have a 'name' attribute
         if hasattr(keyword, "name"):
-            return str(keyword)
+            return cast(str, keyword.name)
         return str(keyword)
 
     def extract_entities(self, parsed_data: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:

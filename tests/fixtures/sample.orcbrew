@@ -1,0 +1,35 @@
+{"Test Content Pack"
+ {:orcpub.dnd.e5/spells
+  {:magic-missile
+   {:key :magic-missile,
+    :name "Magic Missile",
+    :level 1,
+    :school "Evocation",
+    :description "You create three glowing darts of magical force.",
+    :option-pack "Test Content Pack"},
+   :fireball
+   {:key :fireball,
+    :name "Fireball",
+    :level 3,
+    :school "Evocation",
+    :concentration false,
+    :ritual false,
+    :description "A bright streak flashes from your pointing finger.",
+    :option-pack "Test Content Pack"}},
+  :orcpub.dnd.e5/monsters
+  {:goblin
+   {:key :goblin,
+    :name "Goblin",
+    :type "humanoid",
+    :size "Small",
+    :challenge 0.25,
+    :description "A small, evil humanoid.",
+    :option-pack "Test Content Pack"},
+   :dragon-red-adult
+   {:key :dragon-red-adult,
+    :name "Adult Red Dragon",
+    :type "dragon",
+    :size "Huge",
+    :challenge 17,
+    :description "A fearsome red dragon.",
+    :option-pack "Test Content Pack"}}}}
