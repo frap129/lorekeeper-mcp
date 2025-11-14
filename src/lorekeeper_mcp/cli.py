@@ -171,6 +171,27 @@ async def _import_entities(
 cli.add_command(import_cmd, name="import")
 
 
+@cli.command()
+@click.pass_context
+def serve(ctx: click.Context) -> None:
+    """Start the MCP server.
+
+    The server listens for MCP protocol connections and provides D&D 5e content
+    lookup and search tools. Press Ctrl+C to stop the server.
+
+    Example:
+        lorekeeper serve
+        lorekeeper -v serve
+        lorekeeper --db-path /custom/path.db serve
+    """
+    from lorekeeper_mcp.server import mcp
+
+    # Global options are already processed by @click.group()
+    # They affect logging (via verbose) and database path (via settings)
+    logger.info("Starting MCP server...")
+    mcp.run()
+
+
 def main() -> None:
     """Main entry point for CLI."""
     cli(obj={})

@@ -38,11 +38,15 @@ cp .env.example .env
 ### Running the Server
 
 ```bash
-# Start the MCP server
-uv run python -m lorekeeper_mcp
+# Start the MCP server (recommended)
+lorekeeper serve
 
 # Or with custom configuration
-LOG_LEVEL=DEBUG uv run python -m lorekeeper_mcp
+lorekeeper -v serve
+lorekeeper --db-path /custom/path.db serve
+
+# Backward compatible: start server without CLI
+uv run python -m lorekeeper_mcp
 ```
 
 ## Available Tools

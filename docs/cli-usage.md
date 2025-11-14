@@ -12,6 +12,52 @@ uv sync
 
 ## Commands
 
+### serve
+
+Start the MCP server to listen for connections from AI assistants and clients.
+
+**Usage:**
+```bash
+lorekeeper serve
+```
+
+**Global Options:**
+- `--db-path PATH` - Custom database location (default: data/lorekeeper.db)
+- `-v, --verbose` - Enable verbose logging with DEBUG level
+
+**Examples:**
+
+Start the server:
+```bash
+lorekeeper serve
+```
+
+Start with verbose logging:
+```bash
+lorekeeper -v serve
+```
+
+Use custom database path:
+```bash
+lorekeeper --db-path ./my-cache.db serve
+```
+
+**Backward Compatibility:**
+
+You can still start the server using the module syntax:
+```bash
+python -m lorekeeper_mcp
+```
+
+**Server Lifecycle:**
+
+- The server initializes the database on startup
+- Press Ctrl+C to gracefully shut down the server
+- The server uses FastMCP for MCP protocol handling
+- All registered tools become available once the server is ready
+
+---
+
 ### import
 
 Import D&D content from an OrcBrew (.orcbrew) file into the local cache.
