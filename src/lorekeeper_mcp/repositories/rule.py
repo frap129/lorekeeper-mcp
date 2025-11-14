@@ -126,13 +126,17 @@ class RuleRepository(Repository[dict[str, Any]]):
         limit = filters.pop("limit", None)
 
         # Try cache first with valid filter fields only
+        # Note: document filter is kept in filters for cache (cache-only filter)
         cached = await self.cache.get_entities("rules", **filters)
 
         if cached:
             return cached[:limit] if limit else cached
 
-        # Fetch from API with filters and limit
-        rules: list[dict[str, Any]] = await self.client.get_rules(limit=limit, **filters)
+        # Cache miss - fetch from API with filters and limit
+        # Remove document from API filters (cache-only filter)
+        api_filters = dict(filters)
+        api_filters.pop("document", None)
+        rules: list[dict[str, Any]] = await self.client.get_rules(limit=limit, **api_filters)
 
         if rules:
             await self.cache.store_entities(rules, "rules")
