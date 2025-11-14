@@ -453,3 +453,26 @@ async def test_repository_maps_v2_size_to_size_without_key_suffix(mock_cache: Ma
     assert call_kwargs.get("size") == "large", "Should use 'size' parameter, not 'size__key'"
     # Ensure size__key parameter is not passed
     assert "size__key" not in call_kwargs, "Should not use 'size__key' parameter"
+
+
+@pytest.mark.asyncio
+async def test_search_monsters_by_document(
+    mock_cache: MagicMock, mock_client: MagicMock, monster_data: list[dict[str, Any]]
+) -> None:
+    """Test filtering monsters by document name."""
+    # Add document to test data
+    monster_with_doc = monster_data[0].copy()
+    monster_with_doc["document"] = "System Reference Document 5.1"
+
+    mock_cache.get_entities.return_value = [monster_with_doc]
+
+    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    results = await repo.search(document="System Reference Document 5.1")
+
+    # Verify cache was called with document filter
+    mock_cache.get_entities.assert_called_once()
+    call_kwargs = mock_cache.get_entities.call_args[1]
+    assert call_kwargs["document"] == "System Reference Document 5.1"
+
+    assert len(results) == 1
+    assert results[0].slug == "goblin"

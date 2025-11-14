@@ -306,3 +306,49 @@ async def test_equipment_repository_get_all_mixed_cache(
     mock_client.get_armor.assert_called_once()
     # Armor should be stored in cache (and possibly magic-items too)
     assert mock_cache.store_entities.call_count >= 1
+
+
+@pytest.mark.asyncio
+async def test_search_weapons_by_document(
+    mock_cache: MagicMock, mock_client: MagicMock, weapon_data: list[dict[str, Any]]
+) -> None:
+    """Test filtering weapons by document name."""
+    # Add document to test data
+    weapon_with_doc = weapon_data[0].copy()
+    weapon_with_doc["document"] = "System Reference Document 5.1"
+
+    mock_cache.get_entities.return_value = [weapon_with_doc]
+
+    repo = EquipmentRepository(client=mock_client, cache=mock_cache)
+    results = await repo.search(item_type="weapon", document="System Reference Document 5.1")
+
+    # Verify cache was called with document filter
+    mock_cache.get_entities.assert_called_once()
+    call_kwargs = mock_cache.get_entities.call_args[1]
+    assert call_kwargs["document"] == "System Reference Document 5.1"
+
+    assert len(results) == 1
+    assert results[0].slug == "longsword"
+
+
+@pytest.mark.asyncio
+async def test_search_armor_by_document(
+    mock_cache: MagicMock, mock_client: MagicMock, armor_data: list[dict[str, Any]]
+) -> None:
+    """Test filtering armor by document name."""
+    # Add document to test data
+    armor_with_doc = armor_data[0].copy()
+    armor_with_doc["document"] = "System Reference Document 5.1"
+
+    mock_cache.get_entities.return_value = [armor_with_doc]
+
+    repo = EquipmentRepository(client=mock_client, cache=mock_cache)
+    results = await repo.search(item_type="armor", document="System Reference Document 5.1")
+
+    # Verify cache was called with document filter
+    mock_cache.get_entities.assert_called_once()
+    call_kwargs = mock_cache.get_entities.call_args[1]
+    assert call_kwargs["document"] == "System Reference Document 5.1"
+
+    assert len(results) == 1
+    assert results[0].slug == "plate"
