@@ -2,6 +2,8 @@
 
 from typing import Any, Protocol
 
+from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
+from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.repositories.base import Repository
 
 
@@ -168,8 +170,6 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
 
         # Use Open5e v2 API for feats (has 91 feats) instead of D&D 5e (has 1)
         # However, in tests we may have a mock client provided
-        from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
-        from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
         # If we have the D&D 5e API client, use Open5e v2 instead for better feat data
         if isinstance(self.client, Dnd5eApiClient):
