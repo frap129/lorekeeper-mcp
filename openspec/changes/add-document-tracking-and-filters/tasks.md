@@ -1,21 +1,120 @@
-## 1. Entity Document Tracking
-- [ ] 1.1 Review Open5e v2 and OrcBrew document semantics (document keys, names, publishers, and top-level book headings) and align on a normalized `document_key` / `document_name` shape for entities.
-- [ ] 1.2 Update entity normalization logic (Open5e v2 clients and D&D 5e client normalizers) to attach document metadata to each entity where available (e.g., `document.key`, `document.name`, `document.publisher`).
-- [ ] 1.3 Update OrcBrew parser normalization to treat the highest-level EDN book heading as the entity's source document, and propagate it into normalized entity metadata.
-- [ ] 1.4 Extend the entity cache schema and helper functions so every cached entity can store and retrieve normalized document metadata alongside existing indexed fields.
+## Task 1: Add Document Column to Cache Schema
+- [x] Add document TEXT column to entity cache schema
+- [x] Add document field to INDEXED_FIELDS for all entity types
+- [x] Create database indexes on document column
+- [x] Write tests for document field in schema
+- [x] Write tests for document indexing
+- [x] Run cache schema tests
+- [x] Commit changes
 
-## 2. Repository-Level Document Filtering
-- [ ] 2.1 Extend repository interfaces (spell, creature, equipment, character option, rule) to accept optional document filter arguments without breaking existing call sites.
-- [ ] 2.2 Implement repository-level filtering that can constrain queries to specific documents, SRD-only content, or OrcBrew-only content using the cached `document_key` / `source` metadata.
-- [ ] 2.3 Ensure document filters interact correctly with existing enhanced filtering behavior (name, level, type, etc.) and do not reintroduce client-side over-fetching.
+**Status:** COMPLETE (commit bece438)
 
-## 3. MCP Tool Surface and Configuration Integration
-- [ ] 3.1 Decide how document filters are surfaced to tools (new optional parameters vs. relying solely on global configuration), ensuring backward-compatible MCP tool schemas.
-- [ ] 3.2 Wire document filter options through MCP tools into repositories, honoring global document inclusion/exclusion configuration from `list-open5e-documents` where appropriate.
-- [ ] 3.3 Confirm that tool responses continue to include source attribution that aligns with the new entity-level document metadata (e.g., document name, document key, and API/source).
+## Task 2: Update Cache DB Layer for Document Field
+- [x] Write tests for storing entities with document name
+- [x] Write tests for querying entities by document
+- [x] Verify bulk_cache_entities handles document field automatically
+- [x] Run all cache DB tests
+- [x] Commit tests
 
-## 4. Testing and Validation
-- [ ] 4.1 Add unit tests for entity normalization to verify document metadata is correctly attached for Open5e v2, D&D 5e SRD, and OrcBrew entities.
-- [ ] 4.2 Add repository tests that exercise document-based filtering in combination with existing filter parameters and limits.
-- [ ] 4.3 Add MCP tool tests (or extend existing tests) that assert document filter behavior and verify source attribution fields reflect the correct document metadata.
-- [ ] 4.4 Add targeted live or integration tests (flagged/marked appropriately) to validate document metadata and filtering against the real Open5e `/v2/documents/` semantics.
+**Status:** COMPLETE (commit bece438)
+
+## Task 3: Normalize Open5e V2 Document Names
+- [x] Add _extract_document_name() helper function
+- [x] Update get_spells to extract document name
+- [x] Update Spell model to include document field
+- [x] Update get_creatures to extract document name
+- [x] Update Monster model to include document field
+- [x] Update get_weapons to extract document name
+- [x] Update Weapon model to include document field
+- [x] Update get_armor to extract document name
+- [x] Update Armor model to include document field
+- [x] Write tests for document name extraction
+- [x] Run all Open5e v2 tests
+- [x] Commit changes
+
+**Status:** COMPLETE (commit f2300e1)
+
+## Task 4: Add SRD Document Name to D&D 5e API Entities
+- [x] Add SRD_DOCUMENT_NAME constant
+- [x] Update get_spells to add "System Reference Document 5.1"
+- [x] Update get_monsters to add "System Reference Document 5.1"
+- [x] Update other D&D 5e API methods
+- [x] Write tests for SRD document name
+- [x] Run all D&D 5e API tests
+- [x] Commit changes
+
+**Status:** COMPLETE (commit ab1a958)
+
+## Task 5: Extract OrcBrew Book Name as Document
+- [x] Update normalize_entity to extract document from option-pack or _source_book
+- [x] Write tests for OrcBrew document extraction
+- [x] Write tests for option-pack override
+- [x] Run all entity mapper tests
+- [x] Commit changes
+
+**Status:** COMPLETE (commits included in earlier work)
+
+## Task 6: Add Document Filtering to Repositories
+- [x] Update SpellRepository.search to support document filter
+- [x] Update MonsterRepository.search to support document filter
+- [x] Update EquipmentRepository.search to support document filter
+- [x] Write tests for repository document filtering
+- [x] Run all repository tests
+- [x] Commit changes
+
+**Status:** COMPLETE (commits included in earlier work)
+
+## Task 7: Add Document Filtering to MCP Tools
+- [x] Add document parameter to lookup_spell
+- [x] Add document parameter to lookup_creature
+- [x] Add document parameter to lookup_weapon
+- [x] Add document parameter to lookup_armor
+- [x] Write tests for tool document filtering
+- [x] Run all tool tests
+- [x] Commit changes
+
+**Status:** COMPLETE (commit 088de43)
+
+## Task 8: Add Integration Tests for Document Filtering
+- [ ] Create tests/test_tools/test_document_filtering.py
+- [ ] Write test_end_to_end_document_filtering
+- [ ] Write test_document_in_tool_responses
+- [ ] Run integration tests
+- [ ] Commit integration tests
+
+**Status:** INCOMPLETE - File missing
+
+## Task 9: Update Documentation
+- [ ] Create docs/document-filtering.md
+- [ ] Document how document names are assigned per API
+- [ ] Document how to use document filters in tools
+- [ ] Document how to use document filters in repositories
+- [ ] Document SRD content normalization
+- [ ] Document performance considerations
+- [ ] Commit documentation
+
+**Status:** INCOMPLETE - Documentation missing
+
+## Task 10: Run Full Test Suite and Fix Failures
+- [x] Run full test suite (just test)
+- [x] Fix any test failures
+- [ ] Commit any fixes if needed
+
+**Status:** MOSTLY COMPLETE - 468 tests pass, but linting issues exist
+
+## Task 11: Run Live Tests
+- [ ] Run live MCP tests (pytest -m live)
+- [ ] Verify document names in live responses
+- [ ] Fix any live test failures
+- [ ] Commit any fixes
+
+**Status:** INCOMPLETE - Not yet verified
+
+## Task 12: Run Quality Checks
+- [ ] Run type checking (just type-check)
+- [ ] Run linting (just lint) - 40 PLC0415 errors to fix
+- [ ] Run formatting (just format)
+- [ ] Run all quality checks (just check)
+- [ ] Commit formatting/linting fixes
+
+**Status:** INCOMPLETE - 40 linting warnings exist
