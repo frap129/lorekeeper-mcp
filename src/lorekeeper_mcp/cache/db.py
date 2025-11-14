@@ -197,7 +197,7 @@ async def query_cached_entities(
     Args:
         entity_type: Type of entities to query
         db_path: Optional database path
-        **filters: Field filters (e.g., level=3, school="Evocation")
+        **filters: Field filters (e.g., level=3, school="Evocation", document=["srd-5e"])
 
     Returns:
         List of matching entity dictionaries
@@ -223,6 +223,11 @@ async def query_cached_entities(
                 f"Allowed fields: {sorted(allowed_fields)}"
             )
 
+    # Short-circuit for empty document list
+    document_filter = filters.get("document")
+    if isinstance(document_filter, list) and len(document_filter) == 0:
+        return []
+
     db_path_obj = Path(db_path or settings.db_path)
     table_name = get_table_name(entity_type)
 
@@ -231,8 +236,16 @@ async def query_cached_entities(
     params = []
 
     for field, value in filters.items():
-        where_clauses.append(f"{field} = ?")
-        params.append(value)
+        # Handle document field with list support (IN clause)
+        if field == "document" and isinstance(value, list):
+            # Multiple documents - use IN clause
+            placeholders = ", ".join(["?"] * len(value))
+            where_clauses.append(f"{field} IN ({placeholders})")
+            params.extend(value)
+        else:
+            # Single value - use equality
+            where_clauses.append(f"{field} = ?")
+            params.append(value)
 
     where_sql = ""
     if where_clauses:

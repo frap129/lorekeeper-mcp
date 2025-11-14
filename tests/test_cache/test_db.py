@@ -550,3 +550,96 @@ async def test_query_entities_by_document(entity_test_db):
     )
     assert len(homebrew_spells) == 1
     assert homebrew_spells[0]["slug"] == "homebrew-spell"
+
+
+@pytest.mark.asyncio
+async def test_query_cached_entities_single_document_filter(entity_test_db):
+    """Test filtering by single document as string."""
+    spells = [
+        {
+            "slug": "fireball",
+            "name": "Fireball",
+            "level": 3,
+            "document": "srd-5e",
+        },
+        {
+            "slug": "magic-missile",
+            "name": "Magic Missile",
+            "level": 1,
+            "document": "srd-5e",
+        },
+        {
+            "slug": "tasha-spell",
+            "name": "Tasha Spell",
+            "level": 2,
+            "document": "tce",
+        },
+    ]
+    await bulk_cache_entities(spells, "spells", db_path=entity_test_db)
+
+    # Query spells from srd-5e document
+    results = await query_cached_entities("spells", db_path=entity_test_db, document="srd-5e")
+
+    assert len(results) > 0
+    assert all(spell.get("document") == "srd-5e" for spell in results)
+
+
+@pytest.mark.asyncio
+async def test_query_cached_entities_multiple_documents_filter(entity_test_db):
+    """Test filtering by multiple documents as list."""
+    spells = [
+        {
+            "slug": "fireball",
+            "name": "Fireball",
+            "level": 3,
+            "document": "srd-5e",
+        },
+        {
+            "slug": "magic-missile",
+            "name": "Magic Missile",
+            "level": 1,
+            "document": "srd-5e",
+        },
+        {
+            "slug": "tasha-spell",
+            "name": "Tasha Spell",
+            "level": 2,
+            "document": "tce",
+        },
+        {
+            "slug": "phb-spell",
+            "name": "PHB Spell",
+            "level": 2,
+            "document": "phb",
+        },
+    ]
+    await bulk_cache_entities(spells, "spells", db_path=entity_test_db)
+
+    # Query spells from multiple documents
+    results = await query_cached_entities(
+        "spells", db_path=entity_test_db, document=["srd-5e", "tce", "phb"]
+    )
+
+    assert len(results) > 0
+    # Verify all results are from one of the specified documents
+    for spell in results:
+        assert spell.get("document") in ["srd-5e", "tce", "phb"]
+
+
+@pytest.mark.asyncio
+async def test_query_cached_entities_empty_document_list(entity_test_db):
+    """Test empty document list returns empty results immediately."""
+    spells = [
+        {
+            "slug": "fireball",
+            "name": "Fireball",
+            "level": 3,
+            "document": "srd-5e",
+        },
+    ]
+    await bulk_cache_entities(spells, "spells", db_path=entity_test_db)
+
+    # Query with empty document list should return empty
+    results = await query_cached_entities("spells", db_path=entity_test_db, document=[])
+
+    assert results == []
