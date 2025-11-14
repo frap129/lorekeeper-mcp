@@ -6,10 +6,10 @@
 - [ ] Verify `edn-format` and `click` libraries are compatible
 
 ## Phase 1: Dependencies and Setup
-- [ ] Add `edn-format` to pyproject.toml dependencies
-- [ ] Add `click` to pyproject.toml dependencies
-- [ ] Run `uv sync` to install new dependencies
-- [ ] Verify imports work: `import edn_format`, `import click`
+- [x] Add `edn-format` to pyproject.toml dependencies
+- [x] Add `click` to pyproject.toml dependencies
+- [x] Run `uv sync` to install new dependencies
+- [x] Verify imports work: `import edn_format`, `import click`
 
 ## Phase 2: Core Parser Implementation
 - [ ] Create `src/lorekeeper_mcp/parsers/__init__.py`
