@@ -187,7 +187,7 @@ async def test_creature_lookup_basic(test_db):
         ]
     }
 
-    respx.get("https://api.open5e.com/v2/creatures/?limit=220").mock(
+    respx.get("https://api.open5e.com/v2/creatures/?limit=20&name__icontains=dragon").mock(
         return_value=httpx.Response(200, json=monster_response)
     )
 

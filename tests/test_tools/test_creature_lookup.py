@@ -232,45 +232,21 @@ async def test_creature_search_by_name_client_side(repository_context):
         speed=None,
         document_url="https://example.com/ancient-red-dragon",
     )
-    creature_bronze_dragon = Monster(
-        name="Ancient Bronze Dragon",
-        slug="ancient-bronze-dragon",
-        size="Gargantuan",
-        type="dragon",
-        alignment="chaotic good",
-        armor_class=22,
-        hit_points=491,
-        hit_dice="26d20+182",
-        strength=29,
-        dexterity=10,
-        constitution=25,
-        intelligence=18,
-        wisdom=17,
-        charisma=21,
-        challenge_rating="23",
-        actions=None,
-        legendary_actions=None,
-        special_abilities=None,
-        desc=None,
-        speed=None,
-        document_url="https://example.com/ancient-bronze-dragon",
-    )
 
-    # Repository returns both dragons
+    # Repository returns only the red dragon (server-side filtering)
     repository_context.search.return_value = [
         creature_red_dragon,
-        creature_bronze_dragon,
     ]
 
-    # Call with name filter - should filter client-side
+    # Call with name filter - repository does server-side filtering
     result = await lookup_creature(name="red")
 
-    # Should only return Ancient Red Dragon, not Ancient Bronze Dragon
+    # Should only return Ancient Red Dragon
     assert len(result) == 1
     assert result[0]["name"] == "Ancient Red Dragon"
 
-    # Verify repository.search was called
-    repository_context.search.assert_awaited_once()
+    # Verify repository.search was called with name parameter
+    repository_context.search.assert_awaited_once_with(name="red", limit=20)
 
 
 @pytest.mark.asyncio
