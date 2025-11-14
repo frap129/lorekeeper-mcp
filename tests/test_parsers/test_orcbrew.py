@@ -105,3 +105,23 @@ def test_extract_entities_skips_invalid_structures() -> None:
     result = parser.extract_entities(invalid_data)
 
     assert len(result) == 0
+
+
+def test_parse_edn_file_with_utf8_bom(tmp_path: Path) -> None:
+    """Test parsing EDN file with UTF-8 BOM (Byte Order Mark).
+
+    Some text editors and Windows tools add a BOM at the start of UTF-8 files.
+    The parser should handle this transparently.
+    """
+    test_file = tmp_path / "test_bom.orcbrew"
+    # Write with BOM: \ufeff is the UTF-8 BOM character
+    content = '{"Test Book" {:orcpub.dnd.e5/spells {:fireball {:key :fireball :name "Fireball"}}}}'
+    with test_file.open("w", encoding="utf-8-sig") as f:
+        f.write(content)
+
+    parser = OrcBrewParser()
+    result = parser.parse_file(test_file)
+
+    assert result is not None
+    assert isinstance(result, dict)
+    assert "Test Book" in result

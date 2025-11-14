@@ -34,7 +34,7 @@ class OrcBrewParser:
             raise FileNotFoundError(f"OrcBrew file not found: {file_path}")
 
         try:
-            with file_path.open(encoding="utf-8") as f:
+            with file_path.open(encoding="utf-8-sig") as f:
                 content = f.read()
                 parsed = edn_format.loads(content)
 
