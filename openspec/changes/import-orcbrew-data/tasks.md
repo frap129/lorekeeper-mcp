@@ -12,8 +12,8 @@
 - [x] Verify imports work: `import edn_format`, `import click`
 
 ## Phase 2: Core Parser Implementation
-- [ ] Create `src/lorekeeper_mcp/parsers/__init__.py`
-- [ ] Create `src/lorekeeper_mcp/parsers/orcbrew.py` with `OrcBrewParser` class
+- [x] Create `src/lorekeeper_mcp/parsers/__init__.py`
+- [x] Create `src/lorekeeper_mcp/parsers/orcbrew.py` with `OrcBrewParser` class
 - [ ] Implement `parse_file()` method to read and parse EDN
 - [ ] Implement entity extraction from parsed EDN structure
 - [ ] Handle EDN data type conversions (keywords to strings, etc.)
