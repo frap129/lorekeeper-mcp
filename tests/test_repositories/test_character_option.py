@@ -101,3 +101,43 @@ async def test_character_option_repository_search_conditions(
 
     assert len(results) == 1
     mock_client.get_conditions.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_character_option_repository_search_feats_no_limit_defaults_to_100(
+    mock_cache: MagicMock, mock_client: MagicMock
+) -> None:
+    """Test feat lookup defaults to api_limit=100 when no limit specified."""
+    mock_cache.get_entities.return_value = []
+    # Create 25 mock feats to return from API
+    mock_feats = [{"name": f"Feat {i}", "slug": f"feat-{i}"} for i in range(25)]
+    mock_client.get_feats.return_value = mock_feats
+    mock_cache.store_entities.return_value = 25
+
+    repo = CharacterOptionRepository(client=mock_client, cache=mock_cache)
+    results = await repo.search(option_type="feat")
+
+    # Should return all 25 feats (no client-side limit applied)
+    assert len(results) == 25
+    # Verify client.get_feats was called with limit=100
+    mock_client.get_feats.assert_called_once_with(limit=100)
+
+
+@pytest.mark.asyncio
+async def test_character_option_repository_search_feats_with_explicit_limit(
+    mock_cache: MagicMock, mock_client: MagicMock
+) -> None:
+    """Test feat lookup respects explicit limit specified by user."""
+    mock_cache.get_entities.return_value = []
+    # Create 25 mock feats to return from API
+    mock_feats = [{"name": f"Feat {i}", "slug": f"feat-{i}"} for i in range(25)]
+    mock_client.get_feats.return_value = mock_feats
+    mock_cache.store_entities.return_value = 25
+
+    repo = CharacterOptionRepository(client=mock_client, cache=mock_cache)
+    results = await repo.search(option_type="feat", limit=5)
+
+    # Should return only 5 feats (user-specified limit applied on client side)
+    assert len(results) == 5
+    # Verify client.get_feats was called with limit=5 (not the default 100)
+    mock_client.get_feats.assert_called_once_with(limit=5)

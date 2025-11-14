@@ -52,6 +52,15 @@ def _get_repository() -> CharacterOptionRepository:
     return RepositoryFactory.create_character_option_repository()
 
 
+def clear_character_option_cache() -> None:
+    """Clear the character option cache (deprecated).
+
+    This function is deprecated and kept for backward compatibility.
+    Cache management is now handled by the repository pattern with
+    database-backed persistence.
+    """
+
+
 async def lookup_character_option(
     type: OptionType,  # noqa: A002
     name: str | None = None,

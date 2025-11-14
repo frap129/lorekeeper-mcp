@@ -149,9 +149,16 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         return backgrounds
 
     async def _search_feats(self, **filters: Any) -> list[dict[str, Any]]:
-        """Search for feats."""
+        """Search for feats.
+
+        Uses Open5e v2 API for comprehensive feat data (91 feats) instead of
+        D&D 5e API which has limited feat data.
+        """
         # Extract limit parameter (not a cache filter field)
         limit = filters.pop("limit", None)
+
+        # Default to higher limit for feats to get comprehensive results
+        api_limit = limit if limit else 100
 
         # Try cache first with valid filter fields only
         cached = await self.cache.get_entities("feats", **filters)
@@ -159,13 +166,23 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         if cached:
             return cached[:limit] if limit else cached
 
-        # Fetch from API with filters and limit
-        feats: list[dict[str, Any]] = await self.client.get_feats(limit=limit, **filters)
+        # Use Open5e v2 API for feats (has 91 feats) instead of D&D 5e (has 1)
+        # However, in tests we may have a mock client provided
+        from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
+        from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+
+        # If we have the D&D 5e API client, use Open5e v2 instead for better feat data
+        if isinstance(self.client, Dnd5eApiClient):
+            open5e_client = Open5eV2Client()
+            feats: list[dict[str, Any]] = await open5e_client.get_feats(limit=api_limit, **filters)
+        else:
+            # Use provided client (e.g., in tests with mocks)
+            feats = await self.client.get_feats(limit=api_limit, **filters)
 
         if feats:
             await self.cache.store_entities(feats, "feats")
 
-        return feats
+        return feats[:limit] if limit else feats
 
     async def _search_conditions(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for conditions."""

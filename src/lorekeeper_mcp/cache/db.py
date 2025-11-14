@@ -384,3 +384,29 @@ async def get_cache_stats(db_path: str | None = None) -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "table_count": table_count,
     }
+
+
+async def delete_entity_type(entity_type: str, db_path: str | None = None) -> int:
+    """Delete all entities of a specific type from cache.
+
+    Args:
+        entity_type: Type of entities to delete
+        db_path: Optional database path
+
+    Returns:
+        Number of entities deleted
+
+    Raises:
+        ValueError: If entity_type is invalid
+    """
+    # Validate entity_type to prevent SQL injection
+    if entity_type not in ENTITY_TYPES:
+        raise ValueError(f"Invalid entity type: {entity_type}")
+
+    final_db_path: str = str(db_path or settings.db_path)
+    table_name = get_table_name(entity_type)
+
+    async with aiosqlite.connect(final_db_path) as db:
+        cursor = await db.execute(f"DELETE FROM {table_name}")
+        await db.commit()
+        return cursor.rowcount if cursor.rowcount else 0
