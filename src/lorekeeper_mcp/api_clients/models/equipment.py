@@ -53,6 +53,7 @@ class Weapon(BaseModel):
     range_normal: int | None = Field(None, description="Normal range (legacy name)")
     range_long: int | None = Field(None, description="Long range (legacy name)")
     versatile_dice: str | None = Field(None, description="Versatile damage dice")
+    document: str | None = Field(None, description="Document name (e.g., 'SRD 5.2')")
 
 
 class Armor(BaseModel):
@@ -69,6 +70,7 @@ class Armor(BaseModel):
     max_dex_bonus: int | None = Field(None, description="Maximum Dex bonus")
     strength_required: int | None = Field(None, description="Minimum Strength required")
     stealth_disadvantage: bool = Field(False, description="Imposes disadvantage on Stealth")
+    document: str | None = Field(None, description="Document name (e.g., 'SRD 5.2')")
 
 
 class MagicItem(BaseModel):

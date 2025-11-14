@@ -32,3 +32,4 @@ class Monster(BaseModel):
     actions: list[dict] | None = Field(None, description="Actions")
     legendary_actions: list[dict] | None = Field(None, description="Legendary actions")
     special_abilities: list[dict] | None = Field(None, description="Special abilities")
+    document: str | None = Field(None, description="Document name (e.g., 'SRD 5.1')")

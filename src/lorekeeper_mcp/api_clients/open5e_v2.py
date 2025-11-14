@@ -6,6 +6,22 @@ from lorekeeper_mcp.api_clients.base import BaseHttpClient
 from lorekeeper_mcp.api_clients.models import Armor, Monster, Spell, Weapon
 
 
+def _extract_document_name(entity: dict[str, Any]) -> str | None:
+    """Extract document name from Open5e v2 entity.
+
+    Args:
+        entity: Raw entity data from Open5e v2 API
+
+    Returns:
+        Document name or None if not available
+    """
+    if isinstance(entity.get("document"), dict):
+        doc_name = entity["document"].get("name")
+        if isinstance(doc_name, str):
+            return doc_name
+    return None
+
+
 class Open5eV2Client(BaseHttpClient):
     """Client for Open5e API v2 endpoints."""
 
@@ -88,11 +104,15 @@ class Open5eV2Client(BaseHttpClient):
         if "traits" in creature and "special_abilities" not in creature:
             transformed["special_abilities"] = creature["traits"]
 
-        # 9. API nested `document` → Monster `document_url`
+        # 9. API nested `document` → Monster `document_url` and `document` name
         if isinstance(creature.get("document"), dict):
             document_url = creature["document"].get("url", "")
             if document_url:
                 transformed["document_url"] = document_url
+            # Extract document name
+            document_name = _extract_document_name(creature)
+            if document_name:
+                transformed["document"] = document_name
 
         # 10. API `armor_class` array → Monster integer (take first value)
         if isinstance(creature.get("armor_class"), list) and creature["armor_class"]:
@@ -155,6 +175,12 @@ class Open5eV2Client(BaseHttpClient):
             result if isinstance(result, list) else result.get("results", [])
         )
 
+        # Extract document name for each spell
+        for spell in spell_dicts:
+            document_name = _extract_document_name(spell)
+            if document_name:
+                spell["document"] = document_name
+
         return [Spell.model_validate(spell) for spell in spell_dicts]
 
     async def get_weapons(
@@ -199,6 +225,12 @@ class Open5eV2Client(BaseHttpClient):
             result if isinstance(result, list) else result.get("results", [])
         )
 
+        # Extract document name for each weapon
+        for weapon in weapon_dicts:
+            document_name = _extract_document_name(weapon)
+            if document_name:
+                weapon["document"] = document_name
+
         return [Weapon.model_validate(weapon) for weapon in weapon_dicts]
 
     async def get_armor(
@@ -242,6 +274,12 @@ class Open5eV2Client(BaseHttpClient):
         armor_dicts: list[dict[str, Any]] = (
             result if isinstance(result, list) else result.get("results", [])
         )
+
+        # Extract document name for each armor
+        for armor_item in armor_dicts:
+            document_name = _extract_document_name(armor_item)
+            if document_name:
+                armor_item["document"] = document_name
 
         return [Armor.model_validate(armor) for armor in armor_dicts]
 

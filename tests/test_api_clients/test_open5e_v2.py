@@ -1177,6 +1177,166 @@ async def test_cost_range_filtering_lte(v2_client: Open5eV2Client) -> None:
     assert len(armors) == 2
 
 
+# Task 3: Document name extraction
+@respx.mock
+async def test_spell_includes_document_name(v2_client: Open5eV2Client) -> None:
+    """Test that spells include document name from API."""
+    respx.get("https://api.open5e.com/v2/spells/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "slug": "fireball",
+                        "name": "Fireball",
+                        "level": 3,
+                        "school": {"key": "evocation", "name": "Evocation"},
+                        "casting_time": "1 action",
+                        "range": "150 feet",
+                        "components": "V, S, M",
+                        "duration": "Instantaneous",
+                        "document": {
+                            "key": "srd-2014",
+                            "name": "System Reference Document 5.1",
+                            "publisher": "Wizards of the Coast",
+                        },
+                    }
+                ]
+            },
+        )
+    )
+
+    spells = await v2_client.get_spells()
+
+    assert len(spells) == 1
+    spell_dict = spells[0].model_dump()
+
+    # Verify document name is extracted
+    assert spell_dict["document"] == "System Reference Document 5.1"
+
+
+@respx.mock
+async def test_weapon_includes_document_name(v2_client: Open5eV2Client) -> None:
+    """Test that weapons include document name from API."""
+    respx.get("https://api.open5e.com/v2/weapons/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "key": "srd-2024_longsword",
+                        "name": "Longsword",
+                        "damage_dice": "1d8",
+                        "damage_type": {
+                            "name": "Slashing",
+                            "key": "slashing",
+                            "url": "https://api.open5e.com/v2/damagetypes/slashing/",
+                        },
+                        "properties": [],
+                        "range": 0.0,
+                        "long_range": 0.0,
+                        "distance_unit": "feet",
+                        "is_simple": False,
+                        "is_improvised": False,
+                        "document": {
+                            "key": "srd-2024",
+                            "name": "System Reference Document 5.2",
+                            "publisher": "Wizards of the Coast",
+                        },
+                    }
+                ]
+            },
+        )
+    )
+
+    weapons = await v2_client.get_weapons()
+
+    assert len(weapons) == 1
+    weapon_dict = weapons[0].model_dump()
+
+    # Verify document name is extracted
+    assert weapon_dict["document"] == "System Reference Document 5.2"
+
+
+@respx.mock
+async def test_armor_includes_document_name(v2_client: Open5eV2Client) -> None:
+    """Test that armor includes document name from API."""
+    respx.get("https://api.open5e.com/v2/armor/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "key": "leather",
+                        "name": "Leather",
+                        "category": "Light",
+                        "base_ac": 11,
+                        "document": {
+                            "key": "srd-2024",
+                            "name": "System Reference Document 5.2",
+                            "publisher": "Wizards of the Coast",
+                        },
+                    }
+                ]
+            },
+        )
+    )
+
+    armors = await v2_client.get_armor()
+
+    assert len(armors) == 1
+    armor_dict = armors[0].model_dump()
+
+    # Verify document name is extracted
+    assert armor_dict["document"] == "System Reference Document 5.2"
+
+
+@respx.mock
+async def test_creature_includes_document_name(v2_client: Open5eV2Client) -> None:
+    """Test that creatures include document name from API."""
+    respx.get("https://api.open5e.com/v2/creatures/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "key": "goblin",
+                        "name": "Goblin",
+                        "desc": "A small, cunning creature.",
+                        "type": {
+                            "name": "Humanoid",
+                            "key": "humanoid",
+                        },
+                        "size": {
+                            "name": "Small",
+                            "key": "small",
+                        },
+                        "alignment": "neutral evil",
+                        "armor_class": [{"type": "armor", "value": 15}],
+                        "hit_points": 7,
+                        "hit_dice": "2d6",
+                        "challenge_rating_text": "1/4",
+                        "challenge_rating_decimal": "0.250",
+                        "document": {
+                            "key": "srd-5e",
+                            "name": "Systems Reference Document 5.1",
+                            "url": "https://api.open5e.com/v2/documents/srd-5e/",
+                        },
+                    }
+                ]
+            },
+        )
+    )
+
+    creatures = await v2_client.get_creatures()
+
+    assert len(creatures) == 1
+    creature_dict = creatures[0].model_dump()
+
+    # Verify document name is extracted
+    assert creature_dict["document"] == "Systems Reference Document 5.1"
+
+
 # Task 2.2: Unified Search Implementation
 @respx.mock
 async def test_unified_search_method(v2_client: Open5eV2Client) -> None:

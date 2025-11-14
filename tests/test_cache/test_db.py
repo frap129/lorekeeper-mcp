@@ -491,3 +491,62 @@ async def test_get_cache_stats_returns_complete_stats(entity_test_db):
     assert stats["schema_version"] == SCHEMA_VERSION
     assert "table_count" in stats
     assert stats["table_count"] >= 2  # At least spells and monsters tables
+
+
+# ============================================================================
+# Task 2.3: Document Tracking Tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_cache_entity_with_document(entity_test_db):
+    """Test that entities with document name are stored correctly."""
+    spell = {
+        "slug": "fireball",
+        "name": "Fireball",
+        "level": 3,
+        "school": "evocation",
+        "document": "System Reference Document 5.1",
+    }
+
+    count = await bulk_cache_entities([spell], "spells", db_path=entity_test_db)
+    assert count == 1
+
+    # Verify document is preserved
+    cached = await get_cached_entity("spells", "fireball", db_path=entity_test_db)
+    assert cached is not None
+    assert cached["document"] == "System Reference Document 5.1"
+
+
+@pytest.mark.asyncio
+async def test_query_entities_by_document(entity_test_db):
+    """Test filtering entities by document name."""
+    spells = [
+        {
+            "slug": "fireball",
+            "name": "Fireball",
+            "level": 3,
+            "document": "System Reference Document 5.1",
+        },
+        {
+            "slug": "homebrew-spell",
+            "name": "Homebrew Spell",
+            "level": 3,
+            "document": "Homebrew Grimoire",
+        },
+    ]
+
+    await bulk_cache_entities(spells, "spells", db_path=entity_test_db)
+
+    # Filter by document
+    srd_spells = await query_cached_entities(
+        "spells", db_path=entity_test_db, document="System Reference Document 5.1"
+    )
+    assert len(srd_spells) == 1
+    assert srd_spells[0]["slug"] == "fireball"
+
+    homebrew_spells = await query_cached_entities(
+        "spells", db_path=entity_test_db, document="Homebrew Grimoire"
+    )
+    assert len(homebrew_spells) == 1
+    assert homebrew_spells[0]["slug"] == "homebrew-spell"

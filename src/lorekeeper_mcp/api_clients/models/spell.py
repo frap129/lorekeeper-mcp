@@ -24,6 +24,7 @@ class Spell(BaseModel):
     classes: list[str] = Field(
         default_factory=list, description="Classes that can learn this spell"
     )
+    document: str | None = Field(None, description="Document name (e.g., 'SRD 5.1')")
 
     @model_validator(mode="before")
     @classmethod
