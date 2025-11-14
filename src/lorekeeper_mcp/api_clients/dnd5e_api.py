@@ -5,6 +5,9 @@ from typing import Any
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
 from lorekeeper_mcp.api_clients.models.equipment import Armor, Weapon
 
+# All D&D 5e API content is from the SRD - same document as Open5e's srd-2014
+SRD_DOCUMENT_NAME = "System Reference Document 5.1"
+
 
 class Dnd5eApiClient(BaseHttpClient):
     """Client for D&D 5e API endpoints."""
@@ -641,10 +644,13 @@ class Dnd5eApiClient(BaseHttpClient):
                     # If individual fetch fails, skip this weapon
                     continue
 
-        # Normalize index to slug for all weapons
+        # Normalize index to slug and add SRD document name for all weapons
         for weapon in full_weapons:
-            if isinstance(weapon, dict) and "index" in weapon and "slug" not in weapon:
-                weapon["slug"] = weapon["index"]
+            if isinstance(weapon, dict):
+                if "index" in weapon and "slug" not in weapon:
+                    weapon["slug"] = weapon["index"]
+                # Add SRD document name
+                weapon["document"] = SRD_DOCUMENT_NAME
 
         # Apply limit if specified
         limit = filters.get("limit")
@@ -691,10 +697,13 @@ class Dnd5eApiClient(BaseHttpClient):
                     # If individual fetch fails, skip this armor
                     continue
 
-        # Normalize index to slug for all armor
+        # Normalize index to slug and add SRD document name for all armor
         for armor in full_armor:
-            if isinstance(armor, dict) and "index" in armor and "slug" not in armor:
-                armor["slug"] = armor["index"]
+            if isinstance(armor, dict):
+                if "index" in armor and "slug" not in armor:
+                    armor["slug"] = armor["index"]
+                # Add SRD document name
+                armor["document"] = SRD_DOCUMENT_NAME
 
         # Apply limit if specified
         limit = filters.get("limit")
@@ -770,10 +779,13 @@ class Dnd5eApiClient(BaseHttpClient):
         )
 
         results = result if isinstance(result, list) else result.get("results", [])
-        # Normalize index to slug
+        # Normalize index to slug and add SRD document name
         for item in results:
-            if isinstance(item, dict) and "index" in item and "slug" not in item:
-                item["slug"] = item["index"]
+            if isinstance(item, dict):
+                if "index" in item and "slug" not in item:
+                    item["slug"] = item["index"]
+                # Add SRD document name
+                item["document"] = SRD_DOCUMENT_NAME
         return results
 
     async def get_monsters_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
@@ -794,10 +806,13 @@ class Dnd5eApiClient(BaseHttpClient):
         )
 
         results = result if isinstance(result, list) else result.get("results", [])
-        # Normalize index to slug
+        # Normalize index to slug and add SRD document name
         for item in results:
-            if isinstance(item, dict) and "index" in item and "slug" not in item:
-                item["slug"] = item["index"]
+            if isinstance(item, dict):
+                if "index" in item and "slug" not in item:
+                    item["slug"] = item["index"]
+                # Add SRD document name
+                item["document"] = SRD_DOCUMENT_NAME
         return results
 
     # Task 1.15: Conditions and features methods

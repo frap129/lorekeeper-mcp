@@ -987,3 +987,123 @@ async def test_get_weapons_filters_equipment_correctly() -> None:
     weapon_names = [w.name for w in weapons]
     assert "Club" in weapon_names
     assert "Dagger" in weapon_names
+
+
+@respx.mock
+async def test_spells_include_srd_document_name(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test that D&D 5e API spells include SRD document name."""
+    respx.get("https://www.dnd5eapi.co/api/2014/spells/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "index": "fireball",
+                        "name": "Fireball",
+                        "level": 3,
+                        "school": "evocation",
+                    }
+                ]
+            },
+        )
+    )
+
+    spells = await dnd5e_client.get_spells_dnd5e()
+
+    assert len(spells) == 1
+    assert spells[0]["document"] == "System Reference Document 5.1"
+
+
+@respx.mock
+async def test_monsters_include_srd_document_name(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test that D&D 5e API monsters include SRD document name."""
+    respx.get("https://www.dnd5eapi.co/api/2014/monsters/").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "index": "aboleth",
+                        "name": "Aboleth",
+                        "size": "Large",
+                        "type": "aberration",
+                        "alignment": "lawful evil",
+                        "armor_class": 17,
+                        "hit_points": 135,
+                    }
+                ]
+            },
+        )
+    )
+
+    monsters = await dnd5e_client.get_monsters_dnd5e()
+
+    assert len(monsters) == 1
+    assert monsters[0]["document"] == "System Reference Document 5.1"
+
+
+@respx.mock
+async def test_weapons_include_srd_document_name(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test that D&D 5e API weapons include SRD document name."""
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment-categories/weapon").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "index": "weapon",
+                "name": "Weapon",
+                "equipment": [{"index": "longsword", "name": "Longsword"}],
+            },
+        )
+    )
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment/longsword").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "index": "longsword",
+                "name": "Longsword",
+                "weapon_category": "Martial",
+                "damage": {
+                    "damage_dice": "1d8",
+                    "damage_type": {"index": "slashing", "name": "Slashing"},
+                },
+                "properties": [],
+                "range": {"normal": 5},
+            },
+        )
+    )
+
+    weapons = await dnd5e_client.get_weapons()
+
+    assert len(weapons) == 1
+    assert weapons[0].document == "System Reference Document 5.1"
+
+
+@respx.mock
+async def test_armor_includes_srd_document_name(dnd5e_client: Dnd5eApiClient) -> None:
+    """Test that D&D 5e API armor includes SRD document name."""
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment-categories/armor").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "index": "armor",
+                "name": "Armor",
+                "equipment": [{"index": "plate-armor", "name": "Plate Armor"}],
+            },
+        )
+    )
+    respx.get("https://www.dnd5eapi.co/api/2014/equipment/plate-armor").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "index": "plate-armor",
+                "name": "Plate Armor",
+                "armor_category": "Heavy",
+                "armor_class": {"base": 18},
+            },
+        )
+    )
+
+    armor = await dnd5e_client.get_armor()
+
+    assert len(armor) == 1
+    assert armor[0].document == "System Reference Document 5.1"
