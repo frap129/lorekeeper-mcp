@@ -1,5 +1,7 @@
 """Tests for entity type mapper."""
 
+import pytest
+
 from lorekeeper_mcp.parsers.entity_mapper import (
     map_entity_type,
     normalize_entity,
@@ -41,3 +43,39 @@ def test_normalize_spell_entity() -> None:
     assert result["school"] == "Evocation"
     assert "data" in result
     assert result["data"]["description"] == "A burst of flame"
+
+
+def test_normalize_entity_missing_key_and_name() -> None:
+    """Test normalizing entity without key or name raises error."""
+    invalid_entity = {"level": 3}
+
+    with pytest.raises(ValueError, match="missing both 'key' and 'name'"):
+        normalize_entity(invalid_entity, "orcpub.dnd.e5/spells")
+
+
+def test_normalize_entity_generates_slug_from_name() -> None:
+    """Test slug generation when key is missing."""
+    entity = {
+        "name": "Magic Missile",
+        "level": 1,
+        "_source_book": "Test",
+    }
+
+    result = normalize_entity(entity, "orcpub.dnd.e5/spells")
+
+    assert result["slug"] == "magic-missile"
+    assert result["name"] == "Magic Missile"
+
+
+def test_normalize_entity_uses_option_pack_as_source() -> None:
+    """Test that option-pack field is used as source."""
+    entity = {
+        "key": "test",
+        "name": "Test",
+        "option-pack": "Player's Handbook",
+        "_source_book": "Ignored",
+    }
+
+    result = normalize_entity(entity, "orcpub.dnd.e5/spells")
+
+    assert result["source"] == "Player's Handbook"
