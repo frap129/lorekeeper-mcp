@@ -14,10 +14,9 @@
 ## Phase 2: Core Parser Implementation
 - [x] Create `src/lorekeeper_mcp/parsers/__init__.py`
 - [x] Create `src/lorekeeper_mcp/parsers/orcbrew.py` with `OrcBrewParser` class
-- [ ] Implement `parse_file()` method to read and parse EDN
-- [ ] Implement entity extraction from parsed EDN structure
-- [ ] Handle EDN data type conversions (keywords to strings, etc.)
-- [ ] Add error handling for malformed EDN files
+- [x] Implement `parse_file()` method to read and parse EDN
+- [x] Handle EDN data type conversions (keywords to strings, etc.)
+- [x] Add error handling for malformed EDN files
 
 ## Phase 3: Entity Mapping
 - [ ] Create `src/lorekeeper_mcp/parsers/entity_mapper.py`
