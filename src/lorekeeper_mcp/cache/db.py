@@ -423,3 +423,81 @@ async def delete_entity_type(entity_type: str, db_path: str | None = None) -> in
         cursor = await db.execute(f"DELETE FROM {table_name}")
         await db.commit()
         return cursor.rowcount if cursor.rowcount else 0
+
+
+async def get_available_documents(
+    db_path: str | None = None,
+    source_api: str | None = None,
+) -> list[dict[str, Any]]:
+    """Get all available documents across all entity types.
+
+    Queries all entity type tables for distinct documents and aggregates
+    entity counts. This provides a source-agnostic view of available documents
+    regardless of which API they came from.
+
+    Args:
+        db_path: Optional database path
+        source_api: Optional filter by source API (open5e_v2, dnd5e_api, orcbrew)
+
+    Returns:
+        List of document dictionaries with:
+            - document: Document name/key
+            - source_api: Source API identifier
+            - entity_count: Total entities from this document
+            - entity_types: Dict mapping entity type to count
+    """
+    final_db_path: str = str(db_path or settings.db_path)
+
+    async with aiosqlite.connect(final_db_path) as db:
+        db.row_factory = aiosqlite.Row
+
+        # Build UNION ALL query for all entity types
+        union_queries = []
+        for entity_type in ENTITY_TYPES:
+            table_name = get_table_name(entity_type)
+            union_queries.append(
+                f"SELECT '{entity_type}' as entity_type, document, source_api "
+                f"FROM {table_name} WHERE document IS NOT NULL"
+            )
+
+        union_sql = " UNION ALL ".join(union_queries)
+
+        # Add source_api filter if specified
+        if source_api:
+            query = f"""
+                SELECT entity_type, document, source_api, COUNT(*) as count
+                FROM ({union_sql})
+                WHERE source_api = ?
+                GROUP BY document, source_api, entity_type
+                ORDER BY document
+            """
+            cursor = await db.execute(query, (source_api,))
+        else:
+            query = f"""
+                SELECT entity_type, document, source_api, COUNT(*) as count
+                FROM ({union_sql})
+                GROUP BY document, source_api, entity_type
+                ORDER BY document
+            """
+            cursor = await db.execute(query)
+
+        rows = await cursor.fetchall()
+
+        # Aggregate by document
+        documents_map: dict[tuple[str, str], dict[str, Any]] = {}
+
+        for row in rows:
+            key = (row["document"], row["source_api"])
+            if key not in documents_map:
+                documents_map[key] = {
+                    "document": row["document"],
+                    "source_api": row["source_api"],
+                    "entity_count": 0,
+                    "entity_types": {},
+                }
+
+            documents_map[key]["entity_count"] += row["count"]
+            documents_map[key]["entity_types"][row["entity_type"]] = row["count"]
+
+        # Sort by entity count descending
+        return sorted(documents_map.values(), key=lambda x: x["entity_count"], reverse=True)

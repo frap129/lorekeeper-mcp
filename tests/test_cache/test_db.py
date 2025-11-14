@@ -643,3 +643,106 @@ async def test_query_cached_entities_empty_document_list(entity_test_db):
     results = await query_cached_entities("spells", db_path=entity_test_db, document=[])
 
     assert results == []
+
+
+# ============================================================================
+# Task 2.4: Document Discovery Tests
+# ============================================================================
+
+
+@pytest.fixture
+async def populated_cache(entity_test_db):
+    """Fixture providing a cache populated with various entities."""
+    # Add spells from different documents
+    spells = [
+        {
+            "slug": "fireball",
+            "name": "Fireball",
+            "level": 3,
+            "school": "Evocation",
+            "document": "srd-5e",
+        },
+        {
+            "slug": "magic-missile",
+            "name": "Magic Missile",
+            "level": 1,
+            "school": "Evocation",
+            "document": "srd-5e",
+        },
+        {
+            "slug": "tasha-spell",
+            "name": "Tasha Spell",
+            "level": 2,
+            "school": "Transmutation",
+            "document": "tce",
+        },
+    ]
+    await bulk_cache_entities(spells, "spells", db_path=entity_test_db, source_api="open5e_v2")
+
+    # Add monsters from different documents
+    monsters = [
+        {
+            "slug": "goblin",
+            "name": "Goblin",
+            "type": "humanoid",
+            "size": "Small",
+            "challenge_rating": 0.25,
+            "document": "mm",
+        },
+        {
+            "slug": "dragon",
+            "name": "Dragon",
+            "type": "dragon",
+            "size": "Huge",
+            "challenge_rating": 24,
+            "document": "mm",
+        },
+    ]
+    await bulk_cache_entities(monsters, "monsters", db_path=entity_test_db, source_api="dnd5e_api")
+
+    return entity_test_db
+
+
+@pytest.mark.asyncio
+async def test_get_available_documents(populated_cache: str) -> None:
+    """Test retrieving all available documents."""
+    from lorekeeper_mcp.cache.db import get_available_documents
+
+    documents = await get_available_documents(db_path=populated_cache)
+
+    # Should return list of documents
+    assert isinstance(documents, list)
+    assert len(documents) > 0
+
+    # Check structure of first document
+    doc = documents[0]
+    assert "document" in doc
+    assert "source_api" in doc
+    assert "entity_count" in doc
+    assert "entity_types" in doc
+    assert isinstance(doc["entity_count"], int)
+    assert isinstance(doc["entity_types"], dict)
+
+
+@pytest.mark.asyncio
+async def test_get_available_documents_source_filter(populated_cache: str) -> None:
+    """Test filtering documents by source API."""
+    from lorekeeper_mcp.cache.db import get_available_documents
+
+    documents = await get_available_documents(db_path=populated_cache, source_api="open5e_v2")
+
+    assert all(doc["source_api"] == "open5e_v2" for doc in documents)
+
+
+@pytest.mark.asyncio
+async def test_get_available_documents_empty_cache(tmp_path: Path) -> None:
+    """Test get_available_documents with empty cache."""
+    from lorekeeper_mcp.cache.db import get_available_documents, init_entity_cache
+
+    # Create empty database
+    db_path = str(tmp_path / "empty.db")
+    await init_entity_cache(db_path)
+
+    documents = await get_available_documents(db_path=db_path)
+
+    assert documents == []
