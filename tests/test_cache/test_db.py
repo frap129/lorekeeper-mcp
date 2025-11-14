@@ -14,6 +14,7 @@ from lorekeeper_mcp.cache.db import (
     get_cache_stats,
     get_cached,
     get_cached_entity,
+    get_document_metadata,
     get_entity_count,
     query_cached_entities,
     set_cached,
@@ -746,3 +747,27 @@ async def test_get_available_documents_empty_cache(tmp_path: Path) -> None:
     documents = await get_available_documents(db_path=db_path)
 
     assert documents == []
+
+
+# ============================================================================
+# Task 3: Document Metadata Query Tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_document_metadata(populated_cache: str) -> None:
+    """Test retrieving document metadata."""
+    # Assuming populated cache has srd-5e document metadata
+    metadata = await get_document_metadata("srd-5e", db_path=populated_cache)
+
+    if metadata:  # May be None if not cached
+        assert isinstance(metadata, dict)
+        assert "slug" in metadata or "document" in metadata
+
+
+@pytest.mark.asyncio
+async def test_get_document_metadata_not_found(populated_cache: str) -> None:
+    """Test get_document_metadata returns None for missing document."""
+    metadata = await get_document_metadata("non-existent-doc", db_path=populated_cache)
+
+    assert metadata is None

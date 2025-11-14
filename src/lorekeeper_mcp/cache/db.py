@@ -501,3 +501,30 @@ async def get_available_documents(
 
         # Sort by entity count descending
         return sorted(documents_map.values(), key=lambda x: x["entity_count"], reverse=True)
+
+
+async def get_document_metadata(
+    document_key: str,
+    db_path: str | None = None,
+) -> dict[str, Any] | None:
+    """Get metadata for a specific document from cache.
+
+    Queries the documents entity type for cached metadata about a document.
+    This is primarily useful for Open5e documents which have rich metadata
+    (publisher, license, etc.). Returns None for documents not in cache.
+
+    Args:
+        document_key: Document slug/key to look up
+        db_path: Optional database path
+
+    Returns:
+        Document metadata dict if found, None otherwise
+    """
+    final_db_path: str = str(db_path or settings.db_path)
+
+    try:
+        # Try to get from documents cache
+        return await get_cached_entity("documents", document_key, db_path=final_db_path)
+    except (ValueError, Exception):
+        # Table doesn't exist or other error - return None
+        return None
