@@ -87,3 +87,4 @@ class MagicItem(BaseModel):
     weight: float | None = Field(None, ge=0, description="Weight in pounds")
     armor_class: int | None = Field(None, ge=0, description="AC bonus if armor")
     damage: str | None = Field(None, description="Damage if weapon")
+    document: str | None = Field(None, description="Document name (e.g., 'SRD 5.2')")

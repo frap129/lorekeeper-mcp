@@ -245,6 +245,29 @@ async def test_spell_repository_cache_aside_pattern(
     assert len(results) == 3
 
 
+@pytest.mark.asyncio
+async def test_search_spells_by_document(
+    mock_cache: MagicMock, mock_client: MagicMock, spell_data: list[dict[str, Any]]
+) -> None:
+    """Test filtering spells by document name."""
+    # Add document to test data
+    spell_with_doc = spell_data[0].copy()
+    spell_with_doc["document"] = "System Reference Document 5.1"
+
+    mock_cache.get_entities.return_value = [spell_with_doc]
+
+    repo = SpellRepository(client=mock_client, cache=mock_cache)
+    results = await repo.search(document="System Reference Document 5.1")
+
+    # Verify cache was called with document filter
+    mock_cache.get_entities.assert_called_once()
+    call_kwargs = mock_cache.get_entities.call_args[1]
+    assert call_kwargs["document"] == "System Reference Document 5.1"
+
+    assert len(results) == 1
+    assert results[0].slug == "fireball"
+
+
 def test_repository_parameter_mapping_with_open5e_client() -> None:
     """Test that repository correctly maps parameters for Open5e API."""
     from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client

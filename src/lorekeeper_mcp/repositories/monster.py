@@ -82,11 +82,19 @@ class MonsterRepository(Repository[Monster]):
         limit = filters.pop("limit", None)
 
         # Separate cache-compatible filters from API-only filters
-        # Cache allows: challenge_rating, name, size, slug, source_api, type
+        # Cache allows: challenge_rating, name, size, slug, source_api, type, document
         cache_filters = {}
         api_only_filters = {}
 
-        cache_allowed_fields = {"challenge_rating", "name", "size", "slug", "source_api", "type"}
+        cache_allowed_fields = {
+            "challenge_rating",
+            "name",
+            "size",
+            "slug",
+            "source_api",
+            "type",
+            "document",
+        }
 
         for key, value in filters.items():
             if key in cache_allowed_fields:

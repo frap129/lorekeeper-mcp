@@ -79,3 +79,33 @@ def test_normalize_entity_uses_option_pack_as_source() -> None:
     result = normalize_entity(entity, "orcpub.dnd.e5/spells")
 
     assert result["source"] == "Player's Handbook"
+
+
+def test_orcbrew_entity_includes_document() -> None:
+    """Test that OrcBrew entities include book name as document."""
+    entity = {
+        "key": "test-spell",
+        "name": "Test Spell",
+        "_source_book": "Homebrew Grimoire",
+        "level": 3,
+        "school": "evocation",
+    }
+
+    normalized = normalize_entity(entity, "orcpub.dnd.e5/spells")
+
+    assert normalized["document"] == "Homebrew Grimoire"
+
+
+def test_orcbrew_entity_with_option_pack() -> None:
+    """Test that option-pack overrides _source_book for document name."""
+    entity = {
+        "key": "test-spell",
+        "name": "Test Spell",
+        "_source_book": "Default",
+        "option-pack": "Custom Pack",
+        "level": 3,
+    }
+
+    normalized = normalize_entity(entity, "orcpub.dnd.e5/spells")
+
+    assert normalized["document"] == "Custom Pack"

@@ -49,6 +49,7 @@ async def test_lookup_spell_by_name(repository_context):
         document_url="https://example.com/fireball",
         higher_level="When you cast this spell...",
         damage_type=None,
+        document=None,
     )
 
     repository_context.search.return_value = [spell_obj]
@@ -81,6 +82,7 @@ async def test_lookup_spell_with_filters(repository_context):
         document_url="https://example.com/fireball",
         higher_level="When you cast this spell...",
         damage_type=None,
+        document=None,
     )
 
     repository_context.search.return_value = [spell_obj]
@@ -145,6 +147,7 @@ async def test_spell_search_by_name_server_side(repository_context):
         document_url="https://example.com/fireball",
         higher_level="When you cast this spell...",
         damage_type=None,
+        document=None,
     )
 
     # Repository returns only matching spells (server-side filtered)
@@ -183,6 +186,7 @@ async def test_lookup_spell_limit_applied(repository_context):
             document_url="https://example.com",
             higher_level=None,
             damage_type=None,
+            document=None,
         )
         for i in range(1, 30)
     ]
@@ -224,6 +228,7 @@ async def test_lookup_spell_by_class_key(repository_context):
         higher_level="When you cast this spell...",
         damage_type=None,
         classes=["wizard", "sorcerer"],
+        document=None,
     )
 
     # Repository filters by class (server-side) and returns only wizard spells
@@ -259,6 +264,7 @@ async def test_lookup_spell_with_level_min(repository_context):
         document_url="https://example.com/fireball",
         higher_level="When you cast this spell...",
         damage_type=None,
+        document=None,
     )
 
     repository_context.search.return_value = [spell_obj]
@@ -291,6 +297,7 @@ async def test_lookup_spell_with_level_max(repository_context):
         document_url="https://example.com/magic-missile",
         higher_level="When you cast this spell...",
         damage_type=None,
+        document=None,
     )
 
     repository_context.search.return_value = [spell_obj]
@@ -323,6 +330,7 @@ async def test_lookup_spell_with_level_range(repository_context):
         document_url="https://example.com/fireball",
         higher_level="When you cast this spell...",
         damage_type=None,
+        document=None,
     )
 
     repository_context.search.return_value = [spell_obj]
@@ -356,6 +364,7 @@ async def test_lookup_spell_with_damage_type(repository_context):
         document_url="https://example.com/fireball",
         higher_level="When you cast this spell...",
         damage_type=["fire"],
+        document=None,
     )
 
     repository_context.search.return_value = [fire_spell]
@@ -388,6 +397,7 @@ async def test_lookup_spell_backward_compatibility(repository_context):
         document_url="https://example.com/fireball",
         higher_level="When you cast this spell...",
         damage_type=None,
+        document=None,
     )
 
     repository_context.search.return_value = [spell_obj]
@@ -403,3 +413,40 @@ async def test_lookup_spell_backward_compatibility(repository_context):
     assert "level_min" not in call_kwargs
     assert "level_max" not in call_kwargs
     assert "damage_type" not in call_kwargs
+
+
+@pytest.mark.asyncio
+async def test_lookup_spell_with_document_filter(repository_context):
+    """Test looking up spells filtered by document name."""
+    spell_obj = Spell(
+        name="Fireball",
+        slug="fireball",
+        level=3,
+        school="evocation",
+        casting_time="1 action",
+        range="150 feet",
+        components="V,S,M",
+        material="a tiny ball of bat guano and sulfur",
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A bright streak flashes...",
+        document_url="https://example.com/fireball",
+        higher_level="When you cast this spell...",
+        damage_type=None,
+        document=None,
+    )
+
+    repository_context.search.return_value = [spell_obj]
+
+    results = await lookup_spell(document="System Reference Document 5.1", level=3)
+
+    # Verify repository was called with document filter
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["document"] == "System Reference Document 5.1"
+
+    # Verify results include spell data
+    assert len(results) == 1
+    assert results[0]["name"] == "Fireball"
+    assert results[0]["level"] == 3

@@ -70,6 +70,7 @@ async def lookup_creature(
     size: str | None = None,
     armor_class_min: int | None = None,
     hit_points_min: int | None = None,
+    document: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -109,28 +110,29 @@ async def lookup_creature(
             _repository_context["repository"] = custom_repo
             creatures = await lookup_creature(size="Tiny")
 
-    Args:
-        name: Creature name or partial name search. Matches creatures containing this substring.
-            Examples: "dragon", "goblin", "lich", "red dragon"
-        cr: Exact Challenge Rating to search for. Supports fractional values including
-            0.125, 0.25, 0.5 for weak creatures. Range: 0.125 to 30
-            Examples: 0.125 (weak minion), 5 (party challenge), 20 (deadly boss)
-        cr_min: Minimum Challenge Rating for range-based searches. Use with cr_max to find
-            creatures in a difficulty band. Examples: 1, 5, 10
-        cr_max: Maximum Challenge Rating for range-based searches. Together with cr_min,
-            defines the encounter difficulty band. Examples: 3, 10, 15
-        type: Creature type filter. Valid values include: aberration, beast, celestial,
-            construct, dragon, elemental, fey, fiend, giant, goblinoid, humanoid, monstrosity,
-            ooze, reptile, undead, plant. Examples: "dragon", "undead", "humanoid"
-        size: Size category filter. Valid values: Tiny, Small, Medium, Large, Huge, Gargantuan
-            Examples: "Large" for major encounters, "Tiny" for swarms
-        armor_class_min: Minimum Armor Class filter. Returns creatures with AC at or above
-            this value. Useful for finding well-armored threats. Examples: 15, 18, 20
-        hit_points_min: Minimum Hit Points filter. Returns creatures with HP at or above
-            this value. Useful for finding creatures with significant endurance. Examples: 50, 100,
-            200
-        limit: Maximum number of results to return. Default 20, useful for pagination
-            or limiting large result sets. Example: 5
+     Args:
+         name: Creature name or partial name search. Matches creatures containing this substring.
+             Examples: "dragon", "goblin", "lich", "red dragon"
+         cr: Exact Challenge Rating to search for. Supports fractional values including
+             0.125, 0.25, 0.5 for weak creatures. Range: 0.125 to 30
+             Examples: 0.125 (weak minion), 5 (party challenge), 20 (deadly boss)
+         cr_min: Minimum Challenge Rating for range-based searches. Use with cr_max to find
+             creatures in a difficulty band. Examples: 1, 5, 10
+         cr_max: Maximum Challenge Rating for range-based searches. Together with cr_min,
+             defines the encounter difficulty band. Examples: 3, 10, 15
+         type: Creature type filter. Valid values include: aberration, beast, celestial,
+             construct, dragon, elemental, fey, fiend, giant, goblinoid, humanoid, monstrosity,
+             ooze, reptile, undead, plant. Examples: "dragon", "undead", "humanoid"
+         size: Size category filter. Valid values: Tiny, Small, Medium, Large, Huge, Gargantuan
+             Examples: "Large" for major encounters, "Tiny" for swarms
+         armor_class_min: Minimum Armor Class filter. Returns creatures with AC at or above
+             this value. Useful for finding well-armored threats. Examples: 15, 18, 20
+         hit_points_min: Minimum Hit Points filter. Returns creatures with HP at or above
+             this value. Useful for finding creatures with significant endurance. Examples: 50, 100,
+             200
+         document: Filter by document name (e.g., "System Reference Document 5.1", "Adventurer's Guide")
+         limit: Maximum number of results to return. Default 20, useful for pagination
+             or limiting large result sets. Example: 5
 
     Returns:
         List of creature stat block dictionaries, each containing:
@@ -176,6 +178,8 @@ async def lookup_creature(
         params["armor_class_min"] = armor_class_min
     if hit_points_min is not None:
         params["hit_points_min"] = hit_points_min
+    if document is not None:
+        params["document"] = document
 
     # Fetch creatures from repository with filters
     # Repository handles name filtering via name__icontains parameter

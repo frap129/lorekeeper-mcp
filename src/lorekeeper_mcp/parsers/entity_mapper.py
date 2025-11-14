@@ -70,12 +70,16 @@ def normalize_entity(
     if "option-pack" in entity:
         source = entity["option-pack"]
 
+    # Extract document name (book name is the document)
+    document = entity.get("option-pack") or entity.get("_source_book", "Unknown")
+
     # Build normalized entity
     normalized: dict[str, Any] = {
         "slug": slug,
         "name": name,
         "source": source,
         "source_api": "orcbrew",
+        "document": document,
         "data": {k: v for k, v in entity.items() if not k.startswith("_")},
     }
 

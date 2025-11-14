@@ -49,12 +49,14 @@ async def test_lookup_creature_by_name(repository_context):
         wisdom=15,
         charisma=23,
         challenge_rating="24",
+        challenge_rating_decimal=24.0,
         actions=None,
         legendary_actions=None,
         special_abilities=None,
         desc=None,
         speed=None,
         document_url="https://example.com/ancient-red-dragon",
+        document=None,
     )
 
     repository_context.search.return_value = [creature_obj]
@@ -231,6 +233,7 @@ async def test_creature_search_by_name_client_side(repository_context):
         desc=None,
         speed=None,
         document_url="https://example.com/ancient-red-dragon",
+        document=None,
     )
 
     # Repository returns only the red dragon (server-side filtering)
@@ -322,6 +325,7 @@ async def test_lookup_creature_armor_class_min(repository_context):
         desc=None,
         speed=None,
         document_url="https://example.com/ancient-red-dragon",
+        document=None,
     )
 
     repository_context.search.return_value = [creature_obj]
@@ -359,6 +363,7 @@ async def test_lookup_creature_hit_points_min(repository_context):
         desc=None,
         speed=None,
         document_url="https://example.com/ancient-red-dragon",
+        document=None,
     )
 
     repository_context.search.return_value = [creature_obj]
@@ -396,6 +401,7 @@ async def test_lookup_creature_combined_filters(repository_context):
         desc=None,
         speed=None,
         document_url="https://example.com/ancient-red-dragon",
+        document=None,
     )
 
     repository_context.search.return_value = [creature_obj]
@@ -449,3 +455,45 @@ async def test_lookup_creature_backward_compatible(repository_context):
     call_kwargs = repository_context.search.call_args[1]
     assert "armor_class_min" not in call_kwargs
     assert "hit_points_min" not in call_kwargs
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_with_document_filter(repository_context):
+    """Test looking up creatures filtered by document name."""
+    creature_obj = Monster(
+        name="Goblin",
+        slug="goblin",
+        size="Small",
+        type="humanoid",
+        alignment="neutral evil",
+        armor_class=15,
+        hit_points=7,
+        hit_dice="2d6",
+        challenge_rating="1/4",
+        challenge_rating_decimal=0.25,
+        strength=8,
+        dexterity=14,
+        constitution=10,
+        intelligence=10,
+        wisdom=8,
+        charisma=8,
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/goblin",
+    )
+
+    repository_context.search.return_value = [creature_obj]
+
+    results = await lookup_creature(document="System Reference Document 5.1")
+
+    # Verify repository was called with document filter
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["document"] == "System Reference Document 5.1"
+
+    # Verify results are returned
+    assert len(results) == 1
+    assert results[0]["name"] == "Goblin"

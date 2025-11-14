@@ -72,6 +72,7 @@ async def lookup_spell(
     ritual: bool | None = None,
     casting_time: str | None = None,
     damage_type: str | None = None,
+    document: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -208,6 +209,8 @@ async def lookup_spell(
         params["casting_time"] = casting_time
     if damage_type is not None:
         params["damage_type"] = damage_type
+    if document is not None:
+        params["document"] = document
 
     # Fetch spells from repository with filters
     # API will filter by name, school, class_key, and concentration server-side
