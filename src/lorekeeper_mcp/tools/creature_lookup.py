@@ -71,6 +71,7 @@ async def lookup_creature(
     armor_class_min: int | None = None,
     hit_points_min: int | None = None,
     document: str | None = None,
+    document_keys: list[str] | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -104,55 +105,68 @@ async def lookup_creature(
                 armor_class_min=16, hit_points_min=75, cr_min=5
             )
 
+        With document filtering (NEW in Phase 3):
+            srd_only = await lookup_creature(document_keys=["srd-5e"])
+            tasha_creatures = await lookup_creature(
+                document_keys=["srd-5e", "tce"]
+            )
+            phb_and_dmg = await lookup_creature(
+                document_keys=["phb", "dmg"], cr_min=5
+            )
+
         With test context injection (testing):
             from lorekeeper_mcp.tools.creature_lookup import _repository_context
             custom_repo = MonsterRepository(cache=my_cache)
             _repository_context["repository"] = custom_repo
             creatures = await lookup_creature(size="Tiny")
 
-     Args:
-         name: Creature name or partial name search. Matches creatures containing this substring.
-             Examples: "dragon", "goblin", "lich", "red dragon"
-         cr: Exact Challenge Rating to search for. Supports fractional values including
-             0.125, 0.25, 0.5 for weak creatures. Range: 0.125 to 30
-             Examples: 0.125 (weak minion), 5 (party challenge), 20 (deadly boss)
-         cr_min: Minimum Challenge Rating for range-based searches. Use with cr_max to find
-             creatures in a difficulty band. Examples: 1, 5, 10
-         cr_max: Maximum Challenge Rating for range-based searches. Together with cr_min,
-             defines the encounter difficulty band. Examples: 3, 10, 15
-         type: Creature type filter. Valid values include: aberration, beast, celestial,
-             construct, dragon, elemental, fey, fiend, giant, goblinoid, humanoid, monstrosity,
-             ooze, reptile, undead, plant. Examples: "dragon", "undead", "humanoid"
-         size: Size category filter. Valid values: Tiny, Small, Medium, Large, Huge, Gargantuan
-             Examples: "Large" for major encounters, "Tiny" for swarms
-         armor_class_min: Minimum Armor Class filter. Returns creatures with AC at or above
-             this value. Useful for finding well-armored threats. Examples: 15, 18, 20
-         hit_points_min: Minimum Hit Points filter. Returns creatures with HP at or above
-             this value. Useful for finding creatures with significant endurance. Examples: 50, 100,
-             200
-         document: Filter by document name (e.g., "System Reference Document 5.1", "Adventurer's Guide")
-         limit: Maximum number of results to return. Default 20, useful for pagination
-             or limiting large result sets. Example: 5
+      Args:
+          name: Creature name or partial name search. Matches creatures containing this substring.
+              Examples: "dragon", "goblin", "lich", "red dragon"
+          cr: Exact Challenge Rating to search for. Supports fractional values including
+              0.125, 0.25, 0.5 for weak creatures. Range: 0.125 to 30
+              Examples: 0.125 (weak minion), 5 (party challenge), 20 (deadly boss)
+          cr_min: Minimum Challenge Rating for range-based searches. Use with cr_max to find
+              creatures in a difficulty band. Examples: 1, 5, 10
+          cr_max: Maximum Challenge Rating for range-based searches. Together with cr_min,
+              defines the encounter difficulty band. Examples: 3, 10, 15
+          type: Creature type filter. Valid values include: aberration, beast, celestial,
+              construct, dragon, elemental, fey, fiend, giant, goblinoid, humanoid, monstrosity,
+              ooze, reptile, undead, plant. Examples: "dragon", "undead", "humanoid"
+          size: Size category filter. Valid values: Tiny, Small, Medium, Large, Huge, Gargantuan
+              Examples: "Large" for major encounters, "Tiny" for swarms
+          armor_class_min: Minimum Armor Class filter. Returns creatures with AC at or above
+              this value. Useful for finding well-armored threats. Examples: 15, 18, 20
+          hit_points_min: Minimum Hit Points filter. Returns creatures with HP at or above
+              this value. Useful for finding creatures with significant endurance. Examples: 50, 100,
+              200
+          document: Filter by document name (e.g., "System Reference Document 5.1", "Adventurer's Guide")
+          document_keys: Filter to specific source documents. Provide a list of
+              document names/identifiers from list_documents() tool. Examples:
+              ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
+              Use list_documents() to see available documents. NEW parameter.
+          limit: Maximum number of results to return. Default 20, useful for pagination
+              or limiting large result sets. Example: 5
 
-    Returns:
-        List of creature stat block dictionaries, each containing:
-            - name: Creature name
-            - size: Size category
-            - type: Creature type
-            - alignment: Alignment (e.g., "chaotic evil")
-            - armor_class: AC (Armor Class)
-            - hit_points: Hit points
-            - hit_dice: Hit dice expression (e.g., "10d10+20")
-            - speed: Movement speeds (walk, fly, swim, burrow, climb)
-            - strength/dexterity/constitution/intelligence/wisdom/charisma: Ability scores
-            - challenge_rating: CR value for encounter building
-            - actions: Possible actions in combat
-            - legendary_actions: Legendary action options (if applicable)
-            - special_abilities: Special abilities and traits
-            - document_url: Source document reference
+     Returns:
+         List of creature stat block dictionaries, each containing:
+             - name: Creature name
+             - size: Size category
+             - type: Creature type
+             - alignment: Alignment (e.g., "chaotic evil")
+             - armor_class: AC (Armor Class)
+             - hit_points: Hit points
+             - hit_dice: Hit dice expression (e.g., "10d10+20")
+             - speed: Movement speeds (walk, fly, swim, burrow, climb)
+             - strength/dexterity/constitution/intelligence/wisdom/charisma: Ability scores
+             - challenge_rating: CR value for encounter building
+             - actions: Possible actions in combat
+             - legendary_actions: Legendary action options (if applicable)
+             - special_abilities: Special abilities and traits
+             - document_url: Source document reference
 
-    Raises:
-        ApiError: If the API request fails due to network issues or server errors
+     Raises:
+         ApiError: If the API request fails due to network issues or server errors
     """
     # Get repository from context or create default
     repository = _get_repository()
@@ -178,8 +192,12 @@ async def lookup_creature(
         params["armor_class_min"] = armor_class_min
     if hit_points_min is not None:
         params["hit_points_min"] = hit_points_min
+    # Backward compatibility: document parameter (deprecated, use document_keys)
     if document is not None:
         params["document"] = document
+    # New document_keys parameter takes precedence
+    if document_keys is not None:
+        params["document"] = document_keys  # Repository expects "document"
 
     # Fetch creatures from repository with filters
     # Repository handles name filtering via name__icontains parameter

@@ -497,3 +497,46 @@ async def test_lookup_creature_with_document_filter(repository_context):
     # Verify results are returned
     assert len(results) == 1
     assert results[0]["name"] == "Goblin"
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_with_document_keys(repository_context):
+    """Test lookup_creature with document_keys filter."""
+    creature_obj = Monster(
+        name="Fireball",
+        slug="fireball",
+        size="Small",
+        type="humanoid",
+        alignment="neutral evil",
+        armor_class=15,
+        hit_points=7,
+        hit_dice="2d6",
+        challenge_rating="1/4",
+        challenge_rating_decimal=0.25,
+        strength=8,
+        dexterity=14,
+        constitution=10,
+        intelligence=10,
+        wisdom=8,
+        charisma=8,
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/fireball",
+        document="srd-5e",
+    )
+
+    repository_context.search.return_value = [creature_obj]
+
+    results = await lookup_creature(name="fireball", document_keys=["srd-5e"])
+
+    # Verify repository was called with document as document_keys
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["document"] == ["srd-5e"]
+
+    # Verify results are returned
+    assert len(results) == 1
+    assert results[0]["document"] == "srd-5e"
