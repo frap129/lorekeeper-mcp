@@ -58,11 +58,14 @@
 - [x] Update SpellRepository.search to support document filter
 - [x] Update MonsterRepository.search to support document filter
 - [x] Update EquipmentRepository.search to support document filter
-- [x] Write tests for repository document filtering
-- [x] Run all repository tests
-- [x] Commit changes
+- [x] Write test for SpellRepository document filtering
+- [ ] Write test for MonsterRepository document filtering
+- [ ] Write test for EquipmentRepository document filtering (weapons)
+- [ ] Write test for EquipmentRepository document filtering (armor)
+- [x] Run all repository tests (existing tests pass)
+- [ ] Commit test additions
 
-**Status:** COMPLETE (commits included in earlier work)
+**Status:** INCOMPLETE - Implementation exists (bundled in 088de43) but missing 2/3 repository tests
 
 ## Task 7: Add Document Filtering to MCP Tools
 - [x] Add document parameter to lookup_spell
