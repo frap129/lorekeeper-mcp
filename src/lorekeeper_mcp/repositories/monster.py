@@ -112,8 +112,11 @@ class MonsterRepository(Repository[Monster]):
                 results = self._apply_api_filters(results, **api_only_filters)
             return results[:limit] if limit else results
 
-        # Cache miss - fetch from API with all filters
-        api_params = self._map_to_api_params(**filters)
+        # Cache miss - fetch from API with filters
+        api_filters = dict(filters)
+        # Remove document from API filters (cache-only filter)
+        api_filters.pop("document", None)
+        api_params = self._map_to_api_params(**api_filters)
         monsters: list[Monster] = await self.client.get_creatures(limit=limit, **api_params)
 
         # Store in cache if we got results
