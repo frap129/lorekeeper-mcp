@@ -161,6 +161,7 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
         limit = filters.pop("limit", None)
 
         # Try cache first with valid filter fields only
+        # (document is kept in filters for cache filtering)
         cached = await self.cache.get_entities("weapons", **filters)
 
         if cached:
@@ -168,9 +169,11 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
             return results[:limit] if limit else results
 
         # Cache miss - fetch from API with filters and limit
-        weapons = await self.client.get_weapons(limit=limit, **filters)
+        # Remove document from API filters (cache-only filter)
+        api_filters = dict(filters)
+        api_filters.pop("document", None)
+        weapons = await self.client.get_weapons(limit=limit, **api_filters)
 
-        # Store in cache if we got results
         # Store in cache if we got results
         if weapons:
             # Convert to dicts for caching
@@ -193,6 +196,7 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
         limit = filters.pop("limit", None)
 
         # Try cache first with valid filter fields only
+        # (document is kept in filters for cache filtering)
         cached = await self.cache.get_entities("armor", **filters)
 
         if cached:
@@ -200,7 +204,10 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
             return results[:limit] if limit else results
 
         # Cache miss - fetch from API with filters and limit
-        armors = await self.client.get_armor(limit=limit, **filters)
+        # Remove document from API filters (cache-only filter)
+        api_filters = dict(filters)
+        api_filters.pop("document", None)
+        armors = await self.client.get_armor(limit=limit, **api_filters)
 
         # Store in cache if we got results
         if armors:
@@ -224,6 +231,7 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
         limit = filters.pop("limit", None)
 
         # Try cache first with valid filter fields only
+        # (document is kept in filters for cache filtering)
         cached = await self.cache.get_entities("magic-items", **filters)
 
         if cached:
@@ -231,7 +239,10 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
             return results[:limit] if limit else results
 
         # Cache miss - fetch from API with filters and limit
-        items: list[dict[str, Any]] = await self.client.get_magic_items(limit=limit, **filters)
+        # Remove document from API filters (cache-only filter)
+        api_filters = dict(filters)
+        api_filters.pop("document", None)
+        items: list[dict[str, Any]] = await self.client.get_magic_items(limit=limit, **api_filters)
 
         # Convert to MagicItem objects
         magic_items = [MagicItem.model_validate(item) for item in items]

@@ -352,3 +352,61 @@ async def test_search_armor_by_document(
 
     assert len(results) == 1
     assert results[0].slug == "plate"
+
+
+@pytest.mark.asyncio
+async def test_search_weapons_by_document_cache_miss(
+    mock_cache: MagicMock, mock_client: MagicMock, weapon_data: list[dict[str, Any]]
+) -> None:
+    """Test that document filter is NOT passed to API on cache miss."""
+    # Cache miss
+    mock_cache.get_entities.return_value = []
+
+    # API returns weapons without document filter
+    weapons = [Weapon.model_validate(weapon_data[0])]
+    mock_client.get_weapons.return_value = weapons
+    mock_cache.store_entities.return_value = 1
+
+    repo = EquipmentRepository(client=mock_client, cache=mock_cache)
+    results = await repo.search(item_type="weapon", document="System Reference Document 5.1")
+
+    # Verify cache was called WITH document filter
+    mock_cache.get_entities.assert_called_once()
+    call_kwargs = mock_cache.get_entities.call_args[1]
+    assert call_kwargs["document"] == "System Reference Document 5.1"
+
+    # Verify API was called WITHOUT document filter (cache-only filter)
+    mock_client.get_weapons.assert_called_once()
+    call_kwargs = mock_client.get_weapons.call_args[1]
+    assert "document" not in call_kwargs
+
+    assert len(results) == 1
+
+
+@pytest.mark.asyncio
+async def test_search_armor_by_document_cache_miss(
+    mock_cache: MagicMock, mock_client: MagicMock, armor_data: list[dict[str, Any]]
+) -> None:
+    """Test that document filter is NOT passed to API on cache miss."""
+    # Cache miss
+    mock_cache.get_entities.return_value = []
+
+    # API returns armor without document filter
+    armors = [Armor.model_validate(armor_data[0])]
+    mock_client.get_armor.return_value = armors
+    mock_cache.store_entities.return_value = 1
+
+    repo = EquipmentRepository(client=mock_client, cache=mock_cache)
+    results = await repo.search(item_type="armor", document="System Reference Document 5.1")
+
+    # Verify cache was called WITH document filter
+    mock_cache.get_entities.assert_called_once()
+    call_kwargs = mock_cache.get_entities.call_args[1]
+    assert call_kwargs["document"] == "System Reference Document 5.1"
+
+    # Verify API was called WITHOUT document filter (cache-only filter)
+    mock_client.get_armor.assert_called_once()
+    call_kwargs = mock_client.get_armor.call_args[1]
+    assert "document" not in call_kwargs
+
+    assert len(results) == 1
