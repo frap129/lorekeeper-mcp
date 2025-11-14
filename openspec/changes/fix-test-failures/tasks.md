@@ -26,11 +26,11 @@
 
 ## Phase 4: Fix Feat Lookup
 
-- [ ] Update `CharacterOptionRepository._search_feats` to default `api_limit = 100` when no limit specified
-- [ ] Verify `Open5eV2Client.get_feats` accepts and uses `limit` parameter correctly
-- [ ] Add unit test for feat lookup with no limit specified
-- [ ] Add unit test for feat lookup with explicit limit
-- [ ] Run live test for feat lookup to verify >= 20 results
+- [x] Update `CharacterOptionRepository._search_feats` to default `api_limit = 100` when no limit specified
+- [x] Verify `Open5eV2Client.get_feats` accepts and uses `limit` parameter correctly
+- [x] Add unit test for feat lookup with no limit specified
+- [x] Add unit test for feat lookup with explicit limit
+- [x] Run live test for feat lookup to verify >= 20 results
 
 ## Phase 5: Fix Integration Test Mocks
 
