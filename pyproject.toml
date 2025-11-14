@@ -143,6 +143,7 @@ extra_checks = true
 module = [
     "fastmcp.*",
     "aiosqlite.*",
+    "edn_format.*",
 ]
 ignore_missing_imports = true
 
