@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from lorekeeper_mcp.tools.search_dnd_content import search_dnd_content
+
 
 @pytest.fixture
 def mock_open5e_v2_client_for_search():
@@ -38,7 +40,6 @@ def mock_client_factory(mock_open5e_v2_client_for_search, monkeypatch):
 @pytest.mark.asyncio
 async def test_search_dnd_content_tool(mock_client_factory):
     """Test search_dnd_content tool basic functionality."""
-    from lorekeeper_mcp.tools.search_dnd_content import search_dnd_content
 
     # Mock search results
     mock_results = [
@@ -62,7 +63,6 @@ async def test_search_dnd_content_tool(mock_client_factory):
 @pytest.mark.asyncio
 async def test_search_dnd_content_with_fuzzy(mock_client_factory):
     """Test search_dnd_content tool with fuzzy matching enabled."""
-    from lorekeeper_mcp.tools.search_dnd_content import search_dnd_content
 
     mock_results = [
         {
@@ -84,7 +84,6 @@ async def test_search_dnd_content_with_fuzzy(mock_client_factory):
 @pytest.mark.asyncio
 async def test_search_dnd_content_with_semantic(mock_client_factory):
     """Test search_dnd_content tool with semantic search enabled."""
-    from lorekeeper_mcp.tools.search_dnd_content import search_dnd_content
 
     mock_results = [
         {
@@ -106,7 +105,6 @@ async def test_search_dnd_content_with_semantic(mock_client_factory):
 @pytest.mark.asyncio
 async def test_cross_entity_search(mock_client_factory):
     """Test searching across multiple content types."""
-    from lorekeeper_mcp.tools.search_dnd_content import search_dnd_content
 
     # Mock results with different entity types
     mock_results = [
@@ -140,7 +138,6 @@ async def test_cross_entity_search(mock_client_factory):
 @pytest.mark.asyncio
 async def test_content_type_filtering(mock_client_factory):
     """Test filtering results by content type."""
-    from lorekeeper_mcp.tools.search_dnd_content import search_dnd_content
 
     # First call for "Spell"
     spell_results = [
@@ -181,7 +178,6 @@ async def test_content_type_filtering(mock_client_factory):
 @pytest.mark.asyncio
 async def test_content_type_filtering_respects_limit(mock_client_factory):
     """Test that limit is distributed across content types."""
-    from lorekeeper_mcp.tools.search_dnd_content import search_dnd_content
 
     spell_results = [
         {
@@ -223,7 +219,6 @@ async def test_content_type_filtering_respects_limit(mock_client_factory):
 @pytest.mark.asyncio
 async def test_search_with_limit(mock_client_factory):
     """Test search with custom limit parameter."""
-    from lorekeeper_mcp.tools.search_dnd_content import search_dnd_content
 
     mock_results = [
         {"object_name": "Spell1", "object_model": "Spell"},
@@ -242,7 +237,6 @@ async def test_search_with_limit(mock_client_factory):
 @pytest.mark.asyncio
 async def test_search_combines_results_within_limit(mock_client_factory):
     """Test that combined results respect the overall limit."""
-    from lorekeeper_mcp.tools.search_dnd_content import search_dnd_content
 
     spell_results = [{"object_name": f"Spell{i}", "object_model": "Spell"} for i in range(6)]
 

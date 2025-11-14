@@ -5,7 +5,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 from lorekeeper_mcp.api_clients.models.spell import Spell
+from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.repositories.spell import SpellRepository
 
 
@@ -270,7 +272,6 @@ async def test_search_spells_by_document(
 
 def test_repository_parameter_mapping_with_open5e_client() -> None:
     """Test that repository correctly maps parameters for Open5e API."""
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_cache = MagicMock()
     mock_client = MagicMock(spec=Open5eV2Client)
@@ -294,7 +295,6 @@ def test_repository_parameter_mapping_with_open5e_client() -> None:
 
 def test_repository_parameter_mapping_with_dnd5e_client() -> None:
     """Test that repository correctly maps parameters for D&D 5e API."""
-    from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 
     mock_cache = MagicMock()
     mock_client = MagicMock(spec=Dnd5eApiClient)
@@ -315,7 +315,6 @@ def test_repository_parameter_mapping_with_dnd5e_client() -> None:
 
 def test_open5e_operator_mapping() -> None:
     """Test Open5e-specific filter operator mappings."""
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_cache = MagicMock()
     mock_client = MagicMock(spec=Open5eV2Client)
@@ -348,7 +347,6 @@ def test_open5e_operator_mapping() -> None:
 
 def test_dnd5e_parameter_mapping() -> None:
     """Test D&D 5e API-specific parameter mappings."""
-    from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 
     mock_cache = MagicMock()
     mock_client = MagicMock(spec=Dnd5eApiClient)
@@ -374,7 +372,6 @@ def test_dnd5e_parameter_mapping() -> None:
 
 def test_repository_passthrough_exact_matches() -> None:
     """Test that exact match parameters are passed through correctly."""
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_cache = MagicMock()
     mock_client = MagicMock(spec=Open5eV2Client)
@@ -397,7 +394,6 @@ def test_repository_passthrough_exact_matches() -> None:
 
 def test_repository_mixed_parameters() -> None:
     """Test mapping with both transformed and pass-through parameters."""
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_cache = MagicMock()
     mock_client = MagicMock(spec=Open5eV2Client)
@@ -427,7 +423,6 @@ def test_repository_mixed_parameters() -> None:
 
 def test_repository_class_key_mapping() -> None:
     """Test that class_key is mapped to classes__key with srd_ prefix."""
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_cache = MagicMock()
     mock_client = MagicMock(spec=Open5eV2Client)
@@ -444,7 +439,6 @@ def test_repository_class_key_mapping() -> None:
 
 def test_repository_class_key_lowercase() -> None:
     """Test that class_key is converted to lowercase with srd_ prefix."""
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_cache = MagicMock()
     mock_client = MagicMock(spec=Open5eV2Client)
@@ -459,7 +453,6 @@ def test_repository_class_key_lowercase() -> None:
 
 def test_repository_school_lowercase() -> None:
     """Test that school is converted to lowercase."""
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_cache = MagicMock()
     mock_client = MagicMock(spec=Open5eV2Client)
@@ -474,7 +467,6 @@ def test_repository_school_lowercase() -> None:
 
 def test_repository_concentration_passthrough() -> None:
     """Test that concentration parameter is passed through correctly."""
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_cache = MagicMock()
     mock_client = MagicMock(spec=Open5eV2Client)
@@ -492,7 +484,6 @@ def test_repository_concentration_passthrough() -> None:
 
 def test_repository_class_and_school_together() -> None:
     """Test class_key and school mapping together."""
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_cache = MagicMock()
     mock_client = MagicMock(spec=Open5eV2Client)

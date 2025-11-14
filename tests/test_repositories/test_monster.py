@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from lorekeeper_mcp.api_clients.models.monster import Monster
+from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.repositories.monster import MonsterRepository
 
 
@@ -324,9 +325,6 @@ async def test_monster_repository_search_uses_creatures_table_and_get_creatures(
 @pytest.mark.asyncio
 async def test_repository_maps_v2_type_to_type_key_with_lowercase(mock_cache: MagicMock) -> None:
     """Verify repository maps type to lowercase (type parameter, not type__key)."""
-    from unittest.mock import AsyncMock
-
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_v2_client = AsyncMock(spec=Open5eV2Client)
     mock_v2_client.get_creatures = AsyncMock(return_value=[])
@@ -346,9 +344,6 @@ async def test_repository_maps_v2_type_to_type_key_with_lowercase(mock_cache: Ma
 @pytest.mark.asyncio
 async def test_repository_maps_v2_size_to_size_key_with_lowercase(mock_cache: MagicMock) -> None:
     """Verify repository maps size to lowercase (size parameter, not size__key)."""
-    from unittest.mock import AsyncMock
-
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_v2_client = AsyncMock(spec=Open5eV2Client)
     mock_v2_client.get_creatures = AsyncMock(return_value=[])
@@ -370,9 +365,6 @@ async def test_repository_maps_v2_cr_exact_to_challenge_rating_decimal(
     mock_cache: MagicMock,
 ) -> None:
     """Verify repository maps exact cr to challenge_rating_decimal as float."""
-    from unittest.mock import AsyncMock
-
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_v2_client = AsyncMock(spec=Open5eV2Client)
     mock_v2_client.get_creatures = AsyncMock(return_value=[])
@@ -393,9 +385,6 @@ async def test_repository_maps_v2_challenge_rating_to_challenge_rating_decimal(
     mock_cache: MagicMock,
 ) -> None:
     """Verify repository maps cache field challenge_rating to challenge_rating_decimal."""
-    from unittest.mock import AsyncMock
-
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_v2_client = AsyncMock(spec=Open5eV2Client)
     mock_v2_client.get_creatures = AsyncMock(return_value=[])
@@ -414,9 +403,6 @@ async def test_repository_maps_v2_challenge_rating_to_challenge_rating_decimal(
 @pytest.mark.asyncio
 async def test_repository_maps_v2_type_to_type_without_key_suffix(mock_cache: MagicMock) -> None:
     """Verify repository maps type parameter WITHOUT __key suffix (API expects 'type' not 'type__key')."""
-    from unittest.mock import AsyncMock
-
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_v2_client = AsyncMock(spec=Open5eV2Client)
     mock_v2_client.get_creatures = AsyncMock(return_value=[])
@@ -436,9 +422,6 @@ async def test_repository_maps_v2_type_to_type_without_key_suffix(mock_cache: Ma
 @pytest.mark.asyncio
 async def test_repository_maps_v2_size_to_size_without_key_suffix(mock_cache: MagicMock) -> None:
     """Verify repository maps size parameter WITHOUT __key suffix (API expects 'size' not 'size__key')."""
-    from unittest.mock import AsyncMock
-
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 
     mock_v2_client = AsyncMock(spec=Open5eV2Client)
     mock_v2_client.get_creatures = AsyncMock(return_value=[])

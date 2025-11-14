@@ -2,9 +2,12 @@
 
 import pytest
 
+from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.cache.db import bulk_cache_entities
 from lorekeeper_mcp.cache.schema import init_entity_cache
-from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+from lorekeeper_mcp.cache.sqlite import SQLiteCache
+from lorekeeper_mcp.repositories.spell import SpellRepository
+from lorekeeper_mcp.tools.spell_lookup import _repository_context, lookup_spell
 
 
 @pytest.mark.asyncio
@@ -51,17 +54,10 @@ async def test_end_to_end_document_filtering(tmp_path):
     await bulk_cache_entities(spells, "spells", db_path=db_path)
 
     # Create repository with test cache
-    from lorekeeper_mcp.cache.sqlite import SQLiteCache
-
     cache = SQLiteCache(db_path=db_path)
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
-    from lorekeeper_mcp.repositories.spell import SpellRepository
-
     repo = SpellRepository(client=Open5eV2Client(), cache=cache)
 
     # Inject repository into tool context
-    from lorekeeper_mcp.tools.spell_lookup import _repository_context
-
     _repository_context["repository"] = repo
 
     try:
@@ -104,11 +100,6 @@ async def test_document_in_tool_responses(tmp_path):
     await bulk_cache_entities([spell], "spells", db_path=db_path)
 
     # Setup and query
-    from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
-    from lorekeeper_mcp.cache.sqlite import SQLiteCache
-    from lorekeeper_mcp.repositories.spell import SpellRepository
-    from lorekeeper_mcp.tools.spell_lookup import _repository_context, lookup_spell
-
     cache = SQLiteCache(db_path=db_path)
     repo = SpellRepository(client=Open5eV2Client(), cache=cache)
     _repository_context["repository"] = repo

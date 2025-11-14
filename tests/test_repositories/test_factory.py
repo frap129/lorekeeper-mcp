@@ -159,8 +159,6 @@ async def test_factory_all_repositories_created_successfully():
 
 def test_create_monster_repository_default_uses_v2():
     """Test that create_monster_repository uses Open5eV2Client by default."""
-    from lorekeeper_mcp.repositories.factory import RepositoryFactory
-
     # Clear any cached instance
     RepositoryFactory._cache_instance = None
 

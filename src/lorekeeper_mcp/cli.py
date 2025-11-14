@@ -14,6 +14,7 @@ from lorekeeper_mcp.cache.schema import init_entity_cache
 from lorekeeper_mcp.config import settings
 from lorekeeper_mcp.parsers.entity_mapper import map_entity_type, normalize_entity
 from lorekeeper_mcp.parsers.orcbrew import OrcBrewParser
+from lorekeeper_mcp.server import mcp
 
 logger = logging.getLogger(__name__)
 
@@ -184,8 +185,6 @@ def serve(ctx: click.Context) -> None:
         lorekeeper -v serve
         lorekeeper --db-path /custom/path.db serve
     """
-    from lorekeeper_mcp.server import mcp
-
     # Global options are already processed by @click.group()
     # They affect logging (via verbose) and database path (via settings)
     logger.info("Starting MCP server...")

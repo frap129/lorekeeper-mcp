@@ -5,19 +5,19 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from lorekeeper_mcp.api_clients.models import Monster, Spell
+from lorekeeper_mcp.repositories.factory import RepositoryFactory
+from lorekeeper_mcp.tools import (
+    character_option_lookup,
+    creature_lookup,
+    equipment_lookup,
+    rule_lookup,
+    spell_lookup,
+)
 
 
 @pytest.fixture(autouse=True)
 def cleanup_tool_contexts():
     """Clear all tool repository contexts after each test."""
-    from lorekeeper_mcp.repositories.factory import RepositoryFactory
-    from lorekeeper_mcp.tools import (
-        character_option_lookup,
-        creature_lookup,
-        equipment_lookup,
-        rule_lookup,
-        spell_lookup,
-    )
 
     yield
     spell_lookup._repository_context.clear()

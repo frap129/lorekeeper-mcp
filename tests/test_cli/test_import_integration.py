@@ -1,13 +1,15 @@
 """Integration tests for import command."""
 
 import asyncio
+import logging
 from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
-from lorekeeper_mcp.cache.db import get_cached_entity, query_cached_entities
+from lorekeeper_mcp.cache.db import get_cached_entity, init_db, query_cached_entities
 from lorekeeper_mcp.cli import cli
+from lorekeeper_mcp.config import settings
 
 
 def test_import_sample_file_end_to_end(tmp_path: Path, monkeypatch, caplog) -> None:
@@ -19,13 +21,10 @@ def test_import_sample_file_end_to_end(tmp_path: Path, monkeypatch, caplog) -> N
     - Specific spell fields (name, level, school)
     - Specific creature fields (name, type, challenge_rating)
     """
-    import asyncio
-
     # Setup test database
     test_db = tmp_path / "test.db"
 
     # Patch settings to use the test database
-    from lorekeeper_mcp.config import settings
 
     monkeypatch.setattr(settings, "db_path", str(test_db))
 
@@ -87,8 +86,6 @@ def test_import_dry_run(caplog) -> None:
     - Dry run completes successfully without importing
     - Output contains entity count information
     """
-    import logging
-
     caplog.set_level(logging.INFO)
 
     fixtures_dir = Path(__file__).parent.parent / "fixtures"
@@ -136,9 +133,6 @@ def test_import_megapak_file(tmp_path: Path, monkeypatch) -> None:
 
     if not megapak_file.exists():
         pytest.skip("MegaPak file not found")
-
-    from lorekeeper_mcp.cache.db import init_db
-    from lorekeeper_mcp.config import settings
 
     # Setup test database
     test_db = tmp_path / "megapak_test.db"
