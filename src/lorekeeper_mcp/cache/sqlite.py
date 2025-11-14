@@ -20,12 +20,18 @@ class SQLiteCache:
         """
         self.db_path = db_path
 
-    async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
+    async def get_entities(
+        self,
+        entity_type: str,
+        document: str | list[str] | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
         """Retrieve entities from cache by type with optional filters.
 
         Args:
             entity_type: Type of entities to retrieve (e.g., 'spells',
                 'monsters', 'equipment')
+            document: Optional document filter (string or list of strings)
             **filters: Optional keyword arguments for filtering entities
                 by indexed fields (e.g., level=3, school="Evocation")
 
@@ -37,6 +43,10 @@ class SQLiteCache:
             ValueError: If entity_type is invalid or filter field is not
                 supported for the entity type.
         """
+        # Add document to filters if provided
+        if document is not None:
+            filters["document"] = document
+
         return await query_cached_entities(entity_type, self.db_path, **filters)
 
     async def store_entities(self, entities: list[dict[str, Any]], entity_type: str) -> int:

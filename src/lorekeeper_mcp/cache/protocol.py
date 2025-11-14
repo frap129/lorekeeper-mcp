@@ -17,12 +17,18 @@ class CacheProtocol(Protocol):
     conforming to this protocol to be used with the repository layer.
     """
 
-    async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
+    async def get_entities(
+        self,
+        entity_type: str,
+        document: str | list[str] | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
         """Retrieve entities from cache by type with optional filters.
 
         Args:
             entity_type: Type of entities to retrieve (e.g., 'spells',
                 'monsters', 'equipment')
+            document: Optional document filter (string or list of strings)
             **filters: Optional keyword arguments for filtering entities
                 by indexed fields (e.g., level=3, school="Evocation")
 

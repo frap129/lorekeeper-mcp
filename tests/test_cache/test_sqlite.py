@@ -101,3 +101,26 @@ async def test_sqlite_cache_accepts_custom_db_path(tmp_path):
     # This should not raise
     cache = SQLiteCache(str(custom_db))
     assert cache is not None
+
+
+@pytest.mark.asyncio
+async def test_sqlite_cache_get_entities_with_document_filter(test_db):
+    """Test SQLiteCache.get_entities with document filter."""
+    cache = SQLiteCache(str(test_db))
+
+    # Store some test entities with documents
+    entities = [
+        {"slug": "spell-1", "name": "Fireball", "document": "srd-5e"},
+        {"slug": "spell-2", "name": "Lightning Bolt", "document": "srd-5e"},
+        {"slug": "spell-3", "name": "Tasha's Hideous Laughter", "document": "tce"},
+    ]
+    await cache.store_entities(entities, "spells")
+
+    # Filter by single document
+    results = await cache.get_entities("spells", document="srd-5e")
+    assert len(results) == 2
+    assert all(r["document"] == "srd-5e" for r in results)
+
+    # Filter by multiple documents
+    results = await cache.get_entities("spells", document=["srd-5e", "tce"])
+    assert len(results) == 3
