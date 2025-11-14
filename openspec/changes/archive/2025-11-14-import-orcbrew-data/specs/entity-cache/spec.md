@@ -1,6 +1,6 @@
 # Spec Delta: Entity Cache (Modified)
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Source API Tracking
 The cache schema SHALL track the source API for each cached entity to distinguish between different data sources.
