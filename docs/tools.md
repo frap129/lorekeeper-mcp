@@ -11,6 +11,220 @@ This document defines the MCP tools for LoreKeeper, organized by domain.
 
 ---
 
+## Document Filtering
+
+### Overview
+
+All LoreKeeper lookup tools and the search tool support filtering content by source document. This enables precise control over which sources you query, allowing you to:
+
+- **Limit searches to SRD (free) content only** - Use only freely available System Reference Document content
+- **Filter by specific published books** - Query only content from "Tasha's Cauldron of Everything", "Xanathar's Guide", etc.
+- **Separate homebrew from official content** - Filter imported OrcBrew content separately from published books
+- **Control licensing** - Respect licensing requirements by limiting queries to appropriate sources
+
+### Available Documents
+
+Use `list_documents()` to discover what's available in your cache:
+
+```python
+# List all available documents
+documents = await list_documents()
+# Returns list with document names, sources, entity counts, etc.
+
+# List only Open5e documents
+open5e_docs = await list_documents(source="open5e_v2")
+
+# List only D&D 5e API documents
+official_docs = await list_documents(source="dnd5e_api")
+
+# List only OrcBrew homebrew imports
+homebrew_docs = await list_documents(source="orcbrew")
+```
+
+Each document in the results contains:
+- `document`: The document name/identifier (use this in `document_keys`)
+- `source_api`: Which source provided this (open5e_v2, dnd5e_api, orcbrew)
+- `entity_count`: Total number of entities from this document
+- `entity_types`: Breakdown by type (spells, creatures, equipment, etc.)
+- `publisher`: Publisher name (Open5e documents)
+- `license`: License type (Open5e documents)
+
+### Using Document Filters
+
+#### In Lookup Tools
+
+All lookup tools (`lookup_spell`, `lookup_creature`, `lookup_character_option`, `lookup_equipment`, `lookup_rule`) accept a `document_keys` parameter:
+
+```python
+# Filter to SRD only
+srd_spells = await lookup_spell(level=3, document_keys=["srd-5e"])
+
+# Filter to multiple documents
+multi_source = await lookup_creature(
+    type="dragon",
+    document_keys=["srd-5e", "tce", "phb"]
+)
+
+# Complex filtering with multiple parameters
+wizard_evocations = await lookup_spell(
+    class_key="wizard",
+    school="evocation",
+    level_min=1,
+    level_max=5,
+    document_keys=["srd-5e", "xgte"]
+)
+
+# Equipment filtering by source
+plate_armor = await lookup_equipment(
+    type="armor",
+    name="plate",
+    document_keys=["srd-5e"]
+)
+
+# Character options from specific books
+tasha_feats = await lookup_character_option(
+    type="feat",
+    document_keys=["tce"]  # Tasha's Cauldron of Everything
+)
+```
+
+#### In Search Tool
+
+The `search_dnd_content()` tool also supports document filtering:
+
+```python
+# Search spells in SRD only
+srd_results = await search_dnd_content(
+    query="fireball",
+    document_keys=["srd-5e"]
+)
+
+# Search across multiple books
+published_results = await search_dnd_content(
+    query="dragon",
+    document_keys=["srd-5e", "tce", "xgte"]
+)
+
+# General search with no filter (all documents)
+all_results = await search_dnd_content(query="magic item")
+```
+
+### Common Document Keys
+
+Here are frequently-used document identifiers (use output from `list_documents()` for exact names):
+
+**Official D&D 5e SRD**:
+- `"srd-5e"` or `"System Reference Document 5.1"` - Core rules
+
+**Published Supplements** (examples - use `list_documents()` for current list):
+- `"phb"` - Player's Handbook
+- `"dmg"` - Dungeon Master's Guide
+- `"mm"` - Monster Manual
+- `"tce"` - Tasha's Cauldron of Everything
+- `"xgte"` - Xanathar's Guide to Everything
+- `"vrgr"` - Van Richten's Guide to Ravenloft
+
+**Homebrew**:
+- Document names from imported OrcBrew files (e.g., `"Homebrew Grimoire"`)
+
+### Cross-Source Filtering Examples
+
+#### SRD-Only Content
+
+Get only free, System Reference Document content:
+
+```python
+# Only SRD spells
+srd_spells = await lookup_spell(document_keys=["srd-5e"])
+
+# Only SRD creatures up to CR 5
+srd_creatures = await lookup_creature(
+    cr_max=5,
+    document_keys=["srd-5e"]
+)
+
+# Only SRD equipment
+srd_gear = await lookup_equipment(document_keys=["srd-5e"])
+```
+
+#### Published Books Only
+
+Get only officially published content (excluding homebrew):
+
+```python
+published = await lookup_spell(
+    school="evocation",
+    document_keys=[
+        "srd-5e", "phb", "tce", "xgte", "vrgr", "dmg", "mm"
+    ]
+)
+```
+
+#### Specific Supplement
+
+Query a specific book without mixing sources:
+
+```python
+# Only Tasha's content
+tasha_content = await lookup_character_option(
+    type="feat",
+    document_keys=["tce"]
+)
+
+# Only Xanathar's Guide
+xgte_content = await lookup_spell(
+    school="evocation",
+    document_keys=["xgte"]
+)
+```
+
+#### Homebrew Only
+
+Isolate homebrew content from official sources:
+
+```python
+# First, identify homebrew documents
+docs = await list_documents(source="orcbrew")
+homebrew_keys = [d["document"] for d in docs]
+
+# Query only homebrew
+homebrew_creatures = await lookup_creature(
+    document_keys=homebrew_keys
+)
+```
+
+#### Exclude Specific Sources
+
+Query everything except a particular document:
+
+```python
+# Note: LoreKeeper doesn't have explicit exclusion, so:
+# 1. Get all documents
+all_docs = await list_documents()
+# 2. Filter out ones you don't want
+all_keys = [d["document"] for d in all_docs]
+excluded = "homebrew-grimoire"
+filtered_keys = [k for k in all_keys if excluded not in k.lower()]
+# 3. Query with remaining documents
+results = await lookup_spell(document_keys=filtered_keys)
+```
+
+### Performance Notes
+
+- **Indexed Queries**: The `document` field has a database index, making filtering efficient
+- **Combined Filters**: Document filters combine efficiently with other parameters (level, type, etc.)
+- **Empty Results**: Filtering may return fewer results if few entities exist in selected documents
+- **Backward Compatible**: The `document_keys` parameter is optional; omitting it queries all documents
+
+### Implementation Details
+
+- **Document Keys**: Use exact names from `list_documents()` output
+- **Case Sensitive**: Document names are case-sensitive
+- **Multiple Documents**: Pass a list to filter across multiple documents (OR logic)
+- **Empty List**: Passing an empty `document_keys=[]` returns no results (short-circuit)
+
+---
+
 ## Tool 1: `lookup_spell`
 
 **Purpose**: Search and retrieve spell information

@@ -61,6 +61,41 @@ LoreKeeper provides 5 MCP tools for querying D&D 5e game data:
 
 See [docs/tools.md](docs/tools.md) for detailed usage and examples.
 
+### Document Filtering
+
+All lookup tools and the search tool support filtering by source document:
+
+```python
+# List available documents first
+documents = await list_documents()
+
+# Filter spells to SRD only
+srd_spells = await lookup_spell(
+    level=3,
+    document_keys=["srd-5e"]
+)
+
+# Filter creatures from multiple sources
+creatures = await lookup_creature(
+    type="dragon",
+    document_keys=["srd-5e", "tce", "phb"]
+)
+
+# Search with document filter
+results = await search_dnd_content(
+    query="fireball",
+    document_keys=["srd-5e"]
+)
+```
+
+This allows you to:
+- Limit searches to SRD (free) content only
+- Filter by specific published books or supplements
+- Separate homebrew from official content
+- Control which sources you're using for licensing reasons
+
+See [docs/document-filtering.md](docs/document-filtering.md) for comprehensive guide and cross-source filtering examples.
+
 ## CLI Usage
 
 LoreKeeper includes a command-line interface for importing D&D content:
