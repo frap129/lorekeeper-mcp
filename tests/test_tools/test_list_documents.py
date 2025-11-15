@@ -5,13 +5,12 @@ from typing import Any
 
 import pytest
 
+from lorekeeper_mcp.tools.list_documents import list_documents
+
 
 @pytest.mark.asyncio
 async def test_list_documents() -> None:
     """Test list_documents returns document list."""
-    # Import the function first
-    from lorekeeper_mcp.tools.list_documents import list_documents
-
     # Get the module from sys.modules to avoid shadowing
     list_docs_module = sys.modules["lorekeeper_mcp.tools.list_documents"]
 
@@ -47,8 +46,6 @@ async def test_list_documents() -> None:
 @pytest.mark.asyncio
 async def test_list_documents_source_filter() -> None:
     """Test list_documents with source filter."""
-    from lorekeeper_mcp.tools.list_documents import list_documents
-
     result = await list_documents(source="open5e_v2")
 
     assert isinstance(result, list)

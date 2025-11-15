@@ -9,7 +9,10 @@ import pytest
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
 from lorekeeper_mcp.api_clients.models.equipment import Armor, MagicItem, Weapon
 from lorekeeper_mcp.tools import equipment_lookup
-from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
+from lorekeeper_mcp.tools.equipment_lookup import (
+    _repository_context,
+    lookup_equipment,
+)
 
 
 @pytest.fixture
@@ -606,7 +609,6 @@ async def test_lookup_magic_item_with_document_filter(repository_context, sample
 @pytest.mark.asyncio
 async def test_lookup_equipment_with_document_keys() -> None:
     """Test lookup_equipment with document_keys filter."""
-    from lorekeeper_mcp.tools.equipment_lookup import _repository_context, lookup_equipment
 
     # Mock repository
     class MockRepository:

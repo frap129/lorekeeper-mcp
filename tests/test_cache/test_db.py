@@ -11,6 +11,7 @@ import pytest
 from lorekeeper_mcp.cache.db import (
     bulk_cache_entities,
     cleanup_expired,
+    get_available_documents,
     get_cache_stats,
     get_cached,
     get_cached_entity,
@@ -707,8 +708,6 @@ async def populated_cache(entity_test_db):
 @pytest.mark.asyncio
 async def test_get_available_documents(populated_cache: str) -> None:
     """Test retrieving all available documents."""
-    from lorekeeper_mcp.cache.db import get_available_documents
-
     documents = await get_available_documents(db_path=populated_cache)
 
     # Should return list of documents
@@ -728,8 +727,6 @@ async def test_get_available_documents(populated_cache: str) -> None:
 @pytest.mark.asyncio
 async def test_get_available_documents_source_filter(populated_cache: str) -> None:
     """Test filtering documents by source API."""
-    from lorekeeper_mcp.cache.db import get_available_documents
-
     documents = await get_available_documents(db_path=populated_cache, source_api="open5e_v2")
 
     assert all(doc["source_api"] == "open5e_v2" for doc in documents)
@@ -738,8 +735,6 @@ async def test_get_available_documents_source_filter(populated_cache: str) -> No
 @pytest.mark.asyncio
 async def test_get_available_documents_empty_cache(tmp_path: Path) -> None:
     """Test get_available_documents with empty cache."""
-    from lorekeeper_mcp.cache.db import get_available_documents, init_entity_cache
-
     # Create empty database
     db_path = str(tmp_path / "empty.db")
     await init_entity_cache(db_path)

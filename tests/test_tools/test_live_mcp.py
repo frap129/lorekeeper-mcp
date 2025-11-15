@@ -18,6 +18,7 @@ Performance expectations:
 - Cached queries: < 50ms
 """
 
+import json
 import time
 
 import pytest
@@ -574,3 +575,55 @@ class TestLivePerformance:
         duration = time.time() - start
 
         assert duration < 0.05, f"Cached call took {duration:.3f}s, expected <0.05s"
+
+
+class TestLiveMCPProtocol:
+    """Tests for tools called via MCP protocol."""
+
+    async def call_mcp_tool(self, mcp_server, tool_name: str, arguments: dict[str, object]) -> str:
+        """Helper to call tool via MCP protocol and return JSON response."""
+        tools = await mcp_server.get_tools()
+        tool = tools[tool_name]
+        result = await tool.run(arguments)
+        # ToolResult has content which is a list of TextContent objects
+        if hasattr(result, "content") and result.content:
+            return result.content[0].text
+        return ""
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_list_documents_live(self, mcp_server) -> None:
+        """Live test for list_documents tool via MCP protocol."""
+        # Call tool via MCP
+        response = await self.call_mcp_tool(mcp_server, "list_documents", {})
+
+        assert response is not None
+        # Parse JSON response
+        data = json.loads(response)
+        assert isinstance(data, list)
+
+    @pytest.mark.live
+    @pytest.mark.asyncio
+    async def test_lookup_spell_with_document_filter_live(self, mcp_server, rate_limiter) -> None:
+        """Live test for lookup_spell with document_keys via MCP protocol."""
+        await rate_limiter("open5e")
+
+        # First get documents
+        docs_response = await self.call_mcp_tool(mcp_server, "list_documents", {})
+        documents = json.loads(docs_response)
+
+        if len(documents) == 0:
+            pytest.skip("No documents in cache")
+
+        doc_key = documents[0]["document"]
+
+        # Now search with document filter
+        response = await self.call_mcp_tool(
+            mcp_server,
+            "lookup_spell",
+            {"document_keys": [doc_key], "limit": 5},
+        )
+
+        assert response is not None
+        spells = json.loads(response)
+        assert isinstance(spells, list)
