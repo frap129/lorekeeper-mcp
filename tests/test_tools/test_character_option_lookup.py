@@ -132,13 +132,13 @@ async def test_lookup_character_option_no_repository_parameter():
 
 
 @pytest.mark.asyncio
-async def test_lookup_character_option_with_document_keys(
+async def test_lookup_character_option_with_documents(
     repository_context,
 ) -> None:
-    """Test lookup_character_option with document_keys filter."""
+    """Test lookup_character_option with documents filter."""
     repository_context.search.return_value = [{"name": "Barbarian", "document": "srd-5e"}]
 
-    result = await lookup_character_option(type="class", document_keys=["srd-5e"])
+    result = await lookup_character_option(type="class", documents=["srd-5e"])
 
     assert len(result) == 1
     assert result[0]["name"] == "Barbarian"
