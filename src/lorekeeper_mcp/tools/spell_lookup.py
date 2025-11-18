@@ -72,8 +72,7 @@ async def lookup_spell(
     ritual: bool | None = None,
     casting_time: str | None = None,
     damage_type: str | None = None,
-    document: str | None = None,
-    document_keys: list[str] | None = None,
+    documents: list[str] | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -115,8 +114,8 @@ async def lookup_spell(
             necrotic_spells = await lookup_spell(damage_type="necrotic")
 
         Filtering by document (NEW):
-            srd_only = await lookup_spell(document_keys=["srd-5e"])
-            srd_and_tasha = await lookup_spell(document_keys=["srd-5e", "tce"])
+            srd_only = await lookup_spell(documents=["srd-5e"])
+            srd_and_tasha = await lookup_spell(documents=["srd-5e", "tce"])
 
         Complex queries combining multiple filters:
             evocation_fire_spells = await lookup_spell(
@@ -164,9 +163,7 @@ async def lookup_spell(
         damage_type: Filter spells by damage type dealt. Examples: "fire" (fire damage),
             "cold" (cold damage), "necrotic" (necrotic damage), "poison" (poison damage),
             "psychic" (psychic damage). NEW in Phase 3.
-        document: Source document filter (deprecated, use document_keys instead).
-            Examples: "System Reference Document 5.1"
-        document_keys: Filter to specific source documents. Provide a list of
+        documents: Filter to specific source documents. Provide a list of
             document names/identifiers from list_documents() tool. Examples:
             ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
             Use list_documents() to see available documents.
@@ -220,11 +217,9 @@ async def lookup_spell(
         params["casting_time"] = casting_time
     if damage_type is not None:
         params["damage_type"] = damage_type
-    if document is not None:
-        params["document"] = document
-    # New document_keys parameter takes precedence
-    if document_keys is not None:
-        params["document"] = document_keys  # Repository expects "document"
+    # Document filtering
+    if documents is not None:
+        params["document"] = documents  # Repository expects "document"
 
     # Fetch spells from repository with filters
     # API will filter by name, school, class_key, and concentration server-side

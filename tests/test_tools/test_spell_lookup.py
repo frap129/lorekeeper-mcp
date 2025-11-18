@@ -439,12 +439,12 @@ async def test_lookup_spell_with_document_filter(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    results = await lookup_spell(document="System Reference Document 5.1", level=3)
+    results = await lookup_spell(documents=["System Reference Document 5.1"], level=3)
 
     # Verify repository was called with document filter
     repository_context.search.assert_awaited_once()
     call_kwargs = repository_context.search.call_args[1]
-    assert call_kwargs["document"] == "System Reference Document 5.1"
+    assert call_kwargs["document"] == ["System Reference Document 5.1"]
 
     # Verify results include spell data
     assert len(results) == 1
@@ -453,8 +453,8 @@ async def test_lookup_spell_with_document_filter(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_with_document_keys(repository_context):
-    """Test lookup_spell with document_keys filter."""
+async def test_lookup_spell_with_documents(repository_context):
+    """Test lookup_spell with documents filter."""
     spell_obj = Spell(
         name="Fireball",
         slug="fireball",
@@ -476,12 +476,12 @@ async def test_lookup_spell_with_document_keys(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    results = await lookup_spell(name="fireball", document_keys=["srd-5e"])
+    results = await lookup_spell(name="fireball", documents=["srd-5e"])
 
     assert len(results) == 1
     assert results[0]["document"] == "srd-5e"
 
-    # Verify repository was called with document parameter (not document_keys)
+    # Verify repository was called with document parameter (not documents)
     repository_context.search.assert_awaited_once()
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["document"] == ["srd-5e"]
