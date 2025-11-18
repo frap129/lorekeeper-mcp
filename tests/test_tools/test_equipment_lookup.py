@@ -566,14 +566,14 @@ async def test_lookup_weapon_with_document_filter(repository_context, sample_lon
     """Test filtering weapons by document name."""
     repository_context.search.return_value = [sample_longsword]
 
-    result = await lookup_equipment(type="weapon", document="System Reference Document 5.1")
+    result = await lookup_equipment(type="weapon", documents=["System Reference Document 5.1"])
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
 
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["item_type"] == "weapon"
-    assert call_kwargs["document"] == "System Reference Document 5.1"
+    assert call_kwargs["document"] == ["System Reference Document 5.1"]
 
 
 @pytest.mark.asyncio
@@ -581,14 +581,14 @@ async def test_lookup_armor_with_document_filter(repository_context, sample_chai
     """Test filtering armor by document name."""
     repository_context.search.return_value = [sample_chain_mail]
 
-    result = await lookup_equipment(type="armor", document="System Reference Document 5.1")
+    result = await lookup_equipment(type="armor", documents=["System Reference Document 5.1"])
 
     assert len(result) == 1
     assert result[0]["name"] == "Chain Mail"
 
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["item_type"] == "armor"
-    assert call_kwargs["document"] == "System Reference Document 5.1"
+    assert call_kwargs["document"] == ["System Reference Document 5.1"]
 
 
 @pytest.mark.asyncio
@@ -596,19 +596,19 @@ async def test_lookup_magic_item_with_document_filter(repository_context, sample
     """Test filtering magic items by document name."""
     repository_context.search.return_value = [sample_bag_of_holding]
 
-    result = await lookup_equipment(type="magic-item", document="System Reference Document 5.1")
+    result = await lookup_equipment(type="magic-item", documents=["System Reference Document 5.1"])
 
     assert len(result) == 1
     assert result[0]["name"] == "Bag of Holding"
 
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["item_type"] == "magic-item"
-    assert call_kwargs["document"] == "System Reference Document 5.1"
+    assert call_kwargs["document"] == ["System Reference Document 5.1"]
 
 
 @pytest.mark.asyncio
-async def test_lookup_equipment_with_document_keys() -> None:
-    """Test lookup_equipment with document_keys filter."""
+async def test_lookup_equipment_with_documents() -> None:
+    """Test lookup_equipment with documents filter."""
 
     # Mock repository
     class MockRepository:
@@ -639,7 +639,7 @@ async def test_lookup_equipment_with_document_keys() -> None:
     _repository_context["repository"] = MockRepository()
 
     try:
-        results = await lookup_equipment(type="weapon", name="longsword", document_keys=["srd-5e"])
+        results = await lookup_equipment(type="weapon", name="longsword", documents=["srd-5e"])
         assert len(results) == 1
         assert results[0]["name"] == "Longsword"
     finally:

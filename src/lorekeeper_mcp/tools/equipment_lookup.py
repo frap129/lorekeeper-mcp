@@ -65,135 +65,133 @@ async def lookup_equipment(
     is_finesse: bool | None = None,
     is_light: bool | None = None,
     is_magic: bool | None = None,
-    document: str | None = None,
-    document_keys: list[str] | None = None,
+    documents: list[str] | None = None,  # Replaces document and document_keys
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
-    Search and retrieve D&D 5e weapons, armor, and magic items using the repository pattern.
+        Search and retrieve D&D 5e weapons, armor, and magic items using the repository pattern.
 
-    This tool provides comprehensive equipment lookup across weapons, armor, and magical
-    items. Filter by rarity, damage potential, complexity, or attunement requirements.
-    Automatically uses the database cache through the repository for improved performance.
+        This tool provides comprehensive equipment lookup across weapons, armor, and magical
+        items. Filter by rarity, damage potential, complexity, or attunement requirements.
+        Automatically uses the database cache through the repository for improved performance.
 
-    Examples:
-        Basic equipment lookup:
-            longswords = await lookup_equipment(type="weapon", name="longsword")
-            rare_items = await lookup_equipment(type="magic-item", rarity="rare")
-            light_armor = await lookup_equipment(type="armor", is_simple=True)
+        Examples:
+            Basic equipment lookup:
+                longswords = await lookup_equipment(type="weapon", name="longsword")
+                rare_items = await lookup_equipment(type="magic-item", rarity="rare")
+                light_armor = await lookup_equipment(type="armor", is_simple=True)
 
-        Using cost ranges (NEW in Phase 3):
-            affordable_weapons = await lookup_equipment(
-                type="weapon", cost_max=25
-            )
-            expensive_items = await lookup_equipment(
-                type="weapon", cost_min=50, cost_max=100
-            )
+            Using cost ranges (NEW in Phase 3):
+                affordable_weapons = await lookup_equipment(
+                    type="weapon", cost_max=25
+                )
+                expensive_items = await lookup_equipment(
+                    type="weapon", cost_min=50, cost_max=100
+                )
 
-        Using weight and properties (NEW in Phase 3):
-            lightweight_weapons = await lookup_equipment(
-                type="weapon", weight_max=3
-            )
-            finesse_weapons = await lookup_equipment(
-                type="weapon", is_finesse=True
-            )
-            light_dual_wield_weapons = await lookup_equipment(
-                type="weapon", is_light=True
-            )
-            magical_weapons = await lookup_equipment(
-                type="weapon", is_magic=True
-            )
+            Using weight and properties (NEW in Phase 3):
+                lightweight_weapons = await lookup_equipment(
+                    type="weapon", weight_max=3
+                )
+                finesse_weapons = await lookup_equipment(
+                    type="weapon", is_finesse=True
+                )
+                light_dual_wield_weapons = await lookup_equipment(
+                    type="weapon", is_light=True
+                )
+                magical_weapons = await lookup_equipment(
+                    type="weapon", is_magic=True
+                )
 
-        Complex equipment queries:
-            affordable_simple_weapons = await lookup_equipment(
-                type="weapon", is_simple=True, cost_max=10
-            )
-            light_finesse_weapons = await lookup_equipment(
-                type="weapon", is_light=True, is_finesse=True, limit=10
-            )
-            expensive_magical_weapons = await lookup_equipment(
-                type="weapon", is_magic=True, cost_min=100
-            )
+            Complex equipment queries:
+                affordable_simple_weapons = await lookup_equipment(
+                    type="weapon", is_simple=True, cost_max=10
+                )
+                light_finesse_weapons = await lookup_equipment(
+                    type="weapon", is_light=True, is_finesse=True, limit=10
+                )
+                expensive_magical_weapons = await lookup_equipment(
+                    type="weapon", is_magic=True, cost_min=100
+                )
 
-        Searching all types:
-            all_chain_items = await lookup_equipment(
-                type="all", name="chain"
-            )
+            Searching all types:
+                all_chain_items = await lookup_equipment(
+                    type="all", name="chain"
+                )
 
-    Args:
-        type: Equipment type to search. Default "all" searches all types. Options:
-            - "weapon": Melee weapons (longsword, dagger, etc.) and ranged weapons (bow, crossbow)
-            - "armor": Protective gear (leather armor, chain mail, plate, etc.)
-            - "magic-item": Magical items (Bag of Holding, Wand of Fireballs, etc.)
-            - "all": Search all equipment types simultaneously (may return many results)
-        name: Item name or partial name search. Matches items containing this substring.
-            Case-insensitive. Examples: "longsword", "chain", "bag", "wand"
-        rarity: Magic item rarity filter (weapon/armor types don't use this).
-            Valid values: common, uncommon, rare, very rare, legendary, artifact
-            Example: "rare" for high-value magical items
-        damage_dice: Weapon damage dice filter to find weapons dealing specific damage.
-            Examples: "1d4" (dagger), "1d8" (longsword), "2d6" (greataxe), "1d12" (greatsword)
-        is_simple: Filter for simple weapons (True) or martial weapons (False).
-            Simple weapons: club, dagger, greatclub, handaxe, javelin, light hammer, mace,
-            quarterstaff, sickle, spear
-            Martial weapons: all other melee and ranged weapons
-            Example: True for low-complexity options
-        requires_attunement: Magic item attunement filter. Some powerful items require
-            attunement to a character. Examples: "yes", "no", or specific requirements
-        cost_min: Minimum cost in gold pieces (weapons and armor). Filters items costing
-            at least this amount. Example: 10 for items costing 10+ gp
-        cost_max: Maximum cost in gold pieces (weapons and armor). Filters items costing
-            at most this amount. Example: 25 for items costing 25 gp or less
-        weight_max: Maximum weight in pounds (weapons). Filters weapons weighing at most
-            this amount. Example: 3 for lightweight weapons
-        is_finesse: Finesse property filter (weapons). When True, returns only weapons
-            with the finesse property (can use STR or DEX modifier). Example: True
-        is_light: Light property filter (weapons). When True, returns only light weapons
-            suitable for dual-wielding. Example: True
-         is_magic: Magic property filter (weapons). When True, returns only magical weapons.
-             Example: True
-         document: Filter by document name (e.g., "System Reference Document 5.1", "Adventurer's Guide")
-         document_keys: Filter to specific source documents. Provide a list of
-             document names/identifiers from list_documents() tool. Examples:
-             ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
-             Use list_documents() to see available documents. NEW parameter.
-         limit: Maximum number of results to return. Default 20. For type="all" with many
-             matches, limit applies to total results. Examples: 5, 20, 100
+        Args:
+            type: Equipment type to search. Default "all" searches all types. Options:
+                - "weapon": Melee weapons (longsword, dagger, etc.) and ranged weapons (bow, crossbow)
+                - "armor": Protective gear (leather armor, chain mail, plate, etc.)
+                - "magic-item": Magical items (Bag of Holding, Wand of Fireballs, etc.)
+                - "all": Search all equipment types simultaneously (may return many results)
+            name: Item name or partial name search. Matches items containing this substring.
+                Case-insensitive. Examples: "longsword", "chain", "bag", "wand"
+            rarity: Magic item rarity filter (weapon/armor types don't use this).
+                Valid values: common, uncommon, rare, very rare, legendary, artifact
+                Example: "rare" for high-value magical items
+            damage_dice: Weapon damage dice filter to find weapons dealing specific damage.
+                Examples: "1d4" (dagger), "1d8" (longsword), "2d6" (greataxe), "1d12" (greatsword)
+            is_simple: Filter for simple weapons (True) or martial weapons (False).
+                Simple weapons: club, dagger, greatclub, handaxe, javelin, light hammer, mace,
+                quarterstaff, sickle, spear
+                Martial weapons: all other melee and ranged weapons
+                Example: True for low-complexity options
+            requires_attunement: Magic item attunement filter. Some powerful items require
+                attunement to a character. Examples: "yes", "no", or specific requirements
+            cost_min: Minimum cost in gold pieces (weapons and armor). Filters items costing
+                at least this amount. Example: 10 for items costing 10+ gp
+            cost_max: Maximum cost in gold pieces (weapons and armor). Filters items costing
+                at most this amount. Example: 25 for items costing 25 gp or less
+            weight_max: Maximum weight in pounds (weapons). Filters weapons weighing at most
+                this amount. Example: 3 for lightweight weapons
+            is_finesse: Finesse property filter (weapons). When True, returns only weapons
+                with the finesse property (can use STR or DEX modifier). Example: True
+            is_light: Light property filter (weapons). When True, returns only light weapons
+                suitable for dual-wielding. Example: True
+    is_magic: Magic property filter (weapons). When True, returns only magical weapons.
+                  Example: True
+             documents: Filter to specific source documents. Provide a list of
+                 document names/identifiers from list_documents() tool. Examples:
+                 ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
+                 Use list_documents() to see available documents.
+             limit: Maximum number of results to return. Default 20. For type="all" with many
+                 matches, limit applies to total results. Examples: 5, 20, 100
 
-    Returns:
-        List of equipment dictionaries. Structure varies by type:
+        Returns:
+            List of equipment dictionaries. Structure varies by type:
 
-        For type="weapon":
-            - name: Weapon name
-            - damage_dice: Damage expression (e.g., "1d8")
-            - damage_type: Type of damage (slashing, piercing, bludgeoning)
-            - weight: Weight in pounds
-            - is_simple: Whether this is a simple weapon
-            - range: Range for ranged weapons (e.g., "20/60 feet")
-            - properties: Weapon properties (finesse, heavy, reach, two-handed, etc.)
-            - rarity: Equipment rarity
+            For type="weapon":
+                - name: Weapon name
+                - damage_dice: Damage expression (e.g., "1d8")
+                - damage_type: Type of damage (slashing, piercing, bludgeoning)
+                - weight: Weight in pounds
+                - is_simple: Whether this is a simple weapon
+                - range: Range for ranged weapons (e.g., "20/60 feet")
+                - properties: Weapon properties (finesse, heavy, reach, two-handed, etc.)
+                - rarity: Equipment rarity
 
-        For type="armor":
-            - name: Armor name
-            - armor_class: AC provided by this armor
-            - armor_class_dex: Whether DEX bonus applies (light/medium)
-            - armor_class_strength: Whether STR requirement applies (heavy)
-            - weight: Weight in pounds
-            - armor_category: Light/Medium/Heavy classification
-            - rarity: Equipment rarity
+            For type="armor":
+                - name: Armor name
+                - armor_class: AC provided by this armor
+                - armor_class_dex: Whether DEX bonus applies (light/medium)
+                - armor_class_strength: Whether STR requirement applies (heavy)
+                - weight: Weight in pounds
+                - armor_category: Light/Medium/Heavy classification
+                - rarity: Equipment rarity
 
-        For type="magic-item":
-            - name: Item name
-            - description: What the item does and its powers
-            - rarity: Rarity level (common through artifact)
-            - requires_attunement: Attunement requirements
-            - wondrous: Whether item is wondrous (non-weapon/armor)
-            - weight: Weight if applicable
-            - armor_class: AC bonus if armor
-            - damage: Damage if weapon
+            For type="magic-item":
+                - name: Item name
+                - description: What the item does and its powers
+                - rarity: Rarity level (common through artifact)
+                - requires_attunement: Attunement requirements
+                - wondrous: Whether item is wondrous (non-weapon/armor)
+                - weight: Weight if applicable
+                - armor_class: AC bonus if armor
+                - damage: Damage if weapon
 
-    Raises:
-        ApiError: If the API request fails due to network issues or server errors
+        Raises:
+            ApiError: If the API request fails due to network issues or server errors
     """
     # Get repository from context or create default
     repository = _get_repository()
@@ -222,12 +220,9 @@ async def lookup_equipment(
             weapon_filters["is_light"] = is_light
         if is_magic is not None:
             weapon_filters["is_magic"] = is_magic
-        # Backward compatibility: document parameter (deprecated, use document_keys)
-        if document is not None:
-            weapon_filters["document"] = document
-        # New document_keys parameter takes precedence
-        if document_keys is not None:
-            weapon_filters["document"] = document_keys
+        # Document filtering
+        if documents is not None:
+            weapon_filters["document"] = documents
 
         # Fetch weapons with server-side filters
         weapons = await repository.search(limit=limit, **weapon_filters)
@@ -246,12 +241,9 @@ async def lookup_equipment(
             armor_filters["cost_min"] = cost_min
         if cost_max is not None:
             armor_filters["cost_max"] = cost_max
-        # Backward compatibility: document parameter (deprecated, use document_keys)
-        if document is not None:
-            armor_filters["document"] = document
-        # New document_keys parameter takes precedence
-        if document_keys is not None:
-            armor_filters["document"] = document_keys
+        # Document filtering
+        if documents is not None:
+            armor_filters["document"] = documents
 
         # Fetch armor with server-side filters
         armors = await repository.search(limit=limit, **armor_filters)
@@ -274,12 +266,9 @@ async def lookup_equipment(
                 magic_item_filters["requires_attunement"] = True
             else:
                 magic_item_filters["requires_attunement"] = False
-        # Backward compatibility: document parameter (deprecated, use document_keys)
-        if document is not None:
-            magic_item_filters["document"] = document
-        # New document_keys parameter takes precedence
-        if document_keys is not None:
-            magic_item_filters["document"] = document_keys
+        # Document filtering
+        if documents is not None:
+            magic_item_filters["document"] = documents
 
         # Fetch magic items with server-side filters
         magic_items = await repository.search(limit=limit, **magic_item_filters)
