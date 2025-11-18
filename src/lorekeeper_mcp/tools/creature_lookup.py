@@ -70,8 +70,7 @@ async def lookup_creature(
     size: str | None = None,
     armor_class_min: int | None = None,
     hit_points_min: int | None = None,
-    document: str | None = None,
-    document_keys: list[str] | None = None,
+    documents: list[str] | None = None,  # Replaces document and document_keys
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -106,12 +105,12 @@ async def lookup_creature(
             )
 
         With document filtering (NEW in Phase 3):
-            srd_only = await lookup_creature(document_keys=["srd-5e"])
+            srd_only = await lookup_creature(documents=["srd-5e"])
             tasha_creatures = await lookup_creature(
-                document_keys=["srd-5e", "tce"]
+                documents=["srd-5e", "tce"]
             )
             phb_and_dmg = await lookup_creature(
-                document_keys=["phb", "dmg"], cr_min=5
+                documents=["phb", "dmg"], cr_min=5
             )
 
         With test context injection (testing):
@@ -140,11 +139,10 @@ async def lookup_creature(
           hit_points_min: Minimum Hit Points filter. Returns creatures with HP at or above
               this value. Useful for finding creatures with significant endurance. Examples: 50, 100,
               200
-          document: Filter by document name (e.g., "System Reference Document 5.1", "Adventurer's Guide")
-          document_keys: Filter to specific source documents. Provide a list of
+          documents: Filter to specific source documents. Provide a list of
               document names/identifiers from list_documents() tool. Examples:
               ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
-              Use list_documents() to see available documents. NEW parameter.
+              Use list_documents() to see available documents.
           limit: Maximum number of results to return. Default 20, useful for pagination
               or limiting large result sets. Example: 5
 
@@ -192,12 +190,9 @@ async def lookup_creature(
         params["armor_class_min"] = armor_class_min
     if hit_points_min is not None:
         params["hit_points_min"] = hit_points_min
-    # Backward compatibility: document parameter (deprecated, use document_keys)
-    if document is not None:
-        params["document"] = document
-    # New document_keys parameter takes precedence
-    if document_keys is not None:
-        params["document"] = document_keys  # Repository expects "document"
+    # Document filtering
+    if documents is not None:
+        params["document"] = documents  # Repository expects "document"
 
     # Fetch creatures from repository with filters
     # Repository handles name filtering via name__icontains parameter

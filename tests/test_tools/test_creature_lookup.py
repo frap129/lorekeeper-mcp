@@ -483,16 +483,17 @@ async def test_lookup_creature_with_document_filter(repository_context):
         desc=None,
         speed=None,
         document_url="https://example.com/goblin",
+        document="System Reference Document 5.1",
     )
 
     repository_context.search.return_value = [creature_obj]
 
-    results = await lookup_creature(document="System Reference Document 5.1")
+    results = await lookup_creature(documents=["System Reference Document 5.1"])
 
     # Verify repository was called with document filter
     repository_context.search.assert_awaited_once()
     call_kwargs = repository_context.search.call_args[1]
-    assert call_kwargs["document"] == "System Reference Document 5.1"
+    assert call_kwargs["document"] == ["System Reference Document 5.1"]
 
     # Verify results are returned
     assert len(results) == 1
@@ -500,11 +501,11 @@ async def test_lookup_creature_with_document_filter(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_with_document_keys(repository_context):
-    """Test lookup_creature with document_keys filter."""
+async def test_lookup_creature_with_documents(repository_context):
+    """Test lookup_creature with documents filter."""
     creature_obj = Monster(
-        name="Fireball",
-        slug="fireball",
+        name="Goblin",
+        slug="goblin",
         size="Small",
         type="humanoid",
         alignment="neutral evil",
@@ -524,15 +525,15 @@ async def test_lookup_creature_with_document_keys(repository_context):
         special_abilities=None,
         desc=None,
         speed=None,
-        document_url="https://example.com/fireball",
+        document_url="https://example.com/goblin",
         document="srd-5e",
     )
 
     repository_context.search.return_value = [creature_obj]
 
-    results = await lookup_creature(name="fireball", document_keys=["srd-5e"])
+    results = await lookup_creature(name="goblin", documents=["srd-5e"])
 
-    # Verify repository was called with document as document_keys
+    # Verify repository was called with document as documents
     repository_context.search.assert_awaited_once()
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["document"] == ["srd-5e"]
