@@ -23,7 +23,7 @@ def test_serve_command_exists(runner: CliRunner) -> None:
     assert "lorekeeper serve" in result.output
 
 
-@patch("lorekeeper_mcp.server.mcp")
+@patch("lorekeeper_mcp.cli.mcp")
 def test_serve_command_starts_server(mock_mcp: MagicMock, runner: CliRunner) -> None:
     """Test that serve command calls mcp.run()."""
     _ = runner.invoke(cli, ["serve"])
@@ -32,7 +32,7 @@ def test_serve_command_starts_server(mock_mcp: MagicMock, runner: CliRunner) -> 
     mock_mcp.run.assert_called_once()
 
 
-@patch("lorekeeper_mcp.server.mcp")
+@patch("lorekeeper_mcp.cli.mcp")
 def test_serve_command_with_verbose(
     mock_mcp: MagicMock, runner: CliRunner, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -47,7 +47,7 @@ def test_serve_command_with_verbose(
     assert "Starting MCP server" in result.output or "Starting MCP server" in caplog.text
 
 
-@patch("lorekeeper_mcp.server.mcp")
+@patch("lorekeeper_mcp.cli.mcp")
 def test_serve_command_with_db_path(mock_mcp: MagicMock, runner: CliRunner) -> None:
     """Test that serve command respects global --db-path option."""
     _ = runner.invoke(cli, ["--db-path", "/custom/path.db", "serve"])
@@ -59,7 +59,7 @@ def test_serve_command_with_db_path(mock_mcp: MagicMock, runner: CliRunner) -> N
     # This test verifies the command accepts the option without error
 
 
-@patch("lorekeeper_mcp.server.mcp")
+@patch("lorekeeper_mcp.cli.mcp")
 def test_serve_command_with_all_options(mock_mcp: MagicMock, runner: CliRunner) -> None:
     """Test that serve command works with all global options."""
     _ = runner.invoke(cli, ["-v", "--db-path", "/custom/path.db", "serve"])
