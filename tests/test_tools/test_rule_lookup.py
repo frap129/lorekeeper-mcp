@@ -238,13 +238,13 @@ async def test_lookup_rule_default_repository():
 
 
 @pytest.mark.asyncio
-async def test_lookup_rule_with_document_keys(repository_context) -> None:
-    """Test lookup_rule with document_keys filter."""
+async def test_lookup_rule_with_documents(repository_context) -> None:
+    """Test lookup_rule with documents filter."""
     repository_context.search.return_value = [
         {"name": "Combat", "desc": "Combat rules...", "document": "srd-5e"}
     ]
 
-    result = await lookup_rule(rule_type="rule", name="Combat", document_keys=["srd-5e"])
+    result = await lookup_rule(rule_type="rule", name="Combat", documents=["srd-5e"])
 
     assert len(result) == 1
     assert result[0]["name"] == "Combat"
@@ -252,6 +252,6 @@ async def test_lookup_rule_with_document_keys(repository_context) -> None:
     repository_context.search.assert_awaited_once()
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs.get("rule_type") == "rule"
-    # Verify document parameter is passed (document_keys maps to document)
+    # Verify document parameter is passed (documents maps to document)
     assert "document" in call_kwargs
     assert call_kwargs["document"] == ["srd-5e"]
