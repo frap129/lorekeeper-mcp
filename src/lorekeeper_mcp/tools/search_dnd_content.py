@@ -39,7 +39,7 @@ def _get_open5e_client() -> Open5eV2Client:
 async def search_dnd_content(
     query: str,
     content_types: list[str] | None = None,
-    document_keys: list[str] | None = None,
+    documents: list[str] | None = None,
     enable_fuzzy: bool = True,
     enable_semantic: bool = True,
     limit: int = 20,
@@ -66,17 +66,16 @@ async def search_dnd_content(
         search_dnd_content(query="fire", content_types=["Spell"])  # Only spells
 
         # Document-filtered search
-        search_dnd_content(query="fireball", document_keys=["srd-5e"])
-        search_dnd_content(query="spell", document_keys=["srd-5e", "tce"])
+        search_dnd_content(query="fireball", documents=["srd-5e"])
+        search_dnd_content(query="spell", documents=["srd-5e", "tce"])
 
     Args:
         query: Search term (handles typos and concepts automatically)
         content_types: Limit to specific types: ["Spell", "Creature", "Item",
             "Background", "Feat"]. Default None searches all content types.
-        document_keys: Filter results to specific documents. Provide list of
+        documents: Filter results to specific documents. Provide list of
             document names from list_documents() tool. Post-filters search
             results by document field. Examples: ["srd-5e"], ["srd-5e", "tce"].
-            NEW parameter.
         enable_fuzzy: Enable fuzzy matching for typo tolerance (default True)
         enable_semantic: Enable semantic/vector search for conceptual
             matching (default True)
@@ -91,7 +90,7 @@ async def search_dnd_content(
         ApiError: If the API request fails due to network issues or errors
     """
     # Short-circuit for empty document list
-    if document_keys is not None and len(document_keys) == 0:
+    if documents is not None and len(documents) == 0:
         return []
 
     client = _get_open5e_client()
@@ -112,11 +111,11 @@ async def search_dnd_content(
             all_results.extend(results)
 
         # Post-filter by document if specified
-        if document_keys:
+        if documents:
             all_results = [
                 r
                 for r in all_results
-                if r.get("document") in document_keys or r.get("document__slug") in document_keys
+                if r.get("document") in documents or r.get("document__slug") in documents
             ]
 
         return all_results[:limit]
@@ -130,11 +129,11 @@ async def search_dnd_content(
     )
 
     # Post-filter by document if specified
-    if document_keys:
+    if documents:
         results = [
             r
             for r in results
-            if r.get("document") in document_keys or r.get("document__slug") in document_keys
+            if r.get("document") in documents or r.get("document__slug") in documents
         ]
 
     return results[:limit]
