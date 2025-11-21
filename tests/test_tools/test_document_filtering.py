@@ -152,7 +152,7 @@ async def test_spell_lookup_with_document_filter_integration(
 
         # Filter by first document
         doc_to_filter = next(iter(documents_set))
-        filtered_spells = await lookup_spell(document_keys=[doc_to_filter], limit=50)
+        filtered_spells = await lookup_spell(documents=[doc_to_filter], limit=50)
 
         # All filtered results should match the document
         for spell in filtered_spells:
@@ -189,8 +189,8 @@ async def test_cross_tool_document_consistency(populated_cache: str) -> None:
                 source_api: str = doc.get("source_api", "")
 
                 # Try filtering with each tool
-                spells = await lookup_spell(document_keys=[doc_key], limit=5)
-                creatures = await lookup_creature(document_keys=[doc_key], limit=5)
+                spells = await lookup_spell(documents=[doc_key], limit=5)
+                creatures = await lookup_creature(documents=[doc_key], limit=5)
 
                 # Should complete without errors
                 assert isinstance(spells, list)
@@ -265,17 +265,17 @@ async def test_end_to_end_document_filtering(tmp_path):
 
     try:
         # Test 1: Filter by SRD document
-        srd_results = await lookup_spell(document="System Reference Document 5.1")
+        srd_results = await lookup_spell(documents=["System Reference Document 5.1"])
         assert len(srd_results) == 1
         assert srd_results[0]["slug"] == "fireball"
 
         # Test 2: Filter by homebrew document
-        homebrew_results = await lookup_spell(document="Homebrew Grimoire")
+        homebrew_results = await lookup_spell(documents=["Homebrew Grimoire"])
         assert len(homebrew_results) == 1
         assert homebrew_results[0]["slug"] == "custom-blast"
 
         # Test 3: Combine document filter with other filters
-        level3_srd = await lookup_spell(level=3, document="System Reference Document 5.1")
+        level3_srd = await lookup_spell(level=3, documents=["System Reference Document 5.1"])
         assert len(level3_srd) == 1
         assert level3_srd[0]["slug"] == "fireball"
 

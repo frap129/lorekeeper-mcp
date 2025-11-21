@@ -621,7 +621,7 @@ class TestLiveMCPProtocol:
         response = await self.call_mcp_tool(
             mcp_server,
             "lookup_spell",
-            {"document_keys": [doc_key], "limit": 5},
+            {"documents": [doc_key], "limit": 5},
         )
 
         assert response is not None
