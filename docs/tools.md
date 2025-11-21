@@ -42,7 +42,7 @@ homebrew_docs = await list_documents(source="orcbrew")
 ```
 
 Each document in the results contains:
-- `document`: The document name/identifier (use this in `document_keys`)
+- `document`: The document name/identifier (use this in `documents`)
 - `source_api`: Which source provided this (open5e_v2, dnd5e_api, orcbrew)
 - `entity_count`: Total number of entities from this document
 - `entity_types`: Breakdown by type (spells, creatures, equipment, etc.)
@@ -53,16 +53,16 @@ Each document in the results contains:
 
 #### In Lookup Tools
 
-All lookup tools (`lookup_spell`, `lookup_creature`, `lookup_character_option`, `lookup_equipment`, `lookup_rule`) accept a `document_keys` parameter:
+All lookup tools (`lookup_spell`, `lookup_creature`, `lookup_character_option`, `lookup_equipment`, `lookup_rule`) accept a `documents` parameter:
 
 ```python
 # Filter to SRD only
-srd_spells = await lookup_spell(level=3, document_keys=["srd-5e"])
+srd_spells = await lookup_spell(level=3, documents=["srd-5e"])
 
 # Filter to multiple documents
 multi_source = await lookup_creature(
     type="dragon",
-    document_keys=["srd-5e", "tce", "phb"]
+    documents=["srd-5e", "tce", "phb"]
 )
 
 # Complex filtering with multiple parameters
@@ -71,20 +71,20 @@ wizard_evocations = await lookup_spell(
     school="evocation",
     level_min=1,
     level_max=5,
-    document_keys=["srd-5e", "xgte"]
+    documents=["srd-5e", "xgte"]
 )
 
 # Equipment filtering by source
 plate_armor = await lookup_equipment(
     type="armor",
     name="plate",
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 
 # Character options from specific books
 tasha_feats = await lookup_character_option(
     type="feat",
-    document_keys=["tce"]  # Tasha's Cauldron of Everything
+    documents=["tce"]  # Tasha's Cauldron of Everything
 )
 ```
 
@@ -96,13 +96,13 @@ The `search_dnd_content()` tool also supports document filtering:
 # Search spells in SRD only
 srd_results = await search_dnd_content(
     query="fireball",
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 
 # Search across multiple books
 published_results = await search_dnd_content(
     query="dragon",
-    document_keys=["srd-5e", "tce", "xgte"]
+    documents=["srd-5e", "tce", "xgte"]
 )
 
 # General search with no filter (all documents)
@@ -135,16 +135,16 @@ Get only free, System Reference Document content:
 
 ```python
 # Only SRD spells
-srd_spells = await lookup_spell(document_keys=["srd-5e"])
+srd_spells = await lookup_spell(documents=["srd-5e"])
 
 # Only SRD creatures up to CR 5
 srd_creatures = await lookup_creature(
     cr_max=5,
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 
 # Only SRD equipment
-srd_gear = await lookup_equipment(document_keys=["srd-5e"])
+srd_gear = await lookup_equipment(documents=["srd-5e"])
 ```
 
 #### Published Books Only
@@ -154,7 +154,7 @@ Get only officially published content (excluding homebrew):
 ```python
 published = await lookup_spell(
     school="evocation",
-    document_keys=[
+    documents=[
         "srd-5e", "phb", "tce", "xgte", "vrgr", "dmg", "mm"
     ]
 )
@@ -168,13 +168,13 @@ Query a specific book without mixing sources:
 # Only Tasha's content
 tasha_content = await lookup_character_option(
     type="feat",
-    document_keys=["tce"]
+    documents=["tce"]
 )
 
 # Only Xanathar's Guide
 xgte_content = await lookup_spell(
     school="evocation",
-    document_keys=["xgte"]
+    documents=["xgte"]
 )
 ```
 
@@ -189,7 +189,7 @@ homebrew_keys = [d["document"] for d in docs]
 
 # Query only homebrew
 homebrew_creatures = await lookup_creature(
-    document_keys=homebrew_keys
+    documents=homebrew_keys
 )
 ```
 
@@ -206,7 +206,7 @@ all_keys = [d["document"] for d in all_docs]
 excluded = "homebrew-grimoire"
 filtered_keys = [k for k in all_keys if excluded not in k.lower()]
 # 3. Query with remaining documents
-results = await lookup_spell(document_keys=filtered_keys)
+results = await lookup_spell(documents=filtered_keys)
 ```
 
 ### Performance Notes
@@ -214,14 +214,14 @@ results = await lookup_spell(document_keys=filtered_keys)
 - **Indexed Queries**: The `document` field has a database index, making filtering efficient
 - **Combined Filters**: Document filters combine efficiently with other parameters (level, type, etc.)
 - **Empty Results**: Filtering may return fewer results if few entities exist in selected documents
-- **Backward Compatible**: The `document_keys` parameter is optional; omitting it queries all documents
+- **Backward Compatible**: The `documents` parameter is optional; omitting it queries all documents
 
 ### Implementation Details
 
 - **Document Keys**: Use exact names from `list_documents()` output
 - **Case Sensitive**: Document names are case-sensitive
 - **Multiple Documents**: Pass a list to filter across multiple documents (OR logic)
-- **Empty List**: Passing an empty `document_keys=[]` returns no results (short-circuit)
+- **Empty List**: Passing an empty `documents=[]` returns no results (short-circuit)
 
 ---
 

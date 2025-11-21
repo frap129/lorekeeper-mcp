@@ -72,19 +72,19 @@ documents = await list_documents()
 # Filter spells to SRD only
 srd_spells = await lookup_spell(
     level=3,
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 
 # Filter creatures from multiple sources
 creatures = await lookup_creature(
     type="dragon",
-    document_keys=["srd-5e", "tce", "phb"]
+    documents=["srd-5e", "tce", "phb"]
 )
 
 # Search with document filter
 results = await search_dnd_content(
     query="fireball",
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 ```
 

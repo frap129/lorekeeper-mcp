@@ -17,7 +17,7 @@ Use `list_documents()` to see what's available in your cache:
 documents = await list_documents()
 
 # Each document contains:
-# - document: The document name/identifier (use in document_keys)
+# - document: The document name/identifier (use in documents)
 # - source_api: Where it came from (open5e_v2, dnd5e_api, orcbrew)
 # - entity_count: Number of entities from this document
 # - entity_types: Breakdown by type (spells, creatures, etc.)
@@ -27,16 +27,16 @@ documents = await list_documents()
 
 ### 2. Use in Lookup Tools
 
-All lookup tools accept `document_keys` parameter:
+All lookup tools accept `documents` parameter:
 
 ```python
 # Single document filter
-srd_spells = await lookup_spell(level=3, document_keys=["srd-5e"])
+srd_spells = await lookup_spell(level=3, documents=["srd-5e"])
 
 # Multiple documents
 creatures = await lookup_creature(
     type="dragon",
-    document_keys=["srd-5e", "tce", "phb"]
+    documents=["srd-5e", "tce", "phb"]
 )
 ```
 
@@ -48,7 +48,7 @@ The search tool also supports document filtering:
 # Search within specific documents
 results = await search_dnd_content(
     query="fireball",
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 ```
 
@@ -69,7 +69,7 @@ Documents from Open5e v1 and v2 APIs include the document name from the API meta
 
 All content from the official D&D 5e API is SRD content. LoreKeeper normalizes all D&D 5e API content to use the document name: **`"System Reference Document 5.1"`**
 
-This means filtering by `document_keys=["srd-5e"]` returns SRD content from **both** the Open5e and D&D 5e APIs (whichever LoreKeeper has cached). Users don't need to know which API provided the data.
+This means filtering by `documents=["srd-5e"]` returns SRD content from **both** the Open5e and D&D 5e APIs (whichever LoreKeeper has cached). Users don't need to know which API provided the data.
 
 ### OrcBrew Documents
 
@@ -87,30 +87,30 @@ Get only free, System Reference Document content (no purchased supplements):
 
 ```python
 # All SRD spells
-srd_spells = await lookup_spell(document_keys=["srd-5e"])
+srd_spells = await lookup_spell(documents=["srd-5e"])
 
 # SRD creatures up to CR 5
 srd_creatures = await lookup_creature(
     cr_max=5,
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 
 # All SRD equipment
 srd_equipment = await lookup_equipment(
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 
 # SRD character options
 srd_classes = await lookup_character_option(
     type="class",
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 
 # SRD rules and conditions
 grappled = await lookup_rule(
     rule_type="condition",
     name="grappled",
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 ```
 
@@ -120,15 +120,15 @@ Query a single published supplement:
 
 ```python
 # Only Tasha's Cauldron of Everything
-tasha_spells = await lookup_spell(document_keys=["tce"])
+tasha_spells = await lookup_spell(documents=["tce"])
 
 # Only Xanathar's Guide to Everything
-xgte_creatures = await lookup_creature(document_keys=["xgte"])
+xgte_creatures = await lookup_creature(documents=["xgte"])
 
 # Only Player's Handbook classes
 phb_classes = await lookup_character_option(
     type="class",
-    document_keys=["phb"]
+    documents=["phb"]
 )
 ```
 
@@ -139,20 +139,20 @@ Combine multiple documents in a single query:
 ```python
 # Get spells from SRD and Tasha's
 core_and_tasha = await lookup_spell(
-    document_keys=["srd-5e", "tce"]
+    documents=["srd-5e", "tce"]
 )
 
 # Get creatures from multiple books
 multi_source_creatures = await lookup_creature(
     cr_min=5,
     cr_max=10,
-    document_keys=["srd-5e", "mm", "vrgr", "moot"]
+    documents=["srd-5e", "mm", "vrgr", "moot"]
 )
 
 # Search across multiple supplements
 comprehensive_search = await search_dnd_content(
     query="magic item",
-    document_keys=["srd-5e", "phb", "tce", "xgte", "dmg"]
+    documents=["srd-5e", "phb", "tce", "xgte", "dmg"]
 )
 ```
 
@@ -167,21 +167,21 @@ targeted_spells = await lookup_spell(
     level_min=3,
     level_max=5,
     damage_type="fire",
-    document_keys=["srd-5e", "tce"]
+    documents=["srd-5e", "tce"]
 )
 
 # Ritual spells available to clerics
 cleric_rituals = await lookup_spell(
     class_key="cleric",
     ritual=True,
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 
 # Rare magic items from published books
 rare_items = await lookup_equipment(
     type="magic-item",
     rarity="rare",
-    document_keys=["srd-5e", "phb", "dmg", "tce"]
+    documents=["srd-5e", "phb", "dmg", "tce"]
 )
 ```
 
@@ -198,13 +198,13 @@ homebrew_keys = [doc["document"] for doc in homebrew_docs]
 
 # Query only homebrew
 homebrew_creatures = await lookup_creature(
-    document_keys=homebrew_keys
+    documents=homebrew_keys
 )
 
 # Or work with a single homebrew document
 custom_book = "My Custom Campaign"
 custom_creatures = await lookup_creature(
-    document_keys=[custom_book]
+    documents=[custom_book]
 )
 ```
 
@@ -216,12 +216,12 @@ Query by source API directly:
 # Get only Open5e v2 content (includes community content)
 open5e_docs = await list_documents(source="open5e_v2")
 open5e_keys = [doc["document"] for doc in open5e_docs]
-open5e_spells = await lookup_spell(document_keys=open5e_keys)
+open5e_spells = await lookup_spell(documents=open5e_keys)
 
 # Get official D&D 5e API content
 official_docs = await list_documents(source="dnd5e_api")
 official_keys = [doc["document"] for doc in official_docs]
-official_rules = await lookup_rule(document_keys=official_keys)
+official_rules = await lookup_rule(documents=official_keys)
 ```
 
 ## Integration Patterns
@@ -236,11 +236,11 @@ available = await list_documents()
 print(f"Available sources: {[d['document'] for d in available]}")
 
 # 2. Suggest appropriate filters
-print("SRD-only: use document_keys=['srd-5e']")
-print(f"Published books: use document_keys={[d for d in available if 'homebrew' not in d.lower()]}")
+print("SRD-only: use documents=['srd-5e']")
+print(f"Published books: use documents={[d for d in available if 'homebrew' not in d.lower()]}")
 
 # 3. Execute filtered query
-srd_results = await lookup_spell(document_keys=["srd-5e"])
+srd_results = await lookup_spell(documents=["srd-5e"])
 ```
 
 ### Respecting Licensing
@@ -255,7 +255,7 @@ non_srd_docs = [d for d in all_docs if d not in srd_docs]
 
 # Query only SRD
 licensed_only = await lookup_spell(
-    document_keys=[d["document"] for d in srd_docs]
+    documents=[d["document"] for d in srd_docs]
 )
 ```
 
@@ -270,17 +270,17 @@ campaign_sources = ["srd-5e", "phb", "tce"]
 # All character options for the campaign
 campaign_classes = await lookup_character_option(
     type="class",
-    document_keys=campaign_sources
+    documents=campaign_sources
 )
 
 # Campaign-legal spells
 campaign_spells = await lookup_spell(
-    document_keys=campaign_sources
+    documents=campaign_sources
 )
 
 # All equipment available in campaign
 campaign_equipment = await lookup_equipment(
-    document_keys=campaign_sources
+    documents=campaign_sources
 )
 ```
 
@@ -304,18 +304,18 @@ The top-level book name from the .orcbrew file becomes the document (e.g., "Home
 
 ### In Tools
 
-All lookup tools accept a `document_keys` parameter:
+All lookup tools accept a `documents` parameter:
 
 ```python
 # Filter spells from the SRD
-spells = await lookup_spell(document_keys=["srd-5e"], level=3)
+spells = await lookup_spell(documents=["srd-5e"], level=3)
 
 # Filter creatures from a specific book
-creatures = await lookup_creature(document_keys=["Adventurer's Guide"])
+creatures = await lookup_creature(documents=["Adventurer's Guide"])
 
 # Filter equipment from multiple sources
 weapons = await lookup_equipment(
-    document_keys=["srd-5e", "phb"],
+    documents=["srd-5e", "phb"],
     type="weapon"
 )
 ```
@@ -328,13 +328,13 @@ The search tool also filters by document:
 # Search within SRD only
 results = await search_dnd_content(
     query="fireball",
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 
 # Search across multiple books
 comprehensive = await search_dnd_content(
     query="dragon",
-    document_keys=["srd-5e", "mm", "vrgr"]
+    documents=["srd-5e", "mm", "vrgr"]
 )
 ```
 
@@ -370,7 +370,7 @@ spells = await query_cached_entities(
 
 Both Open5e and the D&D 5e API provide SRD content. LoreKeeper normalizes both to use the same document name: **"System Reference Document 5.1"**.
 
-This means filtering by `document_keys=["srd-5e"]` returns SRD content from **both** APIs (whichever LoreKeeper has cached). Users don't need to know which API provided the data—it's transparent.
+This means filtering by `documents=["srd-5e"]` returns SRD content from **both** APIs (whichever LoreKeeper has cached). Users don't need to know which API provided the data—it's transparent.
 
 ### Why This Matters
 
@@ -392,26 +392,26 @@ Document filtering uses indexed database queries for optimal performance:
 
 ```python
 # Fast - indexed field
-fast = await lookup_spell(document_keys=["srd-5e"])
+fast = await lookup_spell(documents=["srd-5e"])
 
 # Still fast - combined indexed filters
 indexed = await lookup_spell(
     level=3,
     school="evocation",
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 
 # Efficient - text search is slower but works
 slow = await search_dnd_content(
     query="fireball",
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 ```
 
 ## Backward Compatibility
 
 Document filtering is fully backward compatible:
-- The `document_keys` parameter is optional on all tools
+- The `documents` parameter is optional on all tools
 - Existing tool calls work unchanged
 - Omitting the parameter queries all available documents
 - The `document` field remains for internal tracking
@@ -451,7 +451,7 @@ print(f"Results came from: {documents_in_results}")
 # Use strict filtering to verify
 filtered = await lookup_spell(
     level=3,
-    document_keys=["srd-5e"]
+    documents=["srd-5e"]
 )
 # All results should have document="srd-5e"
 ```
