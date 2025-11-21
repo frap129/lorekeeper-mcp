@@ -53,3 +53,17 @@ async def test_list_documents_source_filter() -> None:
     for doc in result:
         if doc.get("source_api"):
             assert doc["source_api"] == "open5e_v2"
+
+
+def test_list_documents_docstring_references() -> None:
+    """Test that docstring references documents parameter, not document_keys."""
+    docstring = list_documents.__doc__
+    assert docstring is not None
+
+    # Should reference "documents" parameter
+    assert "documents parameter" in docstring
+    # Should reference "use this in documents"
+    assert "use this in documents" in docstring
+
+    # Should NOT reference "document_keys"
+    assert "document_keys" not in docstring

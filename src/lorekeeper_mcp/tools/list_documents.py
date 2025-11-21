@@ -18,7 +18,7 @@ async def list_documents(
     This tool queries the cache to discover which source documents are available
     across all data sources (Open5e API, D&D 5e API, OrcBrew imports). Use this
     to see which books, supplements, and homebrew content you have access to,
-    then use the document_keys parameter in other tools to filter content.
+    then use the documents parameter in other tools to filter content.
 
     IMPORTANT: This shows only documents currently in your cache. Run the build
     command to populate your cache with content from configured sources.
@@ -42,7 +42,7 @@ async def list_documents(
 
     Returns:
         List of document dictionaries, each containing:
-            - document: Document name/identifier (use this in document_keys)
+            - document: Document name/identifier (use this in documents)
             - source_api: Which API/source this came from
             - entity_count: Total number of entities from this document
             - entity_types: Breakdown of entities by type (spells, creatures, etc.)
