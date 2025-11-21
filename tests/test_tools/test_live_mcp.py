@@ -605,7 +605,7 @@ class TestLiveMCPProtocol:
     @pytest.mark.live
     @pytest.mark.asyncio
     async def test_lookup_spell_with_document_filter_live(self, mcp_server, rate_limiter) -> None:
-        """Live test for lookup_spell with document_keys via MCP protocol."""
+        """Live test for lookup_spell with documents via MCP protocol."""
         await rate_limiter("open5e")
 
         # First get documents
