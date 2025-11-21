@@ -34,7 +34,6 @@ from lorekeeper_mcp.repositories.factory import RepositoryFactory
 
 OptionType = Literal["class", "race", "background", "feat"]
 
-# Module-level context for test repository injection
 _repository_context: dict[str, Any] = {}
 
 
@@ -157,24 +156,16 @@ async def lookup_character_option(
     if type not in valid_types:
         raise ValueError(f"Invalid type '{type}'. Must be one of: {', '.join(valid_types)}")
 
-    # Get repository from context or create default
     repository = _get_repository()
 
-    # Build query parameters for repository search
     params: dict[str, Any] = {
         "option_type": type,
         "limit": limit,
     }
-    # Note: search/name filtering is done client-side, not passed to cache
-    # The cache layer doesn't support filtering by name
-    # Document filtering
     if documents is not None:
-        params["document"] = documents  # Repository expects "document"
+        params["document"] = documents
 
-    # Fetch options from repository
     results: list[dict[str, Any]] = await repository.search(**params)
-
-    # Client-side name filtering if requested
     if name is not None and results:
         name_lower = name.lower()
         results = [r for r in results if name_lower in r.get("name", "").lower()]

@@ -43,22 +43,16 @@ class Dnd5eApiClient(BaseHttpClient):
         """
         entities: list[dict[str, Any]] = []
 
-        # Check if paginated response
         if "results" in response and isinstance(response["results"], list):
             entities = response["results"]
-        # Check if direct entity (has slug or index)
         elif "slug" in response or "index" in response:
             entities = [response]
-        # Unknown format
         else:
             return []
-
-        # Normalize 'index' field to 'slug' for D&D5e API entities
         for entity in entities:
             if isinstance(entity, dict) and "index" in entity and "slug" not in entity:
                 entity["slug"] = entity["index"]
 
-        # Filter out entities without slug
         return [e for e in entities if isinstance(e, dict) and "slug" in e]
 
     async def get_rules(
@@ -80,15 +74,12 @@ class Dnd5eApiClient(BaseHttpClient):
             NetworkError: Network request failed
             ApiError: API returned error response
         """
-        # Build endpoint
         endpoint = f"/rules/{section}" if section else "/rules/"
 
         params = {k: v for k, v in filters.items() if v is not None}
 
-        # Make request
         result = await self.make_request(endpoint, params=params)
 
-        # Extract and normalize entities
         response = result if isinstance(result, dict) else {"results": result}
         return self._extract_entities(response, "rules")
 

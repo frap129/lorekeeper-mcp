@@ -89,14 +89,12 @@ async def search_dnd_content(
     Raises:
         ApiError: If the API request fails due to network issues or errors
     """
-    # Short-circuit for empty document list
     if documents is not None and len(documents) == 0:
         return []
 
     client = _get_open5e_client()
 
     if content_types:
-        # Multiple searches, one per content type
         all_results: list[dict[str, Any]] = []
         per_type_limit = limit // len(content_types)
 
@@ -110,7 +108,6 @@ async def search_dnd_content(
             )
             all_results.extend(results)
 
-        # Post-filter by document if specified
         if documents:
             all_results = [
                 r
@@ -120,7 +117,6 @@ async def search_dnd_content(
 
         return all_results[:limit]
 
-    # Single unified search across all types
     results = await client.unified_search(
         query=query,
         fuzzy=enable_fuzzy,
@@ -128,7 +124,6 @@ async def search_dnd_content(
         limit=limit,
     )
 
-    # Post-filter by document if specified
     if documents:
         results = [
             r

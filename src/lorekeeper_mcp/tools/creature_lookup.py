@@ -33,7 +33,6 @@ from typing import Any, cast
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
 from lorekeeper_mcp.repositories.monster import MonsterRepository
 
-# Module-level context for test repository injection
 _repository_context: dict[str, Any] = {}
 
 
@@ -58,7 +57,6 @@ def clear_creature_cache() -> None:
     Cache management is now handled by the repository pattern with
     database-backed persistence.
     """
-    # No-op: in-memory caching is no longer used
 
 
 async def lookup_creature(
@@ -166,17 +164,12 @@ async def lookup_creature(
      Raises:
          ApiError: If the API request fails due to network issues or server errors
     """
-    # Get repository from context or create default
     repository = _get_repository()
 
-    # Build query parameters for repository search
     params: dict[str, Any] = {}
     if name is not None:
-        # Pass name search to repository - it maps to name__icontains for API
         params["name"] = name
     if cr is not None:
-        # Map 'cr' parameter to 'challenge_rating' for cache compatibility
-        # Convert to float to match database schema (REAL type)
         params["challenge_rating"] = float(cr)
     if cr_min is not None:
         params["cr_min"] = cr_min
@@ -190,15 +183,11 @@ async def lookup_creature(
         params["armor_class_min"] = armor_class_min
     if hit_points_min is not None:
         params["hit_points_min"] = hit_points_min
-    # Document filtering
     if documents is not None:
-        params["document"] = documents  # Repository expects "document"
+        params["document"] = documents
 
-    # Fetch creatures from repository with filters
-    # Repository handles name filtering via name__icontains parameter
     creatures = await repository.search(limit=limit, **params)
 
-    # Limit results to requested count
     creatures = creatures[:limit]
 
     return [creature.model_dump() for creature in creatures]

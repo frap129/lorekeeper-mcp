@@ -33,7 +33,6 @@ from typing import Any, Literal, cast
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
 from lorekeeper_mcp.repositories.rule import RuleRepository
 
-# Module-level context for test repository injection
 _repository_context: dict[str, Any] = {}
 
 
@@ -192,10 +191,8 @@ async def lookup_rule(
             f"Invalid type '{rule_type}'. Must be one of: {', '.join(sorted(valid_types))}"
         )
 
-    # Get repository from context or create default
     repository = _get_repository()
 
-    # Build query parameters for repository search
     params: dict[str, Any] = {"rule_type": rule_type}
     if name is not None:
         params["name"] = name
@@ -203,9 +200,6 @@ async def lookup_rule(
         params["limit"] = limit
     if rule_type == "rule" and section is not None:
         params["section"] = section
-    # Document filtering
     if documents is not None:
-        params["document"] = documents  # Repository expects "document"
-
-    # Fetch rules from repository with routing
+        params["document"] = documents
     return await repository.search(**params)

@@ -33,7 +33,6 @@ from typing import Any, cast
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
 from lorekeeper_mcp.repositories.spell import SpellRepository
 
-# Module-level context for test repository injection
 _repository_context: dict[str, Any] = {}
 
 
@@ -58,7 +57,6 @@ def clear_spell_cache() -> None:
     Cache management is now handled by the repository pattern with
     database-backed persistence.
     """
-    # No-op: in-memory caching is no longer used
 
 
 async def lookup_spell(
@@ -192,10 +190,8 @@ async def lookup_spell(
     Raises:
         ApiError: If the API request fails due to network issues or server errors
     """
-    # Get repository from context or create default
     repository = _get_repository()
 
-    # Build query parameters for repository search
     params: dict[str, Any] = {}
     if name is not None:
         params["name"] = name
@@ -217,15 +213,11 @@ async def lookup_spell(
         params["casting_time"] = casting_time
     if damage_type is not None:
         params["damage_type"] = damage_type
-    # Document filtering
     if documents is not None:
-        params["document"] = documents  # Repository expects "document"
+        params["document"] = documents
 
-    # Fetch spells from repository with filters
-    # API will filter by name, school, class_key, and concentration server-side
     spells = await repository.search(limit=limit, **params)
 
-    # Limit results to requested count
     spells = spells[:limit]
 
     return [spell.model_dump() for spell in spells]

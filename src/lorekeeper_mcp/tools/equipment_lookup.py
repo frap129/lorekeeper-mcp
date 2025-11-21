@@ -32,7 +32,6 @@ from typing import Any, Literal, cast
 from lorekeeper_mcp.repositories.equipment import EquipmentRepository
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
 
-# Module-level context for test repository injection
 _repository_context: dict[str, Any] = {}
 
 EquipmentType = Literal["weapon", "armor", "magic-item", "all"]
@@ -193,14 +192,11 @@ async def lookup_equipment(
         Raises:
             ApiError: If the API request fails due to network issues or server errors
     """
-    # Get repository from context or create default
     repository = _get_repository()
 
     results: list[dict[str, Any]] = []
 
-    # Query weapons
     if type in ("weapon", "all"):
-        # Build weapon filters
         weapon_filters: dict[str, Any] = {"item_type": "weapon"}
         if name is not None:
             weapon_filters["name"] = name
@@ -220,20 +216,15 @@ async def lookup_equipment(
             weapon_filters["is_light"] = is_light
         if is_magic is not None:
             weapon_filters["is_magic"] = is_magic
-        # Document filtering
         if documents is not None:
             weapon_filters["document"] = documents
 
-        # Fetch weapons with server-side filters
         weapons = await repository.search(limit=limit, **weapon_filters)
 
-        # Convert to dicts
         weapon_dicts = [w.model_dump() for w in weapons]
         results.extend(weapon_dicts)
 
-    # Query armor
     if type in ("armor", "all"):
-        # Build armor filters
         armor_filters: dict[str, Any] = {"item_type": "armor"}
         if name is not None:
             armor_filters["name"] = name
@@ -241,43 +232,33 @@ async def lookup_equipment(
             armor_filters["cost_min"] = cost_min
         if cost_max is not None:
             armor_filters["cost_max"] = cost_max
-        # Document filtering
         if documents is not None:
             armor_filters["document"] = documents
 
-        # Fetch armor with server-side filters
         armors = await repository.search(limit=limit, **armor_filters)
 
-        # Convert to dicts
         armor_dicts = [a.model_dump() for a in armors]
         results.extend(armor_dicts)
 
-    # Query magic items
     if type in ("magic-item", "all"):
-        # Build magic item filters
         magic_item_filters: dict[str, Any] = {"item_type": "magic-item"}
         if name is not None:
             magic_item_filters["name"] = name
         if rarity is not None:
             magic_item_filters["rarity"] = rarity
         if requires_attunement is not None:
-            # Convert string "yes"/"no" to boolean for API
             if requires_attunement.lower() in ("yes", "true", "1"):
                 magic_item_filters["requires_attunement"] = True
             else:
                 magic_item_filters["requires_attunement"] = False
-        # Document filtering
         if documents is not None:
             magic_item_filters["document"] = documents
 
-        # Fetch magic items with server-side filters
         magic_items = await repository.search(limit=limit, **magic_item_filters)
 
-        # Convert to dicts
         magic_item_dicts = [m.model_dump() for m in magic_items]
         results.extend(magic_item_dicts)
 
-    # Apply overall limit if querying multiple types
     if type == "all" and len(results) > limit:
         results = results[:limit]
 

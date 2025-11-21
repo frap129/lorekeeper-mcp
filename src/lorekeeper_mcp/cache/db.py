@@ -24,19 +24,13 @@ async def init_db() -> None:
     Enables WAL mode for concurrent access.
     """
 
-    # Ensure parent directory exists
     db_path = Path(settings.db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Initialize entity cache tables
     await init_entity_cache(str(settings.db_path))
 
-    # Also create legacy api_cache table for backward compatibility
     async with aiosqlite.connect(settings.db_path) as db:
-        # Enable WAL mode for better concurrent access
         await db.execute("PRAGMA journal_mode=WAL")
-
-        # Create legacy schema
         await db.execute(
             """
             CREATE TABLE IF NOT EXISTS api_cache (
