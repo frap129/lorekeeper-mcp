@@ -2,8 +2,6 @@
 
 from typing import Any, Protocol
 
-from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
-from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.repositories.base import Repository
 
 
@@ -165,8 +163,7 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
     async def _search_feats(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for feats.
 
-        Uses Open5e v2 API for comprehensive feat data (91 feats) instead of
-        D&D 5e API which has limited feat data.
+        Uses Open5e v2 client for comprehensive feat data.
         """
         # Extract limit parameter (not a cache filter field)
         limit = filters.pop("limit", None)
@@ -186,18 +183,8 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         # Remove document from API filters (cache-only filter)
         api_filters.pop("document", None)
 
-        # Use Open5e v2 API for feats (has 91 feats) instead of D&D 5e (has 1)
-        # However, in tests we may have a mock client provided
-
-        # If we have the D&D 5e API client, use Open5e v2 instead for better feat data
-        if isinstance(self.client, Dnd5eApiClient):
-            open5e_client = Open5eV2Client()
-            feats: list[dict[str, Any]] = await open5e_client.get_feats(
-                limit=api_limit, **api_filters
-            )
-        else:
-            # Use provided client (e.g., in tests with mocks)
-            feats = await self.client.get_feats(limit=api_limit, **api_filters)
+        # Use provided client (Open5e v2 or test mock)
+        feats: list[dict[str, Any]] = await self.client.get_feats(limit=api_limit, **api_filters)
 
         if feats:
             await self.cache.store_entities(feats, "feats")
