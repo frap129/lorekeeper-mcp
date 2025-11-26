@@ -82,6 +82,7 @@ def mock_open5e_v1_client():
         legendary_actions=None,
         special_abilities=None,
         document_url="https://example.com/dragon",
+        document=None,
     )
 
     client = MagicMock()
@@ -113,6 +114,7 @@ def mock_open5e_v2_client(mock_spell_response):
         document_url="https://example.com/fireball",
         higher_level="When you cast this spell...",
         damage_type=None,
+        document=None,
     )
 
     client = MagicMock()
@@ -123,20 +125,13 @@ def mock_open5e_v2_client(mock_spell_response):
     client.get_weapons = AsyncMock(return_value=[])
     client.get_armor = AsyncMock(return_value=[])
     client.get_conditions = AsyncMock(return_value=[])
-    return client
-
-
-@pytest.fixture
-def mock_dnd5e_client():
-    """Mock Dnd5eApiClient."""
-    client = MagicMock()
-    client.get_rules = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_damage_types = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_weapon_properties = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_skills = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_ability_scores = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_magic_schools = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_languages = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_proficiencies = AsyncMock(return_value={"count": 0, "results": []})
-    client.get_alignments = AsyncMock(return_value={"count": 0, "results": []})
+    # Methods previously only in D&D 5e API client, now in Open5e v2
+    client.get_rules = AsyncMock(return_value=[])
+    client.get_damage_types_v2 = AsyncMock(return_value=[])
+    client.get_weapon_properties_v2 = AsyncMock(return_value=[])
+    client.get_skills_v2 = AsyncMock(return_value=[])
+    client.get_abilities = AsyncMock(return_value=[])
+    client.get_spell_schools_v2 = AsyncMock(return_value=[])
+    client.get_languages_v2 = AsyncMock(return_value=[])
+    client.get_alignments_v2 = AsyncMock(return_value=[])
     return client
