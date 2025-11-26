@@ -16,7 +16,6 @@ class TestSettings:
         assert settings.log_level == "INFO"
         assert settings.debug is False
         assert settings.open5e_base_url == "https://api.open5e.com"
-        assert settings.dnd5e_base_url == "https://www.dnd5eapi.co/api"
 
     def test_settings_respects_env_vars(self, monkeypatch):
         """Test that settings respects environment variable overrides."""
@@ -27,7 +26,6 @@ class TestSettings:
         monkeypatch.setenv("LOG_LEVEL", "DEBUG")
         monkeypatch.setenv("DEBUG", "true")
         monkeypatch.setenv("OPEN5E_BASE_URL", "https://test.open5e.com")
-        monkeypatch.setenv("DND5E_BASE_URL", "https://test.dnd5eapi.co/api")
 
         # Create a new Settings instance to pick up environment variables
         test_settings = Settings()
@@ -38,4 +36,3 @@ class TestSettings:
         assert test_settings.log_level == "DEBUG"
         assert test_settings.debug is True
         assert test_settings.open5e_base_url == "https://test.open5e.com"
-        assert test_settings.dnd5e_base_url == "https://test.dnd5eapi.co/api"

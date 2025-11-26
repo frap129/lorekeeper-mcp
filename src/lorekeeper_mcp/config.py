@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO")
     debug: bool = Field(default=False)
     open5e_base_url: str = Field(default="https://api.open5e.com")
-    dnd5e_base_url: str = Field(default="https://www.dnd5eapi.co/api")
 
 
 # Global settings instance
