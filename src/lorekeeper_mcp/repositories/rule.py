@@ -8,43 +8,39 @@ from lorekeeper_mcp.repositories.base import Repository
 class RuleClient(Protocol):
     """Protocol for rule API client."""
 
-    async def get_rules(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_rules_v2(self, **filters: Any) -> list[dict[str, Any]]:
         """Fetch rules from API."""
         ...
 
-    async def get_damage_types(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_damage_types_v2(self, **filters: Any) -> list[dict[str, Any]]:
         """Fetch damage types from API."""
         ...
 
-    async def get_weapon_properties(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_weapon_properties_v2(self, **filters: Any) -> list[dict[str, Any]]:
         """Fetch weapon properties from API."""
         ...
 
-    async def get_skills(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_skills_v2(self, **filters: Any) -> list[dict[str, Any]]:
         """Fetch skills from API."""
         ...
 
-    async def get_ability_scores(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_abilities(self, **filters: Any) -> list[dict[str, Any]]:
         """Fetch ability scores from API."""
         ...
 
-    async def get_magic_schools(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_spell_schools_v2(self, **filters: Any) -> list[dict[str, Any]]:
         """Fetch magic schools from API."""
         ...
 
-    async def get_languages(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_languages_v2(self, **filters: Any) -> list[dict[str, Any]]:
         """Fetch languages from API."""
         ...
 
-    async def get_proficiencies(self, **filters: Any) -> list[dict[str, Any]]:
-        """Fetch proficiencies from API."""
-        ...
-
-    async def get_alignments(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_alignments_v2(self, **filters: Any) -> list[dict[str, Any]]:
         """Fetch alignments from API."""
         ...
 
-    async def get_conditions_dnd5e(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_conditions(self, **filters: Any) -> list[dict[str, Any]]:
         """Fetch conditions from API."""
         ...
 
@@ -136,7 +132,7 @@ class RuleRepository(Repository[dict[str, Any]]):
         # Remove document from API filters (cache-only filter)
         api_filters = dict(filters)
         api_filters.pop("document", None)
-        rules: list[dict[str, Any]] = await self.client.get_rules(limit=limit, **api_filters)
+        rules: list[dict[str, Any]] = await self.client.get_rules_v2(limit=limit, **api_filters)
 
         if rules:
             await self.cache.store_entities(rules, "rules")
@@ -156,7 +152,7 @@ class RuleRepository(Repository[dict[str, Any]]):
             results = cached
         else:
             # Fetch from API with filters and limit
-            damage_types: list[dict[str, Any]] = await self.client.get_damage_types(
+            damage_types: list[dict[str, Any]] = await self.client.get_damage_types_v2(
                 limit=limit, **filters
             )
 
@@ -185,7 +181,7 @@ class RuleRepository(Repository[dict[str, Any]]):
             results = cached
         else:
             # Fetch from API with filters and limit
-            skills: list[dict[str, Any]] = await self.client.get_skills(limit=limit, **filters)
+            skills: list[dict[str, Any]] = await self.client.get_skills_v2(limit=limit, **filters)
 
             if skills:
                 await self.cache.store_entities(skills, "skills")
@@ -212,7 +208,7 @@ class RuleRepository(Repository[dict[str, Any]]):
             results = cached
         else:
             # Fetch from API with filters and limit
-            conditions: list[dict[str, Any]] = await self.client.get_conditions_dnd5e(
+            conditions: list[dict[str, Any]] = await self.client.get_conditions(
                 limit=limit, **filters
             )
 
@@ -240,7 +236,7 @@ class RuleRepository(Repository[dict[str, Any]]):
             return cached[:limit] if limit else cached
 
         # Fetch from API with filters and limit
-        properties: list[dict[str, Any]] = await self.client.get_weapon_properties(
+        properties: list[dict[str, Any]] = await self.client.get_weapon_properties_v2(
             limit=limit, **filters
         )
 
@@ -262,7 +258,7 @@ class RuleRepository(Repository[dict[str, Any]]):
             results = cached
         else:
             # Fetch from API with filters and limit
-            ability_scores: list[dict[str, Any]] = await self.client.get_ability_scores(
+            ability_scores: list[dict[str, Any]] = await self.client.get_abilities(
                 limit=limit, **filters
             )
 
@@ -290,7 +286,9 @@ class RuleRepository(Repository[dict[str, Any]]):
             return cached[:limit] if limit else cached
 
         # Fetch from API with filters and limit
-        schools: list[dict[str, Any]] = await self.client.get_magic_schools(limit=limit, **filters)
+        schools: list[dict[str, Any]] = await self.client.get_spell_schools_v2(
+            limit=limit, **filters
+        )
 
         if schools:
             await self.cache.store_entities(schools, "magic_schools")
@@ -309,7 +307,7 @@ class RuleRepository(Repository[dict[str, Any]]):
             return cached[:limit] if limit else cached
 
         # Fetch from API with filters and limit
-        languages: list[dict[str, Any]] = await self.client.get_languages(limit=limit, **filters)
+        languages: list[dict[str, Any]] = await self.client.get_languages_v2(limit=limit, **filters)
 
         if languages:
             await self.cache.store_entities(languages, "languages")
@@ -317,7 +315,11 @@ class RuleRepository(Repository[dict[str, Any]]):
         return languages
 
     async def _search_proficiencies(self, **filters: Any) -> list[dict[str, Any]]:
-        """Search for proficiencies."""
+        """Search for proficiencies.
+
+        Note: Proficiencies are not available in Open5e v2 API.
+        This method returns cached data if available, otherwise empty list.
+        """
         # Extract limit parameter (not a cache filter field)
         limit = filters.pop("limit", None)
 
@@ -327,15 +329,8 @@ class RuleRepository(Repository[dict[str, Any]]):
         if cached:
             return cached[:limit] if limit else cached
 
-        # Fetch from API with filters and limit
-        proficiencies: list[dict[str, Any]] = await self.client.get_proficiencies(
-            limit=limit, **filters
-        )
-
-        if proficiencies:
-            await self.cache.store_entities(proficiencies, "proficiencies")
-
-        return proficiencies
+        # Proficiencies not available in Open5e v2 API
+        return []
 
     async def _search_alignments(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for alignments."""
@@ -349,7 +344,9 @@ class RuleRepository(Repository[dict[str, Any]]):
             return cached[:limit] if limit else cached
 
         # Fetch from API with filters and limit
-        alignments: list[dict[str, Any]] = await self.client.get_alignments(limit=limit, **filters)
+        alignments: list[dict[str, Any]] = await self.client.get_alignments_v2(
+            limit=limit, **filters
+        )
 
         if alignments:
             await self.cache.store_entities(alignments, "alignments")

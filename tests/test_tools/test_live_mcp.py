@@ -417,7 +417,7 @@ class TestLiveCharacterOptionLookup:
         """Verify class lookup returns expected classes."""
 
         await rate_limiter("open5e")
-        results = await lookup_character_option(type="class")
+        results = await lookup_character_option(type="class", limit=100)
 
         assert len(results) >= 12, "Should find at least 12 classes"
         class_names = [c["name"].lower() for c in results]
@@ -430,7 +430,7 @@ class TestLiveCharacterOptionLookup:
         """Verify race lookup returns expected races."""
 
         await rate_limiter("open5e")
-        results = await lookup_character_option(type="race")
+        results = await lookup_character_option(type="race", limit=100)
 
         assert len(results) >= 9, "Should find at least 9 races"
         race_names = [r["name"].lower() for r in results]
@@ -467,13 +467,13 @@ class TestLiveRuleLookup:
     @pytest.mark.live
     @pytest.mark.asyncio
     async def test_rule_skill_lookup(self, rate_limiter, clear_cache):
-        """Verify skill lookup returns exactly 18 skills."""
+        """Verify skill lookup returns expected skills."""
 
         await rate_limiter("open5e")
         results = await lookup_rule(rule_type="skill")
 
-        # D&D 5e has exactly 18 skills
-        assert len(results) == 18, f"Expected 18 skills, got {len(results)}"
+        # Open5e v2 includes skills from multiple game systems
+        assert len(results) >= 18, f"Expected at least 18 skills, got {len(results)}"
         skill_names = [s["name"].lower() for s in results]
         assert any("perception" in name for name in skill_names)
         assert any("stealth" in name for name in skill_names)

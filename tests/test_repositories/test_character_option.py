@@ -20,8 +20,8 @@ def mock_cache() -> MagicMock:
 def mock_client() -> MagicMock:
     """Create mock API client for testing."""
     client = MagicMock()
-    client.get_classes = AsyncMock()
-    client.get_races = AsyncMock()
+    client.get_classes_v2 = AsyncMock()
+    client.get_species = AsyncMock()
     client.get_backgrounds = AsyncMock()
     client.get_feats = AsyncMock()
     client.get_conditions = AsyncMock()
@@ -34,14 +34,14 @@ async def test_character_option_repository_search_classes(
 ) -> None:
     """Test search filtering by character classes."""
     mock_cache.get_entities.return_value = []
-    mock_client.get_classes.return_value = [{"name": "Barbarian", "slug": "barbarian"}]
+    mock_client.get_classes_v2.return_value = [{"name": "Barbarian", "slug": "barbarian"}]
     mock_cache.store_entities.return_value = 1
 
     repo = CharacterOptionRepository(client=mock_client, cache=mock_cache)
     results = await repo.search(option_type="class")
 
     assert len(results) == 1
-    mock_client.get_classes.assert_called_once()
+    mock_client.get_classes_v2.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -49,13 +49,15 @@ async def test_character_option_repository_search_races(
     mock_cache: MagicMock, mock_client: MagicMock
 ) -> None:
     """Test search filtering by races."""
-    mock_cache.get_entities.return_value = [{"name": "Human", "slug": "human"}]
+    mock_cache.get_entities.return_value = []
+    mock_client.get_species.return_value = [{"name": "Human", "slug": "human"}]
+    mock_cache.store_entities.return_value = 1
 
     repo = CharacterOptionRepository(client=mock_client, cache=mock_cache)
     results = await repo.search(option_type="race")
 
     assert len(results) == 1
-    mock_client.get_races.assert_not_called()
+    mock_client.get_species.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -148,7 +150,7 @@ async def test_character_option_repository_search_with_document_filter() -> None
     """Test CharacterOptionRepository.search passes document filter to cache."""
     # Mock client and cache
     mock_client = MagicMock()
-    mock_client.get_classes = AsyncMock(return_value=[])
+    mock_client.get_classes_v2 = AsyncMock(return_value=[])
 
     mock_cache = MagicMock()
     mock_cache.get_entities = AsyncMock(return_value=[])
@@ -171,7 +173,7 @@ async def test_character_option_repository_search_document_not_passed_to_api() -
     """Test that document filter is NOT passed to API (cache-only filter)."""
     # Mock client and cache
     mock_client = MagicMock()
-    mock_client.get_classes = AsyncMock(return_value=[])
+    mock_client.get_classes_v2 = AsyncMock(return_value=[])
 
     mock_cache = MagicMock()
     mock_cache.get_entities = AsyncMock(return_value=[])  # Cache miss
@@ -183,6 +185,6 @@ async def test_character_option_repository_search_document_not_passed_to_api() -
     await repo.search(option_type="class", document="srd-5e")
 
     # Verify API was called WITHOUT document parameter
-    mock_client.get_classes.assert_called_once()
-    call_kwargs = mock_client.get_classes.call_args[1]
+    mock_client.get_classes_v2.assert_called_once()
+    call_kwargs = mock_client.get_classes_v2.call_args[1]
     assert "document" not in call_kwargs

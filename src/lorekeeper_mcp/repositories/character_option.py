@@ -8,12 +8,12 @@ from lorekeeper_mcp.repositories.base import Repository
 class CharacterOptionClient(Protocol):
     """Protocol for character option API client."""
 
-    async def get_classes(self, **filters: Any) -> list[dict[str, Any]]:
+    async def get_classes_v2(self, **filters: Any) -> list[dict[str, Any]]:
         """Fetch classes from API."""
         ...
 
-    async def get_races(self, **filters: Any) -> list[dict[str, Any]]:
-        """Fetch races from API."""
+    async def get_species(self, **filters: Any) -> list[dict[str, Any]]:
+        """Fetch species (races) from API."""
         ...
 
     async def get_backgrounds(self, **filters: Any) -> list[dict[str, Any]]:
@@ -105,7 +105,7 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         api_filters = dict(filters)
         # Remove document from API filters (cache-only filter)
         api_filters.pop("document", None)
-        classes: list[dict[str, Any]] = await self.client.get_classes(limit=limit, **api_filters)
+        classes: list[dict[str, Any]] = await self.client.get_classes_v2(limit=limit, **api_filters)
 
         if classes:
             await self.cache.store_entities(classes, "classes")
@@ -128,7 +128,7 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         api_filters = dict(filters)
         # Remove document from API filters (cache-only filter)
         api_filters.pop("document", None)
-        races: list[dict[str, Any]] = await self.client.get_races(limit=limit, **api_filters)
+        races: list[dict[str, Any]] = await self.client.get_species(limit=limit, **api_filters)
 
         if races:
             await self.cache.store_entities(races, "races")
