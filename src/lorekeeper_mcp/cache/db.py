@@ -431,7 +431,7 @@ async def get_available_documents(
 
     Args:
         db_path: Optional database path
-        source_api: Optional filter by source API (open5e_v2, dnd5e_api, orcbrew)
+        source_api: Optional filter by source API (open5e_v2, orcbrew)
 
     Returns:
         List of document dictionaries with:
