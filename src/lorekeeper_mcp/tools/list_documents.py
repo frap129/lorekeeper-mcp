@@ -1,7 +1,7 @@
 """Tool for listing available D&D content documents across all sources.
 
 This module provides document discovery functionality that shows all documents
-available in the cache across all sources (Open5e, D&D 5e API, OrcBrew).
+available in the cache across all sources (Open5e, OrcBrew).
 """
 
 from typing import Any
@@ -36,7 +36,6 @@ async def list_documents(
     Args:
         source: Optional source filter. Valid values:
             - "open5e_v2": Open5e API documents (SRD, Kobold Press, etc.)
-            - "dnd5e_api": Official D&D 5e API (SRD only)
             - "orcbrew": Imported OrcBrew homebrew files
             - None (default): Show documents from all sources
 
