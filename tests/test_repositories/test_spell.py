@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 from lorekeeper_mcp.api_clients.models.spell import Spell
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.repositories.spell import SpellRepository
@@ -181,8 +180,8 @@ async def test_spell_repository_search_multiple_filters(
     repo = SpellRepository(client=mock_client, cache=mock_cache)
     await repo.search(level=3, school="Evocation")
 
-    # Client should be called with all filters
-    mock_client.get_spells.assert_called_once_with(limit=None, level=3, school="Evocation")
+    # Client should be called with all filters (school is mapped to school__key and lowercased)
+    mock_client.get_spells.assert_called_once_with(limit=None, level=3, school__key="evocation")
     mock_cache.get_entities.assert_called_once_with("spells", level=3, school="Evocation")
 
 
@@ -340,26 +339,6 @@ def test_repository_parameter_mapping_with_open5e_client() -> None:
     assert result["level__lte"] == 5
 
 
-def test_repository_parameter_mapping_with_dnd5e_client() -> None:
-    """Test that repository correctly maps parameters for D&D 5e API."""
-
-    mock_cache = MagicMock()
-    mock_client = MagicMock(spec=Dnd5eApiClient)
-
-    repo = SpellRepository(client=mock_client, cache=mock_cache)
-
-    # Map parameters for D&D 5e
-    result = repo._map_to_api_params(
-        name="fireball",
-        level_min=3,
-        level_max=5,
-    )
-
-    # Verify mappings for D&D 5e
-    assert result["name"] == "fireball"
-    assert result["level"] == "3,4,5"
-
-
 def test_open5e_operator_mapping() -> None:
     """Test Open5e-specific filter operator mappings."""
 
@@ -390,31 +369,6 @@ def test_open5e_operator_mapping() -> None:
     # Test exact level match
     result = repo._map_to_api_params(level=2)
     assert result["level"] == 2
-
-
-def test_dnd5e_parameter_mapping() -> None:
-    """Test D&D 5e API-specific parameter mappings."""
-
-    mock_cache = MagicMock()
-    mock_client = MagicMock(spec=Dnd5eApiClient)
-
-    repo = SpellRepository(client=mock_client, cache=mock_cache)
-
-    # Test name parameter (pass-through)
-    result = repo._map_to_api_params(name="shield")
-    assert result["name"] == "shield"
-
-    # Test level range mapping to comma-separated list
-    result = repo._map_to_api_params(level_min=1, level_max=3)
-    assert result["level"] == "1,2,3"
-
-    # Test single level (pass-through)
-    result = repo._map_to_api_params(level=4)
-    assert result["level"] == 4
-
-    # Test school parameter (pass-through)
-    result = repo._map_to_api_params(school="necromancy")
-    assert result["school"] == "necromancy"
 
 
 def test_repository_passthrough_exact_matches() -> None:
