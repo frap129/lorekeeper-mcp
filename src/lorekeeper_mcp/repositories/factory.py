@@ -2,7 +2,6 @@
 
 from typing import Any, Protocol
 
-from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.cache.sqlite import SQLiteCache
 from lorekeeper_mcp.config import settings
@@ -92,15 +91,14 @@ class RepositoryFactory:
         """Create an EquipmentRepository instance.
 
         Args:
-            client: Optional custom client instance. Defaults to Dnd5eApiClient
-                (which includes weapons, armor, and magic items support).
+            client: Optional custom client instance. Defaults to Open5eV2Client.
             cache: Optional custom cache instance. Defaults to shared SQLiteCache.
 
         Returns:
             A configured EquipmentRepository instance.
         """
         if client is None:
-            client = Dnd5eApiClient()
+            client = Open5eV2Client()
         if cache is None:
             cache = RepositoryFactory._get_cache()
         return EquipmentRepository(client=client, cache=cache)  # type: ignore[arg-type]
@@ -112,14 +110,14 @@ class RepositoryFactory:
         """Create a CharacterOptionRepository instance.
 
         Args:
-            client: Optional custom client instance. Defaults to Dnd5eApiClient.
+            client: Optional custom client instance. Defaults to Open5eV2Client.
             cache: Optional custom cache instance. Defaults to shared SQLiteCache.
 
         Returns:
             A configured CharacterOptionRepository instance.
         """
         if client is None:
-            client = Dnd5eApiClient()
+            client = Open5eV2Client()
         if cache is None:
             cache = RepositoryFactory._get_cache()
         return CharacterOptionRepository(client=client, cache=cache)
@@ -131,14 +129,14 @@ class RepositoryFactory:
         """Create a RuleRepository instance.
 
         Args:
-            client: Optional custom client instance. Defaults to Dnd5eApiClient.
+            client: Optional custom client instance. Defaults to Open5eV2Client.
             cache: Optional custom cache instance. Defaults to shared SQLiteCache.
 
         Returns:
             A configured RuleRepository instance.
         """
         if client is None:
-            client = Dnd5eApiClient()
+            client = Open5eV2Client()
         if cache is None:
             cache = RepositoryFactory._get_cache()
         return RuleRepository(client=client, cache=cache)
