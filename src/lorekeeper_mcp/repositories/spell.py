@@ -2,9 +2,7 @@
 
 from typing import Any, Protocol
 
-from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 from lorekeeper_mcp.api_clients.models.spell import Spell
-from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.repositories.base import Repository
 
 
@@ -121,9 +119,8 @@ class SpellRepository(Repository[Spell]):
     def _map_to_api_params(self, **filters: Any) -> dict[str, Any]:
         """Map repository parameters to API-specific filter operators.
 
-        Converts repository-level filter parameters to API-specific operators
-        based on the client type. Open5e uses operators like `name__icontains`
-        and `school__key`, while D&D 5e API uses different parameter names.
+        Converts repository-level filter parameters to Open5e v2 API operators.
+        Open5e uses operators like `name__icontains` and `school__key`.
 
         Args:
             **filters: Repository-level filter parameters
@@ -133,45 +130,24 @@ class SpellRepository(Repository[Spell]):
         """
         params: dict[str, Any] = {}
 
-        if isinstance(self.client, Open5eV2Client):
-            # Map to Open5e filter operators
-            if "name" in filters:
-                params["name__icontains"] = filters["name"]
-            if "school" in filters:
-                params["school__key"] = filters["school"].lower()
-            if "class_key" in filters:
-                # Classes in Open5e API use srd_ prefix (e.g., srd_wizard, srd_cleric)
-                class_key = filters["class_key"].lower()
-                params["classes__key"] = f"srd_{class_key}"
-            if "level_min" in filters:
-                params["level__gte"] = filters["level_min"]
-            if "level_max" in filters:
-                params["level__lte"] = filters["level_max"]
-            if "damage_type" in filters:
-                params["damage_type__icontains"] = filters["damage_type"]
-            # Pass through exact matches
-            for key in ["level", "concentration", "ritual", "casting_time"]:
-                if key in filters:
-                    params[key] = filters[key]
-
-        elif isinstance(self.client, Dnd5eApiClient):
-            # D&D API uses name directly (built-in partial match)
-            if "name" in filters:
-                params["name"] = filters["name"]
-            # Handle multi-value level ranges
-            if "level_min" in filters and "level_max" in filters:
-                # Convert range to comma-separated list
-                levels = list(range(filters["level_min"], filters["level_max"] + 1))
-                params["level"] = ",".join(map(str, levels))
-            elif "level" in filters:
-                params["level"] = filters["level"]
-            # Pass through other filters
-            for key in ["school", "damage_type"]:
-                if key in filters:
-                    params[key] = filters[key]
-
-        else:
-            # For unknown client types, pass through filters as-is
-            params = dict(filters)
+        # Map to Open5e v2 filter operators
+        if "name" in filters:
+            params["name__icontains"] = filters["name"]
+        if "school" in filters:
+            params["school__key"] = filters["school"].lower()
+        if "class_key" in filters:
+            # Classes in Open5e API use srd_ prefix (e.g., srd_wizard, srd_cleric)
+            class_key = filters["class_key"].lower()
+            params["classes__key"] = f"srd_{class_key}"
+        if "level_min" in filters:
+            params["level__gte"] = filters["level_min"]
+        if "level_max" in filters:
+            params["level__lte"] = filters["level_max"]
+        if "damage_type" in filters:
+            params["damage_type__icontains"] = filters["damage_type"]
+        # Pass through exact matches
+        for key in ["level", "concentration", "ritual", "casting_time"]:
+            if key in filters:
+                params[key] = filters[key]
 
         return params
