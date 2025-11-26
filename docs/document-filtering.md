@@ -18,7 +18,7 @@ documents = await list_documents()
 
 # Each document contains:
 # - document: The document name/identifier (use in documents)
-# - source_api: Where it came from (open5e_v2, dnd5e_api, orcbrew)
+# - source_api: Where it came from (open5e_v2, orcbrew)
 # - entity_count: Number of entities from this document
 # - entity_types: Breakdown by type (spells, creatures, etc.)
 # - publisher: Publisher name (Open5e only)
@@ -65,11 +65,7 @@ Documents from Open5e v1 and v2 APIs include the document name from the API meta
 - `"Tome of Beasts"` - Kobold Press content
 - `"Midgard Heroes Handbook"` - Midgard campaign setting
 
-### D&D 5e API Documents
 
-All content from the official D&D 5e API is SRD content. LoreKeeper normalizes all D&D 5e API content to use the document name: **`"System Reference Document 5.1"`**
-
-This means filtering by `documents=["srd-5e"]` returns SRD content from **both** the Open5e and D&D 5e APIs (whichever LoreKeeper has cached). Users don't need to know which API provided the data.
 
 ### OrcBrew Documents
 
@@ -218,10 +214,8 @@ open5e_docs = await list_documents(source="open5e_v2")
 open5e_keys = [doc["document"] for doc in open5e_docs]
 open5e_spells = await lookup_spell(documents=open5e_keys)
 
-# Get official D&D 5e API content
-official_docs = await list_documents(source="dnd5e_api")
-official_keys = [doc["document"] for doc in official_docs]
-official_rules = await lookup_rule(documents=official_keys)
+# Get all available Open5e content
+open5e_all = await list_documents(source="open5e_v2")
 ```
 
 ## Integration Patterns
@@ -292,9 +286,7 @@ Every entity includes a `document` field containing the document name:
 
 Documents from Open5e include the document name from the API (e.g., "System Reference Document 5.1", "Adventurer's Guide", "Tome of Beasts").
 
-### D&D 5e API
 
-All content from the D&D 5e API is SRD content, normalized to **"System Reference Document 5.1"** (the same document name as Open5e's SRD).
 
 ### OrcBrew
 

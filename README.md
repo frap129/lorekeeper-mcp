@@ -1,12 +1,12 @@
 # LoreKeeper MCP
 
-A Model Context Protocol (MCP) server for D&D 5e information lookup with AI assistants. LoreKeeper provides fast, cached access to comprehensive Dungeons & Dragons 5th Edition data through the Open5e and D&D 5e APIs.
+A Model Context Protocol (MCP) server for D&D 5e information lookup with AI assistants. LoreKeeper provides fast, cached access to comprehensive Dungeons & Dragons 5th Edition data through the Open5e API.
 
 ## Features
 
 - **Comprehensive D&D 5e Data**: Access spells, monsters, classes, races, equipment, and rules
 - **Intelligent Caching**: SQLite-based caching with TTL support for fast responses
-- **Dual API Support**: Primary Open5e API with D&D 5e API fallback for complete coverage
+- **Open5e API Integration**: Access to comprehensive D&D 5e content via Open5e API
 - **Type-Safe Configuration**: Pydantic-based configuration management
 - **Modern Python Stack**: Built with Python 3.13+, async/await patterns, and FastMCP
 - **Production Ready**: Comprehensive test suite, code quality tools, and pre-commit hooks
@@ -127,7 +127,6 @@ DEBUG=false
 
 # API endpoints
 OPEN5E_BASE_URL=https://api.open5e.com
-DND5E_BASE_URL=https://www.dnd5eapi.co/api
 ```
 
 ## Development
@@ -201,10 +200,9 @@ LoreKeeper uses SQLite with WAL mode for efficient caching:
 
 The project follows a strategic API assignment:
 
-1. **Prefer Open5e API** over D&D 5e API
+1. **Use Open5e API** for all content lookups
 2. **Prefer Open5e v2** over v1 when available
-3. **Use D&D 5e API** only for content not available in Open5e (primarily rules)
-4. **Each category maps to ONE API** to avoid complexity
+3. **Unified source**: Single API ensures consistent behavior and simplified maintenance
 
 See [docs/tools.md](docs/tools.md) for detailed API mapping and implementation notes.
 
@@ -254,5 +252,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - [Open5e](https://open5e.com/) for comprehensive D&D 5e API
-- [D&D 5e API](https://www.dnd5eapi.co/) for official rules reference
 - [FastMCP](https://github.com/jlowin/fastmcp) for the MCP server framework

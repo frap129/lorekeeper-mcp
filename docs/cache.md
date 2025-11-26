@@ -100,7 +100,7 @@ CREATE TABLE {entity_type} (
 | `slug` | TEXT | Unique identifier/primary key for the entity |
 | `name` | TEXT | Human-readable entity name |
 | `data` | TEXT | Complete entity data as JSON blob |
-| `source_api` | TEXT | Source API identifier (open5e, dnd5e) |
+| `source_api` | TEXT | Source API identifier (open5e) |
 | `created_at` | REAL | Unix timestamp when entity was first cached (never changes) |
 | `updated_at` | REAL | Unix timestamp of last cache update |
 | `{indexed_field}` | VARIES | Type-specific indexed field for filtering |
@@ -160,7 +160,7 @@ CREATE TABLE api_cache (
 | `created_at` | REAL | Unix timestamp when entry was created |
 | `expires_at` | REAL | Unix timestamp when entry expires |
 | `content_type` | TEXT | Type of content (spell, monster, etc.) |
-| `source_api` | TEXT | API that provided the data (open5e, dnd5e) |
+| `source_api` | TEXT | API that provided the data (open5e) |
 
 ### Indexes
 
@@ -226,7 +226,7 @@ async def bulk_cache_entities(
     Args:
         entities: List of entity dictionaries with 'slug' and 'name' fields
         entity_type: Type of entities (spells, monsters, weapons, etc.)
-        source_api: Source API identifier (open5e, dnd5e, etc.)
+        source_api: Source API identifier (open5e, orcbrew, etc.)
 
     Returns:
         Number of entities processed

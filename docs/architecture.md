@@ -138,7 +138,6 @@ graph TD
     D --> F[Cache Layer]
     F --> G[SQLite Database]
     E --> H[Open5e API]
-    E --> I[D&D 5e API]
     J[Configuration] --> B
     J --> D
     J --> F
@@ -238,9 +237,9 @@ async def lookup_spell(
 **Repository Types**:
 - `SpellRepository` - D&D 5e spells (uses Open5e v2 API)
 - `MonsterRepository` - Creature stat blocks (uses Open5e v2 `/creatures/` endpoint)
-- `EquipmentRepository` - Weapons, armor, magic items (uses D&D 5e API)
-- `CharacterOptionRepository` - Classes, races, backgrounds, feats (uses D&D 5e API)
-- `RuleRepository` - Rules, conditions, reference data (uses D&D 5e API)
+- `EquipmentRepository` - Weapons, armor, magic items (uses Open5e v2 API)
+- `CharacterOptionRepository` - Classes, races, backgrounds, feats (uses Open5e v1 API)
+- `RuleRepository` - Rules, conditions, reference data (uses Open5e v2 API)
 
 **Key Design Pattern - Cache-Aside**:
 ```python
@@ -309,8 +308,8 @@ spell_repo = RepositoryFactory.create_spell_repository(cache=mock_cache)
 - Response normalization
 
 **Design Considerations**:
-- Separate clients for each API (Open5e, D&D 5e)
-- Consistent interface across different APIs
+- Single unified Open5e API client
+- Consistent interface for all API calls
 - Automatic retry with exponential backoff
 - Rate limiting awareness
 
@@ -387,14 +386,14 @@ CREATE INDEX idx_content_type ON api_cache(content_type);
 
 ### 2. API Selection Strategy
 
-**Decision**: Prefer Open5e API, use D&D 5e API as fallback
+**Decision**: Use Open5e API exclusively
 
 **Rationale**:
-- Open5e has more comprehensive data
+- Open5e has comprehensive data for all categories
 - Better structured responses
 - Includes community content
-- D&D 5e API needed for rules (not available in Open5e)
-- Reduces complexity by using single primary API per category
+- Single API source reduces complexity and maintenance burden
+- Consistent behavior across all lookups
 
 ### 3. TTL Values
 
@@ -528,7 +527,7 @@ CREATE INDEX idx_content_type ON api_cache(content_type);
 ### Phase 1: Current Implementation
 - Single-instance SQLite cache
 - Basic MCP tools
-- Open5e + D&D 5e API integration
+- Open5e API integration
 
 ### Phase 2: Enhanced Features
 - Additional data sources
@@ -576,10 +575,10 @@ The repository pattern provides a clean abstraction layer between business logic
       ▼       ▼         ▼       ▼         ▼       ▼
 ┌─────────────────┐ ┌─────────────────────────────────┐
 │   Cache Layer   │ │      API Client Layer            │
-│   (SQLite)      │ │  ┌──────────┐  ┌──────────┐     │
-│                 │ │  │ Open5e   │  │  D&D 5e  │     │
-└─────────────────┘ │  │  Clients │  │  API     │     │
-                    │  └──────────┘  └──────────┘     │
+│   (SQLite)      │ │  ┌──────────────────┐            │
+│                 │ │  │   Open5e API     │            │
+└─────────────────┘ │  │     Clients      │            │
+                    │  └──────────────────┘            │
                     └─────────────────────────────────┘
 ```
 
@@ -702,10 +701,10 @@ Some repositories aggregate data from multiple APIs:
 **Equipment Repository**:
 ```python
 class EquipmentRepository:
-    """Equipment data from D&D 5e API."""
+     """Equipment data from Open5e API."""
 
-    async def search(self, **filters) -> list[Equipment]:
-        # Uses D&D 5e API which provides:
+     async def search(self, **filters) -> list[Equipment]:
+         # Uses Open5e API which provides:
         # - Weapons
         # - Armor
         # - Magic items
@@ -717,10 +716,10 @@ class EquipmentRepository:
 **Character Option Repository**:
 ```python
 class CharacterOptionRepository:
-    """Character options from D&D 5e API."""
+     """Character options from Open5e API."""
 
-    async def search(self, **filters) -> list[CharacterOption]:
-        # Uses D&D 5e API which provides:
+     async def search(self, **filters) -> list[CharacterOption]:
+         # Uses Open5e API which provides:
         # - Classes
         # - Races
         # - Backgrounds

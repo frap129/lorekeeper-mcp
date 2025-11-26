@@ -4,10 +4,9 @@ This document defines the MCP tools for LoreKeeper, organized by domain.
 
 ## API Assignment Strategy
 
-- **Prefer Open5e API** over D&D 5e API
+- **Use Open5e API** for all content lookups
 - **Prefer Open5e v2** over v1 when available
-- **Use D&D 5e API** only for content not available in Open5e (primarily rules)
-- **Each category maps to ONE API** to avoid complexity
+- **Unified source**: Single API ensures consistent behavior and simplified maintenance
 
 ---
 
@@ -34,16 +33,13 @@ documents = await list_documents()
 # List only Open5e documents
 open5e_docs = await list_documents(source="open5e_v2")
 
-# List only D&D 5e API documents
-official_docs = await list_documents(source="dnd5e_api")
-
 # List only OrcBrew homebrew imports
 homebrew_docs = await list_documents(source="orcbrew")
 ```
 
 Each document in the results contains:
 - `document`: The document name/identifier (use this in `documents`)
-- `source_api`: Which source provided this (open5e_v2, dnd5e_api, orcbrew)
+- `source_api`: Which source provided this (open5e_v2, orcbrew)
 - `entity_count`: Total number of entities from this document
 - `entity_types`: Breakdown by type (spells, creatures, equipment, etc.)
 - `publisher`: Publisher name (Open5e documents)
@@ -413,9 +409,9 @@ results = await lookup_spell(documents=filtered_keys)
 **Purpose**: Look up game rules, mechanics, conditions, and reference information
 
 **API Coverage**:
-- **Rules & Rule Sections**: D&D 5e API `/rules/`, `/rule-sections/` (Open5e doesn't have this!)
-- **Conditions**: Open5e `/v2/conditions/` (prefer Open5e for conditions)
-- **Reference Info**: D&D 5e API (damage-types, weapon-properties, skills, ability-scores, magic-schools, languages, proficiencies, alignments)
+- **Rules & Rule Sections**: Open5e `/v2/rules/`, `/v2/rule-sections/`
+- **Conditions**: Open5e `/v2/conditions/`
+- **Reference Info**: Open5e (damage-types, weapon-properties, skills, ability-scores, magic-schools, languages, proficiencies, alignments)
 
 **Parameters**:
 - `rule_type` (string, required): One of: `rule`, `condition`, `damage-type`, `weapon-property`, `skill`, `ability-score`, `magic-school`, `language`, `proficiency`, `alignment`
@@ -468,7 +464,7 @@ All API responses should be cached in SQLite with:
 
 ### Error Handling
 - If primary API fails, log error and return user-friendly message
-- Don't automatically fall back to D&D 5e API unless specified in design
+- Log detailed errors for debugging
 - Cache errors with short TTL (5 minutes) to avoid hammering failed endpoints
 
 ### Search Behavior
@@ -499,11 +495,12 @@ All API responses should be cached in SQLite with:
 | lookup_equipment | Weapons | Open5e `/v2/weapons/` | v2 ✓ |
 | lookup_equipment | Armor | Open5e `/v2/armor/` | v2 ✓ |
 | lookup_equipment | Magic Items | Open5e `/v1/magicitems/` | v1 |
-| lookup_rule | Rules | D&D 5e API `/rules/`, `/rule-sections/` | Official |
+| lookup_rule | Rules | Open5e `/v2/rules/`, `/v2/rule-sections/` | v2 ✓ |
 | lookup_rule | Conditions | Open5e `/v2/conditions/` | v2 ✓ |
-| lookup_rule | Reference | D&D 5e API (various) | Official |
+| lookup_rule | Reference | Open5e (various) | v2 ✓ |
 
-### Why Each API Was Chosen
-- **Open5e v2 preferred**: More comprehensive, better structured, includes community content
-- **Open5e v1 for monsters/classes**: Most complete database with extensive third-party content
-- **D&D 5e API for rules**: Open5e doesn't have detailed rule mechanics - this is the fallback's primary use case
+### Why Open5e Was Chosen
+- **Comprehensive coverage**: Open5e v2 provides comprehensive, well-structured game data
+- **Open source**: Open5e data is freely available and community-supported
+- **Consistent maintenance**: Single API source ensures consistent updates and behavior
+- **Extensive content**: Includes both official SRD content and community-created content

@@ -206,7 +206,7 @@ Cache keys follow the pattern: `{api}:{endpoint}:{params_hash}`
 Examples:
 - `open5e:v2/spells:name=fireball`
 - `open5e:v1/monsters:cr=5,type=undead`
-- `dnd5e:rules:section=combat`
+- `open5e:v2/rules:section=combat`
 
 ### Performance Optimizations
 
@@ -233,7 +233,6 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO")
     debug: bool = Field(default=False)
     open5e_base_url: str = Field(default="https://api.open5e.com")
-    dnd5e_base_url: str = Field(default="https://www.dnd5eapi.co/api")
 ```
 
 ### Environment Variables
@@ -246,7 +245,6 @@ class Settings(BaseSettings):
 | `LOG_LEVEL` | Logging level | `INFO` |
 | `DEBUG` | Enable debug mode | `false` |
 | `OPEN5E_BASE_URL` | Open5e API base URL | `https://api.open5e.com` |
-| `DND5E_BASE_URL` | D&D 5e API base URL | `https://www.dnd5eapi.co/api` |
 
 ### Configuration Validation
 

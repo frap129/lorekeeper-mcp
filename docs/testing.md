@@ -775,7 +775,7 @@ This comprehensive testing guide ensures high-quality, reliable code for the Lor
 
 ### Overview
 
-Live tests validate LoreKeeper MCP tools against real Open5e and D&D 5e APIs. These tests are marked with `@pytest.mark.live` and are skipped by default.
+Live tests validate LoreKeeper MCP tools against the real Open5e API. These tests are marked with `@pytest.mark.live` and are skipped by default.
 
 ### Running Live Tests
 
@@ -798,7 +798,6 @@ uv run pytest -m "not live"
 
 - Internet connection
 - Working Open5e API (https://api.open5e.com)
-- Working D&D 5e API (https://www.dnd5eapi.co)
 
 ### Performance Expectations
 
