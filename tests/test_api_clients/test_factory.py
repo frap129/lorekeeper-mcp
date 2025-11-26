@@ -1,6 +1,5 @@
 """Tests for ClientFactory."""
 
-from lorekeeper_mcp.api_clients.dnd5e_api import Dnd5eApiClient
 from lorekeeper_mcp.api_clients.factory import ClientFactory
 from lorekeeper_mcp.api_clients.open5e_v1 import Open5eV1Client
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
@@ -38,14 +37,3 @@ async def test_factory_clients_are_independent() -> None:
 
     await client1.close()
     await client2.close()
-
-
-async def test_create_dnd5e_api() -> None:
-    """Test creating D&D 5e API client via factory."""
-    client = ClientFactory.create_dnd5e_api()
-
-    assert isinstance(client, Dnd5eApiClient)
-    assert client.base_url == "https://www.dnd5eapi.co/api/2014"
-    assert client.source_api == "dnd5e_api"
-
-    await client.close()
