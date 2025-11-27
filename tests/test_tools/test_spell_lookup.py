@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
-from lorekeeper_mcp.api_clients.models import Spell
+from lorekeeper_mcp.models import Spell
 from lorekeeper_mcp.tools import spell_lookup
 from lorekeeper_mcp.tools.spell_lookup import lookup_spell
 

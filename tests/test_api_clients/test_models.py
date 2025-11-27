@@ -3,10 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-# Import Weapon from api_clients.models for nested structure tests
-# (canonical Weapon has simplified flat structure)
-from lorekeeper_mcp.api_clients.models.equipment import Weapon
-from lorekeeper_mcp.models import Armor, Creature, Spell
+from lorekeeper_mcp.models import Armor, Creature, Spell, Weapon
 from lorekeeper_mcp.models.base import BaseEntity as BaseModel
 
 # Alias for backward compatibility in tests - these tests are for the Creature model
@@ -233,7 +230,11 @@ def test_armor_model() -> None:
 
 
 def test_weapon_model_real_api_dagger() -> None:
-    """Test Weapon model with real Open5e API v2 dagger response."""
+    """Test Weapon model with real Open5e API v2 dagger response.
+
+    The canonical Weapon model normalizes nested structures to flat format.
+    When both 'slug' and 'key' are present, 'slug' takes precedence.
+    """
     # Real data from Open5e API v2 - Dagger
     weapon_data = {
         "name": "Dagger",
@@ -273,21 +274,28 @@ def test_weapon_model_real_api_dagger() -> None:
     weapon = Weapon(**weapon_data)
 
     assert weapon.name == "Dagger"
-    assert weapon.slug == "srd-2024_dagger"
+    # 'slug' takes precedence over 'key' when both are present
+    assert weapon.slug == "dagger"
     assert weapon.damage_dice == "1d4"
-    assert weapon.damage_type.name == "Piercing"
-    assert weapon.damage_type.key == "piercing"
+    # Canonical model flattens damage_type to string
+    assert weapon.damage_type == "Piercing"
     assert weapon.is_simple is True
     assert weapon.is_improvised is False
     assert weapon.range == 20.0
     assert weapon.long_range == 60.0
     assert weapon.distance_unit == "feet"
+    # Canonical model flattens properties to list of strings
     assert len(weapon.properties) == 2
-    assert weapon.properties[0].property.name == "Finesse"
+    assert weapon.properties[0] == "Finesse"
+    assert weapon.properties[1] == "Light"
 
 
 def test_weapon_model_greatsword() -> None:
-    """Test Weapon model with martial melee weapon (greatsword)."""
+    """Test Weapon model with martial melee weapon (greatsword).
+
+    The canonical Weapon model normalizes nested structures to flat format.
+    When both 'slug' and 'key' are present, 'slug' takes precedence.
+    """
     weapon_data = {
         "name": "Greatsword",
         "slug": "greatsword",
@@ -326,17 +334,25 @@ def test_weapon_model_greatsword() -> None:
     weapon = Weapon(**weapon_data)
 
     assert weapon.name == "Greatsword"
-    assert weapon.slug == "srd-2024_greatsword"
+    # 'slug' takes precedence over 'key' when both are present
+    assert weapon.slug == "greatsword"
     assert weapon.damage_dice == "2d6"
-    assert weapon.damage_type.name == "Slashing"
+    # Canonical model flattens damage_type to string
+    assert weapon.damage_type == "Slashing"
     assert weapon.is_simple is False
     assert weapon.range == 0.0
     assert weapon.long_range == 0.0
+    # Canonical model flattens properties to list of strings
     assert len(weapon.properties) == 2
+    assert weapon.properties[0] == "Heavy"
+    assert weapon.properties[1] == "Two-Handed"
 
 
 def test_weapon_with_versatile_property() -> None:
-    """Test Weapon with Versatile property containing detail."""
+    """Test Weapon with Versatile property containing detail.
+
+    Note: The canonical model extracts property names but doesn't preserve detail.
+    """
     weapon_data = {
         "name": "Longsword",
         "slug": "longsword",
@@ -367,13 +383,16 @@ def test_weapon_with_versatile_property() -> None:
     weapon = Weapon(**weapon_data)
 
     assert weapon.name == "Longsword"
+    # Canonical model flattens properties to list of strings
     assert len(weapon.properties) == 1
-    assert weapon.properties[0].property.name == "Versatile"
-    assert weapon.properties[0].detail == "1d10"
+    assert weapon.properties[0] == "Versatile"
 
 
 def test_weapon_with_mastery_property() -> None:
-    """Test Weapon with Mastery property (5e 2024 feature)."""
+    """Test Weapon with Mastery property (5e 2024 feature).
+
+    The canonical model extracts property names as strings.
+    """
     weapon_data = {
         "name": "Dagger",
         "slug": "dagger",
@@ -403,8 +422,8 @@ def test_weapon_with_mastery_property() -> None:
 
     weapon = Weapon(**weapon_data)
 
-    assert weapon.properties[0].property.type == "Mastery"
-    assert weapon.properties[0].property.name == "Nick"
+    # Canonical model flattens properties to list of strings
+    assert weapon.properties[0] == "Nick"
 
 
 def test_weapon_with_empty_properties() -> None:

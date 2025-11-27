@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
-from lorekeeper_mcp.api_clients.models.equipment import Armor, MagicItem, Weapon
+from lorekeeper_mcp.models import Armor, MagicItem, Weapon
 from lorekeeper_mcp.tools import equipment_lookup
 from lorekeeper_mcp.tools.equipment_lookup import (
     _repository_context,
@@ -39,15 +39,11 @@ def sample_longsword() -> Weapon:
     """Sample longsword weapon for tests."""
     return Weapon(
         name="Longsword",
-        key="longsword",
+        slug="longsword",
         desc="A longsword with a straight blade",
         document_url="https://example.com/longsword",
         damage_dice="1d8",
-        damage_type={
-            "name": "Slashing",
-            "key": "slashing",
-            "url": "/api/damage-types/slashing",
-        },
+        damage_type="Slashing",
         range=5,
         long_range=5,
         distance_unit="feet",
@@ -61,15 +57,11 @@ def sample_dagger() -> Weapon:
     """Sample dagger weapon for tests."""
     return Weapon(
         name="Dagger",
-        key="dagger",
+        slug="dagger",
         desc="A small, sharp-pointed blade",
         document_url="https://example.com/dagger",
         damage_dice="1d4",
-        damage_type={
-            "name": "Piercing",
-            "key": "piercing",
-            "url": "/api/damage-types/piercing",
-        },
+        damage_type="Piercing",
         range=20,
         long_range=60,
         distance_unit="feet",
@@ -83,7 +75,7 @@ def sample_chain_mail() -> Armor:
     """Sample chain mail armor for tests."""
     return Armor(
         name="Chain Mail",
-        key="chain-mail",
+        slug="chain-mail",
         desc="Chain mail armor",
         document_url="https://example.com/chain-mail",
         category="Heavy",
@@ -96,7 +88,7 @@ def sample_leather() -> Armor:
     """Sample leather armor for tests."""
     return Armor(
         name="Leather",
-        key="leather",
+        slug="leather",
         desc="Light leather armor",
         document_url="https://example.com/leather",
         category="Light",
@@ -109,7 +101,7 @@ def sample_bag_of_holding() -> MagicItem:
     """Sample magic item for tests."""
     return MagicItem(
         name="Bag of Holding",
-        key="bag-of-holding",
+        slug="bag-of-holding",
         desc="This bag holds much more than it appears to hold",
         document_url="https://example.com/bag-of-holding",
         rarity="uncommon",
@@ -123,7 +115,7 @@ def sample_wand_of_fireballs() -> MagicItem:
     """Sample wand magic item for tests."""
     return MagicItem(
         name="Wand of Fireballs",
-        key="wand-of-fireballs",
+        slug="wand-of-fireballs",
         desc="This wand has 7 charges and regains 1d6+1 charges daily at dawn",
         document_url="https://example.com/wand-of-fireballs",
         rarity="rare",
@@ -232,15 +224,11 @@ async def test_lookup_equipment_limit_applied(repository_context):
     weapons = [
         Weapon(
             name=f"Weapon {i}",
-            key=f"weapon-{i}",
+            slug=f"weapon-{i}",
             desc=f"Weapon {i}",
             document_url="https://example.com",
             damage_dice="1d8",
-            damage_type={
-                "name": "Slashing",
-                "key": "slashing",
-                "url": "/api/damage-types/slashing",
-            },
+            damage_type="Slashing",
             range=5,
             long_range=5,
             distance_unit="feet",
@@ -342,15 +330,11 @@ async def test_lookup_all_equipment_types(repository_context):
     """Test searching all equipment types together."""
     sample_longsword = Weapon(
         name="Longsword",
-        key="longsword",
+        slug="longsword",
         desc="A longsword",
         document_url="https://example.com/longsword",
         damage_dice="1d8",
-        damage_type={
-            "name": "Slashing",
-            "key": "slashing",
-            "url": "/api/damage-types/slashing",
-        },
+        damage_type="Slashing",
         range=5,
         long_range=5,
         distance_unit="feet",
@@ -360,7 +344,7 @@ async def test_lookup_all_equipment_types(repository_context):
 
     sample_armor = Armor(
         name="Plate",
-        key="plate",
+        slug="plate",
         desc="Plate armor",
         document_url="https://example.com/plate",
         category="Heavy",
@@ -368,7 +352,7 @@ async def test_lookup_all_equipment_types(repository_context):
 
     sample_magic = MagicItem(
         name="Cloak of Invisibility",
-        key="cloak-of-invisibility",
+        slug="cloak-of-invisibility",
         desc="While wearing this cloak you are invisible",
         rarity="legendary",
         requires_attunement=False,
@@ -619,15 +603,11 @@ async def test_lookup_equipment_with_documents() -> None:
             return [
                 Weapon(
                     name="Longsword",
-                    key="longsword",
+                    slug="longsword",
                     desc="A longsword with a straight blade",
                     document_url="https://example.com/longsword",
                     damage_dice="1d8",
-                    damage_type={
-                        "name": "Slashing",
-                        "key": "slashing",
-                        "url": "/api/damage-types/slashing",
-                    },
+                    damage_type="Slashing",
                     range=5,
                     long_range=5,
                     distance_unit="feet",
