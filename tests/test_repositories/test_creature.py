@@ -1,4 +1,4 @@
-"""Tests for CreatureRepository implementation (formerly MonsterRepository)."""
+"""Tests for CreatureRepository implementation."""
 
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -7,7 +7,7 @@ import pytest
 
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.models import Creature
-from lorekeeper_mcp.repositories.monster import MonsterRepository
+from lorekeeper_mcp.repositories.monster import CreatureRepository
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def mock_client() -> MagicMock:
 
 @pytest.fixture
 def monster_data() -> list[dict[str, Any]]:
-    """Provide sample monster data for testing."""
+    """Provide sample creature data for testing."""
     return [
         {
             "name": "Goblin",
@@ -82,7 +82,7 @@ async def test_monster_repository_get_all_from_cache(
     mock_cache.get_entities.return_value = monster_data
     mock_client.get_creatures.return_value = []
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     results = await repo.get_all()
 
     assert len(results) == 3
@@ -105,7 +105,7 @@ async def test_monster_repository_get_all_cache_miss(
     mock_client.get_creatures.return_value = creatures
     mock_cache.store_entities.return_value = 3
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     results = await repo.get_all()
 
     assert len(results) == 3
@@ -127,7 +127,7 @@ async def test_monster_repository_search_by_type(
     mock_cache.get_entities.return_value = humanoid_monsters
     mock_client.get_creatures.return_value = []
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     results = await repo.search(type="humanoid")
 
     assert len(results) == 2
@@ -144,7 +144,7 @@ async def test_monster_repository_search_by_size(
     huge_monsters = [monster_data[2]]  # Dragon
     mock_cache.get_entities.return_value = huge_monsters
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     results = await repo.search(size="Huge")
 
     assert len(results) == 1
@@ -165,7 +165,7 @@ async def test_monster_repository_search_cache_miss_with_filters(
     mock_client.get_creatures.return_value = humanoid_creatures
     mock_cache.store_entities.return_value = 1
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     results = await repo.search(type="humanoid")
 
     assert len(results) == 1
@@ -189,7 +189,7 @@ async def test_monster_repository_search_by_challenge_rating(
     mock_client.get_creatures.return_value = high_cr_creatures
     mock_cache.store_entities.return_value = 1
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     results = await repo.search(challenge_rating="16")
 
     assert len(results) == 1
@@ -205,7 +205,7 @@ async def test_monster_repository_search_multiple_filters(
     mock_cache.get_entities.return_value = []
     mock_client.get_creatures.return_value = []
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     await repo.search(type="humanoid", size="Medium")
 
     # Client should be called with all filters
@@ -220,7 +220,7 @@ async def test_monster_repository_search_no_filters_returns_all(
     """Test search with no filters returns all monsters."""
     mock_cache.get_entities.return_value = monster_data
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     results = await repo.search()
 
     assert len(results) == 3
@@ -235,7 +235,7 @@ async def test_monster_repository_search_empty_result(
     mock_cache.get_entities.return_value = []
     mock_client.get_creatures.return_value = []
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     results = await repo.search(type="nonexistent")
 
     assert results == []
@@ -260,7 +260,7 @@ async def test_monster_repository_cache_aside_pattern(
     mock_client.get_creatures.return_value = creatures
     mock_cache.store_entities.return_value = len(monster_data)
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     results = await repo.get_all()
 
     # Verify cache-aside pattern:
@@ -285,7 +285,7 @@ async def test_monster_repository_uses_creatures_table_and_get_creatures(
     mock_client.get_creatures.return_value = creatures
     mock_cache.store_entities.return_value = 3
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     await repo.get_all()
 
     # Should use "creatures" table for cache operations
@@ -310,7 +310,7 @@ async def test_monster_repository_search_uses_creatures_table_and_get_creatures(
     mock_client.get_creatures.return_value = humanoid_creatures
     mock_cache.store_entities.return_value = 1
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     await repo.search(type="humanoid")
 
     # Should use "creatures" table for cache operations
@@ -331,7 +331,7 @@ async def test_repository_maps_v2_type_to_type_key_with_lowercase(mock_cache: Ma
 
     mock_cache.get_entities = AsyncMock(return_value=[])
 
-    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    repository = CreatureRepository(client=mock_v2_client, cache=mock_cache)
     await repository.search(type="Beast")
 
     # Verify v2 client was called with type and lowercase value
@@ -350,7 +350,7 @@ async def test_repository_maps_v2_size_to_size_key_with_lowercase(mock_cache: Ma
 
     mock_cache.get_entities = AsyncMock(return_value=[])
 
-    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    repository = CreatureRepository(client=mock_v2_client, cache=mock_cache)
     await repository.search(size="Large")
 
     # Verify v2 client was called with size and lowercase value
@@ -371,7 +371,7 @@ async def test_repository_maps_v2_cr_exact_to_challenge_rating_decimal(
 
     mock_cache.get_entities = AsyncMock(return_value=[])
 
-    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    repository = CreatureRepository(client=mock_v2_client, cache=mock_cache)
     await repository.search(cr=1)
 
     # Verify v2 client was called with challenge_rating_decimal as float
@@ -391,7 +391,7 @@ async def test_repository_maps_v2_challenge_rating_to_challenge_rating_decimal(
 
     mock_cache.get_entities = AsyncMock(return_value=[])
 
-    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    repository = CreatureRepository(client=mock_v2_client, cache=mock_cache)
     await repository.search(challenge_rating=21)
 
     # Verify v2 client was called with challenge_rating_decimal as float
@@ -409,7 +409,7 @@ async def test_repository_maps_v2_type_to_type_without_key_suffix(mock_cache: Ma
 
     mock_cache.get_entities = AsyncMock(return_value=[])
 
-    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    repository = CreatureRepository(client=mock_v2_client, cache=mock_cache)
     await repository.search(type="Beast")
 
     # Verify v2 client was called with 'type' (not 'type__key') and lowercase value
@@ -428,7 +428,7 @@ async def test_repository_maps_v2_size_to_size_without_key_suffix(mock_cache: Ma
 
     mock_cache.get_entities = AsyncMock(return_value=[])
 
-    repository = MonsterRepository(client=mock_v2_client, cache=mock_cache)
+    repository = CreatureRepository(client=mock_v2_client, cache=mock_cache)
     await repository.search(size="Large")
 
     # Verify v2 client was called with 'size' (not 'size__key') and lowercase value
@@ -449,7 +449,7 @@ async def test_search_monsters_by_document(
 
     mock_cache.get_entities.return_value = [monster_with_doc]
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
     results = await repo.search(document="System Reference Document 5.1")
 
     # Verify cache was called with document filter
@@ -463,7 +463,7 @@ async def test_search_monsters_by_document(
 
 @pytest.mark.asyncio
 async def test_monster_repository_search_with_document_filter() -> None:
-    """Test MonsterRepository.search passes document filter to cache."""
+    """Test CreatureRepository.search passes document filter to cache."""
     # Mock client and cache
     mock_client = MagicMock()
     mock_client.get_creatures = AsyncMock(return_value=[])
@@ -472,7 +472,7 @@ async def test_monster_repository_search_with_document_filter() -> None:
     mock_cache.get_entities = AsyncMock(return_value=[])
     mock_cache.store_entities = AsyncMock(return_value=0)
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
 
     # Search with document filter
     await repo.search(document=["srd-5e"])
@@ -495,7 +495,7 @@ async def test_monster_repository_search_document_not_passed_to_api() -> None:
     mock_cache.get_entities = AsyncMock(return_value=[])  # Cache miss
     mock_cache.store_entities = AsyncMock(return_value=0)
 
-    repo = MonsterRepository(client=mock_client, cache=mock_cache)
+    repo = CreatureRepository(client=mock_client, cache=mock_cache)
 
     # Search with document filter (cache miss)
     await repo.search(type="humanoid", document="srd-5e")

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lorekeeper_mcp.api_clients.models import Monster, Spell
+from lorekeeper_mcp.models import Creature, Spell
 from lorekeeper_mcp.tools import (
     character_option_lookup,
     creature_lookup,
@@ -66,8 +66,8 @@ async def test_full_spell_lookup_workflow():
 @pytest.mark.asyncio
 async def test_full_creature_lookup_workflow():
     """Test complete creature lookup workflow."""
-    # Create a mock creature repository that returns Monster objects
-    monster_obj = Monster(
+    # Create a mock creature repository that returns Creature objects
+    creature_obj = Creature(
         name="Ancient Red Dragon",
         slug="ancient-red-dragon",
         desc="A large red dragon",
@@ -92,7 +92,7 @@ async def test_full_creature_lookup_workflow():
     )
 
     mock_creature_repository = MagicMock()
-    mock_creature_repository.search = AsyncMock(return_value=[monster_obj])
+    mock_creature_repository.search = AsyncMock(return_value=[creature_obj])
 
     # Use context-based injection for creature lookup
     creature_lookup._repository_context["repository"] = mock_creature_repository

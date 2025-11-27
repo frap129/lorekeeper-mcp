@@ -3,10 +3,15 @@
 import pytest
 from pydantic import ValidationError
 
-from lorekeeper_mcp.api_clients.models.base import BaseModel
-from lorekeeper_mcp.api_clients.models.equipment import Armor, Weapon
-from lorekeeper_mcp.api_clients.models.monster import Monster
-from lorekeeper_mcp.api_clients.models.spell import Spell
+# Import Weapon from api_clients.models for nested structure tests
+# (canonical Weapon has simplified flat structure)
+from lorekeeper_mcp.api_clients.models.equipment import Weapon
+from lorekeeper_mcp.models import Armor, Creature, Spell
+from lorekeeper_mcp.models.base import BaseEntity as BaseModel
+
+# Alias for backward compatibility in tests - these tests are for the Creature model
+# but use "monster" terminology which is deprecated
+Monster = Creature
 
 
 def test_base_model_required_fields() -> None:

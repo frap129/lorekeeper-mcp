@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
-from lorekeeper_mcp.api_clients.models import Monster
+from lorekeeper_mcp.models import Creature
 from lorekeeper_mcp.tools import creature_lookup
 from lorekeeper_mcp.tools.creature_lookup import lookup_creature
 
@@ -33,7 +33,7 @@ def repository_context(mock_monster_repository):
 @pytest.mark.asyncio
 async def test_lookup_creature_by_name(repository_context):
     """Test looking up creature by exact name."""
-    creature_obj = Monster(
+    creature_obj = Creature(
         name="Ancient Red Dragon",
         slug="ancient-red-dragon",
         size="Gargantuan",
@@ -72,7 +72,7 @@ async def test_lookup_creature_by_name(repository_context):
 @pytest.mark.asyncio
 async def test_lookup_creature_by_cr_and_type(repository_context):
     """Test creature lookup with CR and type filters."""
-    creature_obj = Monster(
+    creature_obj = Creature(
         name="Zombie",
         slug="zombie",
         size="Medium",
@@ -109,7 +109,7 @@ async def test_lookup_creature_by_cr_and_type(repository_context):
 @pytest.mark.asyncio
 async def test_lookup_creature_fractional_cr(repository_context):
     """Test creature lookup with fractional CR."""
-    creature_obj = Monster(
+    creature_obj = Creature(
         name="Goblin",
         slug="goblin",
         size="Small",
@@ -145,7 +145,7 @@ async def test_lookup_creature_fractional_cr(repository_context):
 async def test_lookup_creature_cr_range(repository_context):
     """Test creature lookup with CR range."""
     creatures = [
-        Monster(
+        Creature(
             name=f"Creature {i}",
             slug=f"creature-{i}",
             size="Medium",
@@ -211,7 +211,7 @@ async def test_lookup_creature_network_error(repository_context):
 @pytest.mark.asyncio
 async def test_creature_search_by_name_client_side(repository_context):
     """Test that creature lookup filters by name client-side."""
-    creature_red_dragon = Monster(
+    creature_red_dragon = Creature(
         name="Ancient Red Dragon",
         slug="ancient-red-dragon",
         size="Gargantuan",
@@ -256,7 +256,7 @@ async def test_creature_search_by_name_client_side(repository_context):
 async def test_lookup_creature_limit_applied(repository_context):
     """Test that lookup_creature applies limit to results."""
     creatures = [
-        Monster(
+        Creature(
             name=f"Creature {i}",
             slug=f"creature-{i}",
             size="Medium",
@@ -302,7 +302,7 @@ async def test_lookup_creature_default_repository():
 @pytest.mark.asyncio
 async def test_lookup_creature_armor_class_min(repository_context):
     """Test creature lookup with armor_class_min filter."""
-    creature_obj = Monster(
+    creature_obj = Creature(
         name="Ancient Red Dragon",
         slug="ancient-red-dragon",
         size="Gargantuan",
@@ -340,7 +340,7 @@ async def test_lookup_creature_armor_class_min(repository_context):
 @pytest.mark.asyncio
 async def test_lookup_creature_hit_points_min(repository_context):
     """Test creature lookup with hit_points_min filter."""
-    creature_obj = Monster(
+    creature_obj = Creature(
         name="Ancient Red Dragon",
         slug="ancient-red-dragon",
         size="Gargantuan",
@@ -378,7 +378,7 @@ async def test_lookup_creature_hit_points_min(repository_context):
 @pytest.mark.asyncio
 async def test_lookup_creature_combined_filters(repository_context):
     """Test creature lookup with armor_class_min and hit_points_min together."""
-    creature_obj = Monster(
+    creature_obj = Creature(
         name="Ancient Red Dragon",
         slug="ancient-red-dragon",
         size="Gargantuan",
@@ -418,7 +418,7 @@ async def test_lookup_creature_combined_filters(repository_context):
 @pytest.mark.asyncio
 async def test_lookup_creature_backward_compatible(repository_context):
     """Test that existing calls without new parameters still work."""
-    creature_obj = Monster(
+    creature_obj = Creature(
         name="Goblin",
         slug="goblin",
         size="Small",
@@ -460,7 +460,7 @@ async def test_lookup_creature_backward_compatible(repository_context):
 @pytest.mark.asyncio
 async def test_lookup_creature_with_document_filter(repository_context):
     """Test looking up creatures filtered by document name."""
-    creature_obj = Monster(
+    creature_obj = Creature(
         name="Goblin",
         slug="goblin",
         size="Small",
@@ -503,7 +503,7 @@ async def test_lookup_creature_with_document_filter(repository_context):
 @pytest.mark.asyncio
 async def test_lookup_creature_with_documents(repository_context):
     """Test lookup_creature with documents filter."""
-    creature_obj = Monster(
+    creature_obj = Creature(
         name="Goblin",
         slug="goblin",
         size="Small",

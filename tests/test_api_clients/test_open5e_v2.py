@@ -284,23 +284,23 @@ async def test_get_item_categories(v2_client: Open5eV2Client) -> None:
 
 # Task 1.7: Creature methods
 @respx.mock
-async def test_get_creatures_transforms_v2_response_to_monster_model(
+async def test_get_creatures_transforms_v2_response_to_creature_model(
     v2_client: Open5eV2Client,
 ) -> None:
-    """Test get_creatures transforms Open5e v2 API response to Monster model.
+    """Test get_creatures transforms Open5e v2 API response to Creature model.
 
     This test verifies that the Open5eV2Client properly transforms the v2 API
-    response format to match the Monster model expectations.
+    response format to match the Creature model expectations.
 
     Key transformations needed:
-    1. API `key` → Monster `slug`
-    2. API `type` object {"name": "Humanoid", "key": "humanoid"} → Monster string "Humanoid"
-    3. API `size` object {"name": "Small", "key": "small"} → Monster string "Small"
-    4. API `challenge_rating_text` + `challenge_rating_decimal` → Monster fields
-    5. API `speed` with `unit` → Monster speed dict without unit
-    6. API `ability_scores` nested → Monster flat ability fields
-    7. API `traits` → Monster `special_abilities`
-    8. API nested `document` → Monster `document_url`
+    1. API `key` → Creature `slug`
+    2. API `type` object {"name": "Humanoid", "key": "humanoid"} → Creature string "Humanoid"
+    3. API `size` object {"name": "Small", "key": "small"} → Creature string "Small"
+    4. API `challenge_rating_text` + `challenge_rating_decimal` → Creature fields
+    5. API `speed` with `unit` → Creature speed dict without unit
+    6. API `ability_scores` nested → Creature flat ability fields
+    7. API `traits` → Creature `special_abilities`
+    8. API nested `document` → Creature `document_url`
     """
     respx.get("https://api.open5e.com/v2/creatures/").mock(
         return_value=httpx.Response(

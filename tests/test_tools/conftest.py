@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lorekeeper_mcp.api_clients.models import Monster, Spell
+from lorekeeper_mcp.models import Creature, Spell
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
 from lorekeeper_mcp.tools import (
     character_option_lookup,
@@ -58,8 +58,8 @@ def mock_spell_response():
 @pytest.fixture
 def mock_open5e_v1_client():
     """Mock Open5eV1Client."""
-    # Convert dict response to Monster models for get_monsters
-    monster_obj = Monster(
+    # Convert dict response to Creature models for get_creatures
+    creature_obj = Creature(
         name="Ancient Red Dragon",
         slug="ancient-red-dragon",
         desc="A large red dragon",
@@ -86,8 +86,8 @@ def mock_open5e_v1_client():
     )
 
     client = MagicMock()
-    client.get_monsters = AsyncMock(return_value=[monster_obj])
-    client.get_creatures = AsyncMock(return_value=[monster_obj])
+    client.get_monsters = AsyncMock(return_value=[creature_obj])
+    client.get_creatures = AsyncMock(return_value=[creature_obj])
     client.get_classes = AsyncMock(return_value={"count": 0, "results": []})
     client.get_races = AsyncMock(return_value={"count": 0, "results": []})
     client.get_magic_items = AsyncMock(return_value={"count": 0, "results": []})
