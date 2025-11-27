@@ -1,12 +1,12 @@
-"""Tests for MonsterRepository implementation."""
+"""Tests for CreatureRepository implementation (formerly MonsterRepository)."""
 
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lorekeeper_mcp.api_clients.models.monster import Monster
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+from lorekeeper_mcp.models import Creature
 from lorekeeper_mcp.repositories.monster import MonsterRepository
 
 
@@ -68,9 +68,9 @@ def monster_data() -> list[dict[str, Any]]:
 
 
 @pytest.fixture
-def monsters(monster_data: list[dict[str, Any]]) -> list[Monster]:
-    """Convert monster data to Monster models."""
-    return [Monster.model_validate(data) for data in monster_data]
+def creatures(monster_data: list[dict[str, Any]]) -> list[Creature]:
+    """Convert monster data to Creature models."""
+    return [Creature.model_validate(data) for data in monster_data]
 
 
 @pytest.mark.asyncio
@@ -100,9 +100,9 @@ async def test_monster_repository_get_all_cache_miss(
     """Test that get_all fetches from API on cache miss and stores in cache."""
     # Cache miss - empty cache
     mock_cache.get_entities.return_value = []
-    # Create Monster objects from monster_data
-    monsters = [Monster.model_validate(data) for data in monster_data]
-    mock_client.get_creatures.return_value = monsters
+    # Create Creature objects from monster_data
+    creatures = [Creature.model_validate(data) for data in monster_data]
+    mock_client.get_creatures.return_value = creatures
     mock_cache.store_entities.return_value = 3
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
@@ -161,8 +161,8 @@ async def test_monster_repository_search_cache_miss_with_filters(
     # Cache miss
     mock_cache.get_entities.return_value = []
     # API returns filtered results
-    humanoid_monsters = [Monster.model_validate(monster_data[0])]
-    mock_client.get_creatures.return_value = humanoid_monsters
+    humanoid_creatures = [Creature.model_validate(monster_data[0])]
+    mock_client.get_creatures.return_value = humanoid_creatures
     mock_cache.store_entities.return_value = 1
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
@@ -185,8 +185,8 @@ async def test_monster_repository_search_by_challenge_rating(
     # Cache miss
     mock_cache.get_entities.return_value = []
     # Filter by CR
-    high_cr_monsters = [Monster.model_validate(monster_data[2])]
-    mock_client.get_creatures.return_value = high_cr_monsters
+    high_cr_creatures = [Creature.model_validate(monster_data[2])]
+    mock_client.get_creatures.return_value = high_cr_creatures
     mock_cache.store_entities.return_value = 1
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
@@ -256,8 +256,8 @@ async def test_monster_repository_cache_aside_pattern(
     """
     # First call returns empty (cache miss)
     mock_cache.get_entities.return_value = []
-    monsters = [Monster.model_validate(data) for data in monster_data]
-    mock_client.get_creatures.return_value = monsters
+    creatures = [Creature.model_validate(data) for data in monster_data]
+    mock_client.get_creatures.return_value = creatures
     mock_cache.store_entities.return_value = len(monster_data)
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
@@ -281,8 +281,8 @@ async def test_monster_repository_uses_creatures_table_and_get_creatures(
     """Test that repository uses 'creatures' table and calls get_creatures method."""
     # Cache miss - empty cache
     mock_cache.get_entities.return_value = []
-    monsters = [Monster.model_validate(data) for data in monster_data]
-    mock_client.get_creatures.return_value = monsters
+    creatures = [Creature.model_validate(data) for data in monster_data]
+    mock_client.get_creatures.return_value = creatures
     mock_cache.store_entities.return_value = 3
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)
@@ -306,8 +306,8 @@ async def test_monster_repository_search_uses_creatures_table_and_get_creatures(
     """Test that search uses 'creatures' table and calls get_creatures method."""
     # Cache miss
     mock_cache.get_entities.return_value = []
-    humanoid_monsters = [Monster.model_validate(monster_data[0])]
-    mock_client.get_creatures.return_value = humanoid_monsters
+    humanoid_creatures = [Creature.model_validate(monster_data[0])]
+    mock_client.get_creatures.return_value = humanoid_creatures
     mock_cache.store_entities.return_value = 1
 
     repo = MonsterRepository(client=mock_client, cache=mock_cache)

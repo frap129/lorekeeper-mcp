@@ -1,4 +1,8 @@
-"""Repository for monsters with cache-aside pattern."""
+"""Repository for creatures with cache-aside pattern.
+
+Formerly named monster.py. The Monster terminology has been deprecated
+in favor of Creature for consistency with D&D 5e canonical terminology.
+"""
 
 from typing import Any, Protocol
 
@@ -8,16 +12,16 @@ from lorekeeper_mcp.models import Creature
 from lorekeeper_mcp.repositories.base import Repository
 
 
-class MonsterClient(Protocol):
-    """Protocol for monster API client."""
+class CreatureClient(Protocol):
+    """Protocol for creature API client."""
 
     async def get_creatures(self, **filters: Any) -> list[Creature]:
         """Fetch creatures from API with optional filters."""
         ...
 
 
-class MonsterCache(Protocol):
-    """Protocol for monster cache."""
+class CreatureCache(Protocol):
+    """Protocol for creature cache."""
 
     async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
         """Retrieve entities from cache."""
@@ -28,8 +32,8 @@ class MonsterCache(Protocol):
         ...
 
 
-class MonsterRepository(Repository[Creature]):
-    """Repository for D&D 5e monsters with cache-aside pattern.
+class CreatureRepository(Repository[Creature]):
+    """Repository for D&D 5e creatures with cache-aside pattern.
 
     Implements cache-aside pattern:
     1. Try to get from cache
@@ -38,8 +42,8 @@ class MonsterRepository(Repository[Creature]):
     4. Return results
     """
 
-    def __init__(self, client: MonsterClient, cache: MonsterCache) -> None:
-        """Initialize MonsterRepository.
+    def __init__(self, client: CreatureClient, cache: CreatureCache) -> None:
+        """Initialize CreatureRepository.
 
         Args:
             client: API client with get_creatures() method
@@ -49,7 +53,7 @@ class MonsterRepository(Repository[Creature]):
         self.cache = cache
 
     async def get_all(self) -> list[Creature]:
-        """Retrieve all monsters using cache-aside pattern.
+        """Retrieve all creatures using cache-aside pattern.
 
         Returns:
             List of all Creature objects
@@ -58,19 +62,19 @@ class MonsterRepository(Repository[Creature]):
         cached = await self.cache.get_entities("creatures")
 
         if cached:
-            return [Creature.model_validate(monster) for monster in cached]
+            return [Creature.model_validate(creature) for creature in cached]
 
         # Cache miss - fetch from API
-        monsters: list[Creature] = await self.client.get_creatures()
+        creatures: list[Creature] = await self.client.get_creatures()
 
         # Store in cache
-        monster_dicts = [monster.model_dump() for monster in monsters]
-        await self.cache.store_entities(monster_dicts, "creatures")
+        creature_dicts = [creature.model_dump() for creature in creatures]
+        await self.cache.store_entities(creature_dicts, "creatures")
 
-        return monsters
+        return creatures
 
     async def search(self, **filters: Any) -> list[Creature]:
-        """Search for monsters with optional filters using cache-aside pattern.
+        """Search for creatures with optional filters using cache-aside pattern.
 
         Args:
             **filters: Optional filters (type, size, challenge_rating, etc.)
@@ -106,7 +110,7 @@ class MonsterRepository(Repository[Creature]):
         cached = await self.cache.get_entities("creatures", **cache_filters)
 
         if cached:
-            results = [Creature.model_validate(monster) for monster in cached]
+            results = [Creature.model_validate(creature) for creature in cached]
             # Apply API-only filters client-side if needed
             if api_only_filters:
                 results = self._apply_api_filters(results, **api_only_filters)
@@ -117,13 +121,13 @@ class MonsterRepository(Repository[Creature]):
         # Remove document from API filters (cache-only filter)
         api_filters.pop("document", None)
         api_params = self._map_to_api_params(**api_filters)
-        monsters: list[Creature] = await self.client.get_creatures(limit=limit, **api_params)
+        creatures: list[Creature] = await self.client.get_creatures(limit=limit, **api_params)
 
         # Store in cache if we got results
-        if monsters:
-            monster_dicts = [monster.model_dump() for monster in monsters]
-            await self.cache.store_entities(monster_dicts, "creatures")
-        return monsters
+        if creatures:
+            creature_dicts = [creature.model_dump() for creature in creatures]
+            await self.cache.store_entities(creature_dicts, "creatures")
+        return creatures
 
     def _map_to_api_params(self, **filters: Any) -> dict[str, Any]:
         """Map repository parameters to API-specific filter operators.
@@ -176,17 +180,17 @@ class MonsterRepository(Repository[Creature]):
 
         return params
 
-    def _apply_api_filters(self, monsters: list[Creature], **api_filters: Any) -> list[Creature]:
+    def _apply_api_filters(self, creatures: list[Creature], **api_filters: Any) -> list[Creature]:
         """Apply API-only filters client-side to cached results.
 
         Args:
-            monsters: List of Monster objects from cache
+            creatures: List of Creature objects from cache
             **api_filters: API-only filter parameters
 
         Returns:
-            Filtered list of Monster objects
+            Filtered list of Creature objects
         """
-        filtered = monsters
+        filtered = creatures
 
         # Apply name__icontains filter (case-insensitive substring search)
         if "name__icontains" in api_filters:
@@ -224,3 +228,13 @@ class MonsterRepository(Repository[Creature]):
             filtered = [m for m in filtered if m.hit_points is not None and m.hit_points >= min_hp]
 
         return filtered
+
+
+# Backward-compatible aliases (deprecated)
+# Note: Protocols cannot be subclassed for deprecation warnings easily,
+# so we just create direct aliases. Users who import Monster* names
+# will get the Creature* classes without warning. The deprecation
+# warning for the Monster model class is in models/creature.py.
+MonsterClient = CreatureClient
+MonsterCache = CreatureCache
+MonsterRepository = CreatureRepository

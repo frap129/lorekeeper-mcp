@@ -3,6 +3,10 @@
 import logging
 from typing import Any
 
+from pydantic import ValidationError
+
+from lorekeeper_mcp.models.orcbrew import OrcBrewCreature, OrcBrewSpell
+
 logger = logging.getLogger(__name__)
 
 # Mapping of OrcBrew entity type keys to LoreKeeper entity types
@@ -52,6 +56,11 @@ def normalize_entity(
 
     Raises:
         ValueError: If entity is missing required fields
+
+    Note:
+        Validates entities through OrcBrew Pydantic models after normalization.
+        Validation errors are logged as warnings since OrcBrew data is often
+        incomplete but still usable.
     """
     # Extract or generate slug
     slug = entity.get("key")
@@ -73,7 +82,7 @@ def normalize_entity(
     # Extract document name (book name is the document)
     document = entity.get("option-pack") or entity.get("_source_book", "Unknown")
 
-    # Build normalized entity
+    # Build base normalized entity with ALL fields from OrcBrew (not just indexed)
     normalized: dict[str, Any] = {
         "slug": slug,
         "name": name,
@@ -83,12 +92,48 @@ def normalize_entity(
         "data": {k: v for k, v in entity.items() if not k.startswith("_")},
     }
 
-    # Copy indexed fields to top level for filtering
+    # Extract ALL OrcBrew fields to top level (comprehensive extraction)
+    # This ensures fields like concentration, ritual, components are available
+    for key, value in entity.items():
+        if not key.startswith("_") and key not in normalized:
+            # Convert kebab-case to snake_case
+            snake_key = key.replace("-", "_")
+            normalized[snake_key] = value
+
+    # Copy indexed fields to top level for filtering (may override some above)
     lorekeeper_type = map_entity_type(orcbrew_type)
     if lorekeeper_type:
         normalized.update(_extract_indexed_fields(entity, lorekeeper_type))
 
+    # Validate through OrcBrew Pydantic models
+    _validate_through_model(normalized, lorekeeper_type)
+
     return normalized
+
+
+def _validate_through_model(normalized: dict[str, Any], entity_type: str | None) -> None:
+    """Validate normalized entity through appropriate OrcBrew Pydantic model.
+
+    Args:
+        normalized: Normalized entity data
+        entity_type: LoreKeeper entity type
+
+    Note:
+        Validation errors are logged as warnings rather than raised,
+        since OrcBrew data is often incomplete but still usable.
+    """
+    try:
+        if entity_type == "spells":
+            OrcBrewSpell.model_validate(normalized)
+        elif entity_type == "creatures":
+            OrcBrewCreature.model_validate(normalized)
+        # Other types don't have OrcBrew models yet - pass through
+    except ValidationError as e:
+        logger.warning(
+            "OrcBrew entity '%s' failed validation: %s",
+            normalized.get("name", normalized.get("slug", "unknown")),
+            e,
+        )
 
 
 def _extract_indexed_fields(
@@ -117,9 +162,8 @@ def _extract_indexed_fields(
             indexed["ritual"] = entity["ritual"]
 
     elif entity_type == "creatures":
-        if "challenge" in entity:
-            # OrcBrew uses 'challenge', LoreKeeper uses 'challenge_rating'
-            indexed["challenge_rating"] = entity["challenge"]
+        # Note: 'challenge' is NOT copied here - let OrcBrewCreature model handle
+        # the conversion from challenge -> challenge_rating
         if "type" in entity:
             indexed["type"] = entity["type"]
         if "size" in entity:

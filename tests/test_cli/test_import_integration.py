@@ -70,13 +70,15 @@ def test_import_sample_file_end_to_end(tmp_path: Path, monkeypatch, caplog) -> N
     assert goblin is not None, "Goblin creature not found"
     assert goblin["name"] == "Goblin"
     assert goblin["type"] == "humanoid"
-    assert goblin["challenge_rating"] == 0.25
+    # challenge_rating is now validated through OrcBrewCreature model which converts
+    # numeric challenge to string format (e.g., 0.25 -> "1/4")
+    assert goblin["challenge_rating"] == "1/4"
 
     dragon = asyncio.run(get_cached_entity("creatures", "dragon-red-adult", db_path=str(test_db)))
     assert dragon is not None, "Adult Red Dragon creature not found"
     assert dragon["name"] == "Adult Red Dragon"
     assert dragon["type"] == "dragon"
-    assert dragon["challenge_rating"] == 17
+    assert dragon["challenge_rating"] == "17"
 
 
 def test_import_dry_run(caplog) -> None:
