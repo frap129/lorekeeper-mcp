@@ -700,7 +700,7 @@ async def populated_cache(entity_test_db):
             "document": "mm",
         },
     ]
-    await bulk_cache_entities(monsters, "monsters", db_path=entity_test_db, source_api="dnd5e_api")
+    await bulk_cache_entities(monsters, "monsters", db_path=entity_test_db, source_api="open5e_v2")
 
     return entity_test_db
 

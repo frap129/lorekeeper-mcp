@@ -96,7 +96,7 @@ async def populated_cache() -> AsyncGenerator[str, None]:
                 "document": "mm",
             },
         ]
-        await bulk_cache_entities(monsters, "monsters", db_path=db_path, source_api="dnd5e_api")
+        await bulk_cache_entities(monsters, "monsters", db_path=db_path, source_api="open5e_v2")
 
         yield db_path
 
@@ -203,7 +203,7 @@ async def test_cross_tool_document_consistency(populated_cache: str) -> None:
                         if spell.get("document"):
                             assert spell["document"] == doc_key
 
-                if source_api == "dnd5e_api":
+                if source_api == "open5e_v2":
                     for creature in creatures:
                         if creature.get("document"):
                             assert creature["document"] == doc_key
