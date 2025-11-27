@@ -1,15 +1,16 @@
 """Creature lookup tool using the repository pattern for caching.
 
-This module provides creature/monster lookup functionality with automatic database
+This module provides creature lookup functionality with automatic database
 caching through the repository pattern. The repository abstracts away cache management,
 allowing you to focus on creature searching. Cache misses automatically fetch from
 multiple D&D 5e sources and store results for future queries.
 
 Architecture:
-    - Uses MonsterRepository for cache-aside pattern with multi-source support
+    - Uses CreatureRepository (MonsterRepository) for cache-aside pattern with multi-source support
     - Repository manages SQLite cache automatically
     - Supports test context-based repository injection
     - Handles Open5e v1 and D&D 5e API data normalization
+    - Returns canonical Creature models from lorekeeper_mcp.models
 
 Examples:
     Default usage (automatically creates repository):
@@ -37,10 +38,10 @@ _repository_context: dict[str, Any] = {}
 
 
 def _get_repository() -> MonsterRepository:
-    """Get monster repository, respecting test context.
+    """Get creature repository, respecting test context.
 
     Returns the repository from _repository_context if set, otherwise creates
-    a default MonsterRepository using RepositoryFactory.
+    a default creature repository using RepositoryFactory.
 
     Returns:
         MonsterRepository instance for creature lookups.
@@ -72,7 +73,7 @@ async def lookup_creature(
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
-    Search and retrieve D&D 5e creatures/monsters using the repository pattern.
+    Search and retrieve D&D 5e creatures using the repository pattern.
 
     This tool provides comprehensive creature lookup including full stat blocks, combat
     statistics, abilities, and special features. Results include complete creature data
