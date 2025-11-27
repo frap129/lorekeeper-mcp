@@ -3,7 +3,7 @@
 from typing import Any, cast
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
-from lorekeeper_mcp.api_clients.models.monster import Monster
+from lorekeeper_mcp.models import Creature
 
 
 class Open5eV1Client(BaseHttpClient):
@@ -21,7 +21,7 @@ class Open5eV1Client(BaseHttpClient):
         self,
         challenge_rating: str | None = None,
         **filters: Any,
-    ) -> list[Monster]:
+    ) -> list[Creature]:
         """Get monsters from Open5e API v1.
 
         Args:
@@ -29,7 +29,7 @@ class Open5eV1Client(BaseHttpClient):
             **filters: Additional API parameters
 
         Returns:
-            List of monster dictionaries
+            List of Creature models
         """
         # Include challenge_rating in API params if provided
         params = {k: v for k, v in filters.items() if v is not None}
@@ -44,25 +44,25 @@ class Open5eV1Client(BaseHttpClient):
         # Handle both list and dict response formats
         entities = result if isinstance(result, list) else result.get("results", [])
 
-        # Convert dictionaries to Monster objects
-        return [Monster(**monster_data) for monster_data in entities]
+        # Convert dictionaries to Creature objects
+        return [Creature(**monster_data) for monster_data in entities]
 
     async def get_creatures(
         self,
         challenge_rating: str | None = None,
         **filters: Any,
-    ) -> list[Monster]:
+    ) -> list[Creature]:
         """Get creatures from Open5e API v1 (alias for get_monsters).
 
         This method exists for protocol compatibility. V1 uses /monsters/ endpoint,
-        while v2 uses /creatures/ endpoint. Both return Monster models.
+        while v2 uses /creatures/ endpoint. Both return Creature models.
 
         Args:
             challenge_rating: Filter by CR (e.g., "1/4", "5")
             **filters: Additional API parameters
 
         Returns:
-            List of Monster models
+            List of Creature models
         """
         return await self.get_monsters(challenge_rating=challenge_rating, **filters)
 

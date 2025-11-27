@@ -2,7 +2,7 @@
 
 from typing import Any, Protocol
 
-from lorekeeper_mcp.api_clients.models.equipment import Armor, MagicItem, Weapon
+from lorekeeper_mcp.models import Armor, MagicItem, Weapon
 from lorekeeper_mcp.repositories.base import Repository
 
 

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lorekeeper_mcp.api_clients.models.equipment import Armor, Weapon
+from lorekeeper_mcp.models import Armor, Weapon
 from lorekeeper_mcp.repositories.equipment import EquipmentRepository
 
 
@@ -30,17 +30,13 @@ def mock_client() -> MagicMock:
 
 @pytest.fixture
 def weapon_data() -> list[dict[str, Any]]:
-    """Provide sample weapon data for testing."""
+    """Provide sample weapon data for testing (canonical format)."""
     return [
         {
             "name": "Longsword",
             "key": "longsword",
             "damage_dice": "1d8",
-            "damage_type": {
-                "name": "Slashing",
-                "key": "slashing",
-                "url": "/api/damage-types/slashing",
-            },
+            "damage_type": "Slashing",
             "range": 5,
             "long_range": 5,
             "distance_unit": "feet",
@@ -51,11 +47,7 @@ def weapon_data() -> list[dict[str, Any]]:
             "name": "Dagger",
             "key": "dagger",
             "damage_dice": "1d4",
-            "damage_type": {
-                "name": "Piercing",
-                "key": "piercing",
-                "url": "/api/damage-types/piercing",
-            },
+            "damage_type": "Piercing",
             "range": 20,
             "long_range": 60,
             "distance_unit": "feet",

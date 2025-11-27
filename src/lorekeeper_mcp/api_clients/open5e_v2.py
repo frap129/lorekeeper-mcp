@@ -3,7 +3,7 @@
 from typing import Any
 
 from lorekeeper_mcp.api_clients.base import BaseHttpClient
-from lorekeeper_mcp.api_clients.models import Armor, Monster, Spell, Weapon
+from lorekeeper_mcp.models import Armor, Creature, Spell, Weapon
 
 
 def _extract_document_name(entity: dict[str, Any]) -> str | None:
@@ -34,13 +34,13 @@ class Open5eV2Client(BaseHttpClient):
         super().__init__(base_url="https://api.open5e.com/v2", **kwargs)
 
     def _transform_creature_response(self, creature: dict[str, Any]) -> dict[str, Any] | None:
-        """Transform Open5e v2 creature response to Monster model format.
+        """Transform Open5e v2 creature response to Creature model format.
 
         Args:
             creature: Raw creature data from Open5e v2 API
 
         Returns:
-            Transformed creature data compatible with Monster model,
+            Transformed creature data compatible with Creature model,
             or None if creature should be filtered out (missing required fields)
         """
         # Skip creatures with missing required fields (e.g., hit_dice: None)
@@ -389,10 +389,10 @@ class Open5eV2Client(BaseHttpClient):
         challenge_rating_decimal_gte: float | None = None,
         challenge_rating_decimal_lte: float | None = None,
         **kwargs: Any,
-    ) -> list[Monster]:
+    ) -> list[Creature]:
         """Get creatures from Open5e API v2.
 
-        Creatures are returned as Monster models compatible with v1.
+        Creatures are returned as Creature models compatible with v1.
 
         Args:
             challenge_rating_decimal_gte: Filter creatures with CR >= this value
@@ -402,7 +402,7 @@ class Open5eV2Client(BaseHttpClient):
             **kwargs: Additional API parameters
 
         Returns:
-            List of Monster models
+            List of Creature models
         """
         params: dict[str, Any] = {}
 
@@ -432,7 +432,7 @@ class Open5eV2Client(BaseHttpClient):
             if transformed is not None:
                 transformed_creatures.append(transformed)
 
-        return [Monster.model_validate(creature) for creature in transformed_creatures]
+        return [Creature.model_validate(creature) for creature in transformed_creatures]
 
     async def get_creature_types(self, **kwargs: Any) -> list[dict[str, Any]]:
         """Get creature type definitions from Open5e API v2.

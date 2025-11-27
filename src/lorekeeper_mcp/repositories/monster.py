@@ -2,16 +2,16 @@
 
 from typing import Any, Protocol
 
-from lorekeeper_mcp.api_clients.models.monster import Monster
 from lorekeeper_mcp.api_clients.open5e_v1 import Open5eV1Client
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
+from lorekeeper_mcp.models import Creature
 from lorekeeper_mcp.repositories.base import Repository
 
 
 class MonsterClient(Protocol):
     """Protocol for monster API client."""
 
-    async def get_creatures(self, **filters: Any) -> list[Monster]:
+    async def get_creatures(self, **filters: Any) -> list[Creature]:
         """Fetch creatures from API with optional filters."""
         ...
 
@@ -28,7 +28,7 @@ class MonsterCache(Protocol):
         ...
 
 
-class MonsterRepository(Repository[Monster]):
+class MonsterRepository(Repository[Creature]):
     """Repository for D&D 5e monsters with cache-aside pattern.
 
     Implements cache-aside pattern:
@@ -48,20 +48,20 @@ class MonsterRepository(Repository[Monster]):
         self.client = client
         self.cache = cache
 
-    async def get_all(self) -> list[Monster]:
+    async def get_all(self) -> list[Creature]:
         """Retrieve all monsters using cache-aside pattern.
 
         Returns:
-            List of all Monster objects
+            List of all Creature objects
         """
         # Try cache first
         cached = await self.cache.get_entities("creatures")
 
         if cached:
-            return [Monster.model_validate(monster) for monster in cached]
+            return [Creature.model_validate(monster) for monster in cached]
 
         # Cache miss - fetch from API
-        monsters: list[Monster] = await self.client.get_creatures()
+        monsters: list[Creature] = await self.client.get_creatures()
 
         # Store in cache
         monster_dicts = [monster.model_dump() for monster in monsters]
@@ -69,14 +69,14 @@ class MonsterRepository(Repository[Monster]):
 
         return monsters
 
-    async def search(self, **filters: Any) -> list[Monster]:
+    async def search(self, **filters: Any) -> list[Creature]:
         """Search for monsters with optional filters using cache-aside pattern.
 
         Args:
             **filters: Optional filters (type, size, challenge_rating, etc.)
 
         Returns:
-            List of Monster objects matching the filters
+            List of Creature objects matching the filters
         """
         # Extract limit parameter (not a cache filter field)
         limit = filters.pop("limit", None)
@@ -106,7 +106,7 @@ class MonsterRepository(Repository[Monster]):
         cached = await self.cache.get_entities("creatures", **cache_filters)
 
         if cached:
-            results = [Monster.model_validate(monster) for monster in cached]
+            results = [Creature.model_validate(monster) for monster in cached]
             # Apply API-only filters client-side if needed
             if api_only_filters:
                 results = self._apply_api_filters(results, **api_only_filters)
@@ -117,7 +117,7 @@ class MonsterRepository(Repository[Monster]):
         # Remove document from API filters (cache-only filter)
         api_filters.pop("document", None)
         api_params = self._map_to_api_params(**api_filters)
-        monsters: list[Monster] = await self.client.get_creatures(limit=limit, **api_params)
+        monsters: list[Creature] = await self.client.get_creatures(limit=limit, **api_params)
 
         # Store in cache if we got results
         if monsters:
@@ -176,7 +176,7 @@ class MonsterRepository(Repository[Monster]):
 
         return params
 
-    def _apply_api_filters(self, monsters: list[Monster], **api_filters: Any) -> list[Monster]:
+    def _apply_api_filters(self, monsters: list[Creature], **api_filters: Any) -> list[Creature]:
         """Apply API-only filters client-side to cached results.
 
         Args:
