@@ -19,13 +19,13 @@ class TestSettings:
 
     def test_settings_respects_env_vars(self, monkeypatch):
         """Test that settings respects environment variable overrides."""
-        # Set environment variables
-        monkeypatch.setenv("DB_PATH", "./data/test.db")
-        monkeypatch.setenv("CACHE_TTL_DAYS", "14")
-        monkeypatch.setenv("ERROR_CACHE_TTL_SECONDS", "600")
-        monkeypatch.setenv("LOG_LEVEL", "DEBUG")
-        monkeypatch.setenv("DEBUG", "true")
-        monkeypatch.setenv("OPEN5E_BASE_URL", "https://test.open5e.com")
+        # Set environment variables (using LOREKEEPER_ prefix)
+        monkeypatch.setenv("LOREKEEPER_DB_PATH", "./data/test.db")
+        monkeypatch.setenv("LOREKEEPER_CACHE_TTL_DAYS", "14")
+        monkeypatch.setenv("LOREKEEPER_ERROR_CACHE_TTL_SECONDS", "600")
+        monkeypatch.setenv("LOREKEEPER_LOG_LEVEL", "DEBUG")
+        monkeypatch.setenv("LOREKEEPER_DEBUG", "true")
+        monkeypatch.setenv("LOREKEEPER_OPEN5E_BASE_URL", "https://test.open5e.com")
 
         # Create a new Settings instance to pick up environment variables
         test_settings = Settings()
