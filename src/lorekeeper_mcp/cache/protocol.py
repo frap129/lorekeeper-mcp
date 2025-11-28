@@ -13,8 +13,12 @@ from typing_extensions import Protocol
 class CacheProtocol(Protocol):
     """Protocol defining the cache interface for entity storage and retrieval.
 
-    Any cache implementation (SQLite, Redis, etc.) must provide methods
+    Any cache implementation (SQLite, Redis, Milvus, etc.) must provide methods
     conforming to this protocol to be used with the repository layer.
+
+    The protocol supports both structured filtering via get_entities() and
+    semantic/vector search via semantic_search() for implementations that
+    support embeddings (e.g., MilvusCache).
     """
 
     async def get_entities(
@@ -57,5 +61,36 @@ class CacheProtocol(Protocol):
 
         Raises:
             ValueError: If entity_type is invalid or entities list is empty.
+        """
+        ...
+
+    async def semantic_search(
+        self,
+        entity_type: str,
+        query: str,
+        limit: int = 20,
+        document: str | list[str] | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Perform semantic search using vector similarity.
+
+        Searches for entities using natural language query, optionally
+        combined with scalar filters for hybrid search. Implementations
+        that do not support vector search should raise NotImplementedError.
+
+        Args:
+            entity_type: Type of entities to search (e.g., 'spells', 'creatures')
+            query: Natural language search query
+            limit: Maximum number of results to return (default 20)
+            document: Optional document filter (string or list of strings)
+            **filters: Optional keyword filters for hybrid search
+
+        Returns:
+            List of entity dictionaries ranked by similarity score.
+            May include a '_score' field indicating similarity.
+
+        Raises:
+            NotImplementedError: If the cache backend does not support
+                semantic search (e.g., SQLiteCache).
         """
         ...

@@ -10,6 +10,9 @@ class SQLiteCache:
 
     Wraps existing database functions to provide a cache abstraction layer
     for entity storage and retrieval with filtering support.
+
+    Note: This implementation does not support semantic search. Use MilvusCache
+    for semantic/vector search capabilities.
     """
 
     def __init__(self, db_path: str) -> None:
@@ -69,3 +72,32 @@ class SQLiteCache:
             raise ValueError("entities list is empty")
 
         return await bulk_cache_entities(entities, entity_type, self.db_path)
+
+    async def semantic_search(
+        self,
+        entity_type: str,
+        query: str,
+        limit: int = 20,
+        document: str | list[str] | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Perform semantic search using vector similarity.
+
+        SQLiteCache does not support semantic search. Use MilvusCache for
+        semantic/vector search capabilities.
+
+        Args:
+            entity_type: Type of entities to search.
+            query: Natural language search query.
+            limit: Maximum number of results to return.
+            document: Optional document filter.
+            **filters: Optional keyword filters.
+
+        Raises:
+            NotImplementedError: Always raised as SQLite does not support
+                vector search.
+        """
+        raise NotImplementedError(
+            "SQLiteCache does not support semantic search. "
+            "Use MilvusCache for semantic/vector search capabilities."
+        )

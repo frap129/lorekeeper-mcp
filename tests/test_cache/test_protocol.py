@@ -92,3 +92,65 @@ def test_cache_protocol_has_docstrings() -> None:
     # Verify store_entities has a docstring
     store_entities = CacheProtocol.store_entities
     assert store_entities.__doc__ is not None
+
+
+class TestCacheProtocolSemanticSearch:
+    """Tests for semantic_search method in CacheProtocol."""
+
+    def test_protocol_has_semantic_search_method(self) -> None:
+        """Test that CacheProtocol defines semantic_search method."""
+        import inspect
+
+        # Check that semantic_search is defined in protocol
+        assert hasattr(CacheProtocol, "semantic_search")
+
+        # Verify it's a method with correct signature
+        sig = inspect.signature(CacheProtocol.semantic_search)
+        params = list(sig.parameters.keys())
+
+        assert "self" in params
+        assert "entity_type" in params
+        assert "query" in params
+        assert "limit" in params
+
+    def test_milvus_cache_conforms_to_protocol_with_semantic_search(self, tmp_path: Any) -> None:
+        """Test that MilvusCache conforms to updated CacheProtocol."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        db_path = tmp_path / "test_milvus.db"
+        cache = MilvusCache(str(db_path))
+
+        # Check it has all protocol methods
+        assert hasattr(cache, "get_entities")
+        assert hasattr(cache, "store_entities")
+        assert hasattr(cache, "semantic_search")
+        assert callable(cache.get_entities)
+        assert callable(cache.store_entities)
+        assert callable(cache.semantic_search)
+
+    def test_sqlite_cache_has_semantic_search_stub(self, tmp_path: Any) -> None:
+        """Test that SQLiteCache has semantic_search stub that raises NotImplementedError."""
+        from lorekeeper_mcp.cache.sqlite import SQLiteCache
+
+        db_path = tmp_path / "test_sqlite.db"
+        cache = SQLiteCache(str(db_path))
+
+        assert hasattr(cache, "semantic_search")
+        assert callable(cache.semantic_search)
+
+
+class TestSQLiteCacheSemanticSearchStub:
+    """Tests for SQLiteCache semantic_search stub."""
+
+    @pytest.mark.asyncio
+    async def test_sqlite_cache_semantic_search_raises_not_implemented(self, tmp_path: Any) -> None:
+        """Test that SQLiteCache.semantic_search raises NotImplementedError."""
+        from lorekeeper_mcp.cache.sqlite import SQLiteCache
+
+        db_path = tmp_path / "test_sqlite.db"
+        cache = SQLiteCache(str(db_path))
+
+        with pytest.raises(NotImplementedError) as exc_info:
+            await cache.semantic_search("spells", "fire damage")
+
+        assert "SQLiteCache does not support semantic search" in str(exc_info.value)

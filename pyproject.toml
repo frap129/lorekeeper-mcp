@@ -114,6 +114,10 @@ ignore = [
 "src/lorekeeper_mcp/cache/milvus.py" = [
     "PLC0415",  # import not at top-level - intentional for lazy client initialization
 ]
+"src/lorekeeper_mcp/cache/factory.py" = [
+    "PLC0415",  # import not at top-level - intentional for lazy backend loading
+    "UP037",    # quoted type annotation required for TYPE_CHECKING import
+]
 
 [tool.ruff.format]
 quote-style = "double"
