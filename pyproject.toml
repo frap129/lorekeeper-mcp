@@ -19,6 +19,7 @@ dependencies = [
     "edn-format>=0.7.5",
     "pymilvus>=2.4.0",
     "sentence-transformers>=2.2.0",
+    "milvus-lite>=2.4.0",
 ]
 
 [project.scripts]
@@ -102,12 +103,16 @@ ignore = [
     "S101",   # use of assert
     "PLR2004", # magic value comparison
     "PLR0913", # too many arguments in tests
+    "PLC0415", # import not at top-level - intentional for lazy imports in tests
 ]
 "src/lorekeeper_mcp/models/orcbrew/*" = [
     "PLC0415",  # import not at top-level - intentional for circular import avoidance
 ]
 "src/lorekeeper_mcp/cache/embedding.py" = [
     "PLC0415",  # import not at top-level - intentional for lazy model loading
+]
+"src/lorekeeper_mcp/cache/milvus.py" = [
+    "PLC0415",  # import not at top-level - intentional for lazy client initialization
 ]
 
 [tool.ruff.format]
