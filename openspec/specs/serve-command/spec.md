@@ -1,7 +1,7 @@
 # serve-command Specification
 
 ## Purpose
-TBD - created by archiving change add-serve-command. Update Purpose after archive.
+Defines the `serve` CLI command that starts the MCP server, including backward compatibility with direct module invocation, proper lifecycle management, database initialization, configuration options, and graceful shutdown handling.
 ## Requirements
 ### Requirement: Serve Command
 The CLI SHALL provide a `serve` command that starts the MCP server.

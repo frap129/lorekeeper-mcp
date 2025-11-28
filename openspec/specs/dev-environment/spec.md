@@ -1,7 +1,7 @@
 # dev-environment Specification
 
 ## Purpose
-TBD - created by archiving change scaffold-project-setup. Update Purpose after archive.
+Defines the development environment setup using uv as the package manager, including Python 3.13+ requirements, FastMCP integration, httpx for async HTTP, Pydantic for data validation, aiosqlite for database access, and environment-based configuration with sensible defaults for local development.
 ## Requirements
 ### Requirement: Python package must be configured with uv
 

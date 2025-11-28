@@ -1,8 +1,10 @@
 # enhanced-search Specification
 
 ## Purpose
-TBD - created by archiving change fix-mcp-filtering-critical-issues. Update Purpose after archive.
+Defines comprehensive search and filtering capabilities for all MCP tools, including case-insensitive matching, wildcard support, slug fallback, database-level filtering, range operators, and API parameter optimization. This spec consolidates all search-related functionality to ensure consistent, performant, and user-friendly search behavior across spell lookup, creature lookup, equipment lookup, and character option lookup tools.
+
 ## Requirements
+
 ### Requirement: Enhanced Case-Insensitive Name Filtering
 The system SHALL enhance the existing `name` parameter to use case-insensitive matching by default.
 
@@ -281,3 +283,240 @@ The system SHALL use proper SQL parameter binding for all user input to prevent 
 **And** escapes or rejects dangerous characters
 **And** provides appropriate error messages for invalid input
 **And** maintains database security while allowing valid searches
+
+---
+
+### Requirement: Document-Based Search Filtering
+The unified search functionality SHALL support filtering search results by source document.
+
+#### Scenario: Filter search results by single document
+- **GIVEN** the search index contains content from multiple documents
+- **WHEN** a search is performed with document filter for a single document
+- **THEN** only results from that document are included in search results
+- **AND** results from other documents are excluded
+- **AND** search relevance scoring is unaffected by document filtering
+
+#### Scenario: Filter search results by multiple documents
+- **GIVEN** the search index contains content from multiple documents
+- **WHEN** a search is performed with document filter for multiple documents
+- **THEN** results from all specified documents are included
+- **AND** results from other documents are excluded
+- **AND** results maintain relevance order across all included documents
+
+#### Scenario: Post-filter unified search results
+- **GIVEN** the Open5e unified search does not support document filtering natively
+- **WHEN** a search with document filter is executed
+- **THEN** the search is performed without document filter first
+- **AND** results are post-filtered by document field before returning to user
+- **AND** post-filtering respects the limit parameter (may return fewer than limit if filtered out)
+
+#### Scenario: Combine document filter with content type filter
+- **GIVEN** search supports both document and content_type filtering
+- **WHEN** both filters are applied: `search(query="fire", content_types=["Spell"], document_keys=["srd-5e"])`
+- **THEN** only spells from "srd-5e" matching "fire" are returned
+- **AND** both filters are applied (AND logic, not OR)
+
+---
+
+### Requirement: Document Filter Performance Optimization
+Document filtering SHALL be optimized to minimize performance impact on search operations.
+
+#### Scenario: Cache-based document filtering
+- **GIVEN** search results need to be filtered by document
+- **WHEN** post-filtering is required
+- **THEN** document field is extracted from cached entity data
+- **AND** no additional API calls are made for document validation
+- **AND** filtering completes in <50ms for typical result sets
+
+#### Scenario: Early termination for empty document list
+- **GIVEN** a search is requested with an empty document_keys list
+- **WHEN** the search function receives document_keys=[]
+- **THEN** an empty result list is returned immediately
+- **AND** no search query or API call is executed (short-circuit optimization)
+
+---
+
+### Requirement: Range Filtering Operators
+API clients SHALL utilize range filtering operators (`__gte`, `__lte`, `__gt`, `__lt`) for numeric fields where available.
+
+**Rationale**: Open5e v2 supports range operators for numeric fields like level, challenge rating, cost, weight, armor class, ability scores, etc. These enable precise server-side range queries.
+
+#### Scenario: Spell level range filtering
+- **Given**: User searches for spells of levels 2-4
+- **When**: Open5e v2 API request is made with level_min=2, level_max=4
+- **Then**: Request includes `?level__gte=2&level__lte=4`
+- **And**: API returns only spells within specified range
+- **And**: No client-side filtering is needed
+
+#### Scenario: Challenge rating range filtering
+- **Given**: User searches for monsters with CR 1-3
+- **When**: Open5e v2 API request is made
+- **Then**: Request includes `?challenge_rating_decimal__gte=1&challenge_rating_decimal__lte=3`
+- **And**: API returns only monsters within CR range
+- **And**: Filtering is performed server-side
+
+#### Scenario: Cost and weight range filtering
+- **Given**: User searches for equipment costing 10-100gp weighing under 5lbs
+- **When**: Open5e v2 API request is made
+- **Then**: Request includes `?cost__gte=10&cost__lte=100&weight__lte=5`
+- **And**: API returns only equipment matching all criteria
+- **And**: Efficient server-side filtering
+
+---
+
+### Requirement: Boolean Filtering
+API clients SHALL utilize boolean filters for properties where available.
+
+**Rationale**: Open5e v2 provides boolean filters for equipment and spell properties that enable precise filtering.
+
+#### Scenario: Boolean equipment property filters
+- **Given**: User searches for finesse, light weapons
+- **When**: Open5e v2 API request is made
+- **Then**: Request includes `?is_finesse=true&is_light=true`
+- **And**: API returns only weapons matching both properties
+- **And**: Efficient server-side filtering replaces client-side logic
+
+#### Scenario: Boolean spell property filters
+- **Given**: User searches for concentration spells that are also rituals
+- **When**: Open5e v2 API request is made
+- **Then**: Request includes `?concentration=true&ritual=true`
+- **And**: API returns only spells matching both criteria
+
+#### Scenario: Magic item filtering
+- **Given**: User searches for magic items requiring attunement
+- **When**: Open5e v2 API request is made
+- **Then**: Request includes `?is_magic_item=true&requires_attunement=true`
+- **And**: API returns only attuned magic items
+
+---
+
+### Requirement: Multi-Value Filtering
+API clients SHALL support array/multi-value parameters for filters accepting multiple values.
+
+**Rationale**: Both APIs support filtering by multiple values efficiently in a single request.
+
+#### Scenario: Multiple spell levels via D&D API
+- **Given**: User searches for spells of levels 1, 2, and 3
+- **When**: D&D 5e API request uses multi-value filter
+- **Then**: Request includes `?level=1,2,3`
+- **And**: API returns spells from all specified levels
+- **And**: Single API call instead of three separate requests
+
+#### Scenario: Multiple spell schools via Open5e
+- **Given**: User searches for evocation and illusion spells
+- **When**: Open5e v2 API request uses in operator
+- **Then**: Request includes `?school__in=evocation,illusion` or `?school=evocation,illusion`
+- **And**: API returns spells from both schools
+- **And**: Results are efficiently filtered server-side
+
+#### Scenario: Multiple creature types
+- **Given**: User searches for dragon and undead creatures
+- **When**: Open5e v2 API request is made
+- **Then**: Request uses appropriate multi-value type filter
+- **And**: API returns creatures matching any specified type
+
+---
+
+### Requirement: Entity-Specific Specialized Filters
+API clients SHALL implement entity-specific filters that provide more precise search capabilities.
+
+**Rationale**: Different entity types have specialized filters (e.g., spell casting time, weapon damage type, creature ability scores) that enable precise searches.
+
+#### Scenario: Specialized spell filtering
+- **Given**: User searches for 1-action spells of level 3+ in evocation school with fire damage
+- **When**: Open5e v2 API request is made
+- **Then**: Request includes `?casting_time=1 action&level__gte=3&school__key=evocation&damage_type=fire`
+- **And**: API returns spells matching all criteria
+- **And**: Results are precisely filtered server-side
+
+#### Scenario: Specialized equipment filtering
+- **Given**: User searches for rare magic weapons that are finesse and don't require attunement
+- **When**: Open5e v2 API request is made
+- **Then**: Request includes `?is_magic_item=true&is_weapon=true&is_finesse=true&rarity=rare&requires_attunement=false`
+- **And**: API returns only equipment matching all criteria
+
+#### Scenario: Specialized creature filtering
+- **Given**: User searches for large creatures with high strength (16+) and low intelligence (<10)
+- **When**: Open5e v2 API request is made
+- **Then**: Request includes `?size=large&ability_score_strength__gte=16&ability_score_intelligence__lt=10`
+- **And**: API returns creatures matching both criteria
+
+---
+
+### Requirement: Open5e v2 Filter Operators
+Open5e v2 API clients SHALL use proper Django-style filter operators (`name__icontains`, `school__key`, `level__gte`, etc.) for server-side filtering on individual endpoints.
+
+**Rationale**: Open5e v2 uses Django REST framework filter operators. Using `name__icontains` provides case-insensitive partial matching server-side. Currently, the code fetches all records and filters client-side, which is inefficient.
+
+#### Scenario: Server-side partial name matching
+- **Given**: User searches for spells with name="fire"
+- **When**: Open5e v2 client makes API request
+- **Then**: Request includes `?name__icontains=fire` parameter
+- **And**: API returns only spells containing "fire" in name
+- **And**: No client-side filtering is needed
+
+#### Scenario: Server-side school filtering
+- **Given**: User searches for evocation spells
+- **When**: Open5e v2 client makes API request
+- **Then**: Request includes `?school__key=evocation` parameter
+- **And**: API returns only evocation spells server-side
+- **And**: No client-side school filtering is performed
+
+---
+
+### Requirement: Search Parameter Standardization
+All Open5e API tools SHALL use the correct `search` parameter for name-based text searches instead of the incorrect `name` parameter.
+
+**Rationale**: The Open5e API (both v1 and v2) expects `search` as the query parameter for text-based name searches. The current implementation uses `name`, which causes all name-based searches to return zero results.
+
+#### Scenario: Spell lookup search parameter
+- **Given**: User calls `lookup_spell(name="fireball")`
+- **When**: Tool makes API request to Open5e v2 `/spells/` endpoint
+- **Then**: API request includes `?search=fireball` parameter
+- **And**: Response contains fireball-related spells (non-zero result count)
+
+#### Scenario: Creature lookup search parameter
+- **Given**: User calls `lookup_creature(name="dragon")`
+- **When**: Tool makes API request to Open5e v1 `/monsters/` endpoint
+- **Then**: API request includes `?search=dragon` parameter
+- **And**: Response contains dragon-related creatures (non-zero result count)
+
+#### Scenario: Equipment lookup search parameter
+- **Given**: User calls `lookup_equipment(type="weapon", name="longsword")`
+- **When**: Tool makes API request to Open5e v2 `/weapons/` endpoint
+- **Then**: API request includes `?search=longsword` parameter
+- **And**: Response contains longsword-related weapons (non-zero result count)
+
+#### Scenario: Character option lookup search parameter
+- **Given**: User calls `lookup_character_option(type="class", name="wizard")`
+- **When**: Tool makes API request to Open5e API for classes
+- **Then**: API request includes `?search=wizard` parameter
+- **And**: Response contains wizard class information (non-zero result count)
+
+---
+
+### Requirement: Unified Search Endpoint
+The search system SHALL use the `/v2/search/` endpoint with `query`, `fuzzy`, and `vector` parameters for advanced cross-entity searches.
+
+**Rationale**: The `/v2/search/` endpoint provides unified search across all content types with built-in fuzzy and semantic search capabilities.
+
+#### Scenario: Unified search with fuzzy and semantic matching
+- **Given**: User performs advanced search for "firbal" (typo)
+- **When**: Request is made to `/v2/search/?query=firbal&fuzzy=true&vector=true`
+- **Then**: API returns "Fireball" spell via fuzzy matching
+- **And**: May include semantically related fire spells via vector search
+- **And**: Results are deduplicated and ranked by relevance
+
+#### Scenario: Cross-entity search
+- **Given**: User searches for "dragon" without specifying entity type
+- **When**: Unified search is used with `/v2/search/?query=dragon&fuzzy=true&vector=true`
+- **Then**: Results include dragon creatures, dragon-themed spells, dragon-related items
+- **And**: Results span multiple content types
+- **And**: All results relevant to "dragon"
+
+#### Scenario: Entity-specific unified search
+- **Given**: User searches for "fire" limited to spells
+- **When**: Request uses `/v2/search/?query=fire&fuzzy=true&vector=true&object_model=Spell`
+- **Then**: Results include only spell entities
+- **And**: Fuzzy and semantic matching still applied
+- **And**: Type filter works with advanced search

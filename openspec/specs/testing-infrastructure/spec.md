@@ -1,7 +1,7 @@
 # testing-infrastructure Specification
 
 ## Purpose
-TBD - created by archiving change scaffold-project-setup. Update Purpose after archive.
+Defines the pytest testing infrastructure including async test support via pytest-asyncio, test fixtures for temporary databases and mock API clients, test organization mirroring source structure, and configuration in pyproject.toml with automatic asyncio mode.
 ## Requirements
 ### Requirement: pytest must be configured for async testing
 

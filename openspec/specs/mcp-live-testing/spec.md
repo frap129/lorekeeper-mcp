@@ -1,7 +1,7 @@
 # mcp-live-testing Specification
 
 ## Purpose
-TBD - created by archiving change implement-comprehensive-live-tests. Update Purpose after archive.
+Defines the live API testing infrastructure for validating MCP tools against real Open5e endpoints. Includes test isolation, rate limiting, performance validation, cache behavior verification, and comprehensive scenarios for all five lookup tools (spell, creature, equipment, character option, rule).
 ## Requirements
 ### Requirement: Live Test Infrastructure
 The testing framework SHALL provide infrastructure for executing tests against live Open5e and D&D 5e APIs with proper isolation, rate limiting, and performance tracking.

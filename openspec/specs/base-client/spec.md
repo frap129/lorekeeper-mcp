@@ -1,7 +1,7 @@
 # base-client Specification
 
 ## Purpose
-TBD - created by archiving change build-api-clients. Update Purpose after archive.
+Defines the base HTTP client infrastructure for all API clients, providing common functionality including configurable timeouts, retry logic, rate limiting, parallel cache queries, offline fallback, entity-based caching, and cache-first query options. This base client is extended by specific API clients (Open5e v1, Open5e v2) to inherit consistent HTTP behavior.
 ## Requirements
 ### Requirement: HTTP Client Configuration
 The system SHALL provide configurable HTTP client settings for different use cases and environments while maintaining sensible defaults.

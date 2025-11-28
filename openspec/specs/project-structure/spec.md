@@ -1,7 +1,7 @@
 # project-structure Specification
 
 ## Purpose
-TBD - created by archiving change scaffold-project-setup. Update Purpose after archive.
+Defines the project directory structure and module organization for LoreKeeper MCP, including source code layout (tools, cache, api_clients, models, parsers, repositories), test organization, configuration management, and package metadata in pyproject.toml with proper entry points.
 ## Requirements
 ### Requirement: Source code must be organized in logical modules
 

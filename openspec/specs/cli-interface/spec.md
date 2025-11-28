@@ -1,7 +1,7 @@
 # cli-interface Specification
 
 ## Purpose
-TBD - created by archiving change import-orcbrew-data. Update Purpose after archive.
+Defines the command-line interface for LoreKeeper, implemented using Click framework. Provides the `import` command for importing OrcBrew files, global options for database path and verbose logging, progress reporting for long-running operations, and clear error handling with actionable messages.
 ## Requirements
 ### Requirement: CLI Entry Point
 The system SHALL provide a command-line interface accessible via `lorekeeper` command or `python -m lorekeeper_mcp.cli`.

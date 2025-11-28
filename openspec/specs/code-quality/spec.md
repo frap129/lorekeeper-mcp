@@ -1,7 +1,7 @@
 # code-quality Specification
 
 ## Purpose
-TBD - created by archiving change scaffold-project-setup. Update Purpose after archive.
+Defines code quality standards and tooling configuration including ruff for linting and formatting, pre-commit hooks for automated checks, and mypy/pyright for type checking. Ensures consistent code style (100-character line length, Python 3.13+) and enforces project naming conventions.
 ## Requirements
 ### Requirement: ruff must be configured for linting
 

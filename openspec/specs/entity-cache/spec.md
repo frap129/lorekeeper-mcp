@@ -1,11 +1,11 @@
 # entity-cache Specification
 
 ## Purpose
-TBD - created by archiving change 2025-11-06-implement-entity-cache. Update Purpose after archive.
+Defines the entity-based caching layer that stores D&D entities in type-specific SQLite tables with slug as primary key. Supports filtered queries, bulk operations, document metadata storage, infinite TTL for valid data, schema migrations, and import statistics tracking. Provides the persistence layer for all API and OrcBrew data.
 ## Requirements
 ### Requirement: Store entities in type-specific tables
 
-The cache MUST store D&D entities in separate tables per entity type (spells, monsters, weapons, armor, classes, races, backgrounds, feats, conditions, rules, rule_sections) with the entity slug as primary key.
+The cache MUST store D&D entities in separate tables per entity type (spells, creatures, weapons, armor, classes, races, backgrounds, feats, conditions, rules, rule_sections) with the entity slug as primary key. Note: `creatures` is the canonical table name (not `monsters`).
 
 #### Scenario: Store and retrieve spell by slug
 
@@ -14,19 +14,29 @@ The cache MUST store D&D entities in separate tables per entity type (spells, mo
 **Then** the spell is stored in the `spells` table with slug as primary key
 **And** calling `get_cached_entity("spells", "fireball")` returns the full spell data
 
-#### Scenario: Store monster with indexed fields
+#### Scenario: Store creature with indexed fields
 
-**Given** a monster entity with slug "goblin", type "humanoid", and CR "1/4"
+**Given** a creature entity with slug "goblin", type "humanoid", and CR "1/4"
 **When** the entity is cached
-**Then** the monster is stored in the `monsters` table
+**Then** the creature is stored in the `creatures` table
 **And** indexed fields (type, size, challenge_rating) are extracted for filtering
-**And** the complete monster data is stored as JSON blob
+**And** the complete creature data is stored as JSON blob
 
 #### Scenario: Retrieve multiple entities by type
 
 **Given** three spells cached in the spells table
 **When** calling `query_cached_entities("spells")`
 **Then** all three spells are returned as dictionaries
+
+#### Scenario: Support both creatures and monsters table names
+
+**Given** code querying for "monsters" entity type
+**When** calling `query_cached_entities("monsters")`
+**Then** the cache transparently queries the `creatures` table
+**And** returns results as if querying "creatures"
+**And** logs a deprecation warning "Use 'creatures' instead of 'monsters'"
+
+---
 
 ### Requirement: Query entities with filters
 
@@ -194,13 +204,27 @@ The cache SHALL handle duplicate slugs during import using an "upsert" strategy 
 ---
 
 ### Requirement: Validation During Import
-The cache SHALL validate imported entities before storing them.
+
+The cache SHALL validate imported entities before storing them, accepting both canonical Pydantic models and dictionaries.
 
 #### Scenario: Reject entity missing required fields
 **Given** an entity missing the `slug` field
 **When** attempting to store the entity
 **Then** the cache raises `ValueError` with message "Entity missing required field 'slug'"
 **And** the entity is not stored
+
+#### Scenario: Accept Pydantic model directly
+**Given** a `Creature` Pydantic model instance
+**When** calling `bulk_cache_entities([creature], "creatures")`
+**Then** the cache accepts the model
+**And** calls `model_dump()` to serialize for storage
+**And** stores the entity successfully
+
+#### Scenario: Accept dictionary with canonical field names
+**Given** a dictionary with canonical field names (slug, name, desc, etc.)
+**When** calling `bulk_cache_entities([entity_dict], "spells")`
+**Then** the cache stores the dictionary as-is
+**And** does not require Pydantic validation (already validated by caller)
 
 #### Scenario: Validate indexed field types
 **Given** a spell entity with `level: "three"` (string instead of int)
@@ -267,3 +291,118 @@ The cache MUST support filtering cached entities by document metadata through it
 - **WHEN** calling `query_cached_entities(entity_type, document_source="orcbrew")`
 - **THEN** only entities whose document metadata indicates an OrcBrew origin are returned
 - **AND** this filter can be combined with other indexed fields (such as level or challenge rating) without client-side filtering
+
+### Requirement: Document Discovery Function
+The cache layer SHALL provide a function to query all available documents across all entity types, regardless of source.
+
+#### Scenario: List all cached documents
+- **GIVEN** the cache contains entities from Open5e, D&D 5e API, and OrcBrew
+- **WHEN** `get_available_documents()` is called with no filters
+- **THEN** the function returns a list of all distinct documents across all entity types
+- **AND** each document includes name, source_api, and entity count
+- **AND** documents are deduplicated across entity types (same document in spells and creatures appears once)
+
+#### Scenario: Filter documents by source API
+- **GIVEN** the cache contains documents from multiple sources
+- **WHEN** `get_available_documents(source_api="open5e_v2")` is called
+- **THEN** only documents with source_api="open5e_v2" are returned
+- **AND** documents from other sources (dnd5e_api, orcbrew) are excluded
+
+#### Scenario: Count entities per document
+- **GIVEN** a document "srd-5e" has 100 spells and 50 creatures in cache
+- **WHEN** `get_available_documents()` returns this document
+- **THEN** the document entry includes entity_count=150
+- **AND** optionally includes entity_types breakdown: {"spells": 100, "creatures": 50}
+
+#### Scenario: Handle empty cache
+- **GIVEN** the cache has no entities
+- **WHEN** `get_available_documents()` is called
+- **THEN** an empty list is returned
+- **AND** no errors are raised
+
+### Requirement: Document Metadata Query Function
+The cache layer SHALL provide a function to retrieve cached document metadata.
+
+#### Scenario: Get Open5e document metadata
+- **GIVEN** the "documents" entity type contains cached Open5e document metadata
+- **WHEN** `get_document_metadata(document_key="srd-5e")` is called
+- **THEN** the function returns the full document metadata
+- **AND** metadata includes publisher, license, game_system, description
+
+#### Scenario: Handle missing document metadata
+- **GIVEN** no metadata exists for document "custom-homebrew"
+- **WHEN** `get_document_metadata(document_key="custom-homebrew")` is called
+- **THEN** None is returned
+- **AND** no errors are raised
+
+### Requirement: Multi-Document Filtering
+The cache query function SHALL support filtering by multiple documents using an IN clause.
+
+#### Scenario: Filter by single document as string
+- **GIVEN** the cache contains spells from multiple documents
+- **WHEN** `query_cached_entities("spells", document="srd-5e")` is called
+- **THEN** only spells with document="srd-5e" are returned
+- **AND** behavior is identical to current implementation (backward compatible)
+
+#### Scenario: Filter by multiple documents as list
+- **GIVEN** the cache contains spells from multiple documents
+- **WHEN** `query_cached_entities("spells", document=["srd-5e", "tce", "phb"])` is called
+- **THEN** only spells with document in the list are returned
+- **AND** results include entities from all three documents
+- **AND** SQL query uses IN clause: `WHERE document IN (?, ?, ?)`
+
+#### Scenario: Filter with no document filter
+- **GIVEN** the cache contains spells from multiple documents
+- **WHEN** `query_cached_entities("spells")` is called with no document parameter
+- **THEN** all spells are returned regardless of document
+- **AND** behavior is identical to current implementation (backward compatible)
+
+#### Scenario: Filter by empty document list
+- **GIVEN** the cache contains spells
+- **WHEN** `query_cached_entities("spells", document=[])` is called
+- **THEN** an empty list is returned
+- **AND** no database query is executed (short-circuit optimization)
+
+### Requirement: Source-Agnostic Document Handling
+Document discovery and filtering SHALL work uniformly across all sources without source-specific logic.
+
+#### Scenario: Query documents from multiple sources
+- **GIVEN** cache contains:
+  - Spells from Open5e with document="srd-5e"
+  - Spells from D&D 5e API with document="System Reference Document 5.1"
+  - Spells from OrcBrew with document="Homebrew Grimoire"
+- **WHEN** `get_available_documents()` is called
+- **THEN** all three documents are returned
+- **AND** each document indicates its source via source_api field
+- **AND** no source-specific code paths are executed
+
+#### Scenario: Filter across sources by document name
+- **GIVEN** cache contains creatures from Open5e and OrcBrew both using document name "srd-5e"
+- **WHEN** `query_cached_entities("creatures", document="srd-5e")` is called
+- **THEN** creatures from both sources are returned
+- **AND** filtering uses document field only, ignoring source_api
+- **AND** results are not duplicated (same slug returns one entity)
+
+### Requirement: Canonical Model Serialization
+
+The cache SHALL serialize canonical Pydantic models to JSON using `model_dump()` with consistent settings.
+
+#### Scenario: Serialize creature model preserving all fields
+**Given** a `Creature` model with all fields populated
+**When** the cache serializes for storage
+**Then** `model_dump(mode="json", exclude_none=False)` is used
+**And** all fields including `None` values are preserved
+**And** nested objects are serialized to JSON-compatible types
+
+#### Scenario: Serialize OrcBrew model with missing fields
+**Given** an `OrcBrewSpell` model with many `None` fields
+**When** the cache serializes for storage
+**Then** `None` values are preserved (not excluded)
+**And** the full structure is recoverable on retrieval
+
+#### Scenario: Deserialize to Pydantic model on retrieval
+**Given** a cached spell entity
+**When** calling `get_cached_entity("spells", "fireball", as_model=True)`
+**Then** the cache returns a `Spell` Pydantic model instance
+**And** the model is validated on construction
+**And** default value is `as_model=False` for backward compatibility

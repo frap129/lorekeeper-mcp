@@ -1,7 +1,7 @@
 # database-setup Specification
 
 ## Purpose
-TBD - created by archiving change scaffold-project-setup. Update Purpose after archive.
+Defines the SQLite database configuration for the entity cache layer, including schema design, case-insensitive indexes, async operations via aiosqlite, TTL management, WAL mode for concurrency, migration support, and performance optimization through statistics collection and periodic maintenance.
 ## Requirements
 ### Requirement: SQLite database must be initialized for caching
 
