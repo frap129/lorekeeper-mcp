@@ -506,3 +506,156 @@ async def test_monster_repository_search_document_not_passed_to_api() -> None:
     assert "document" not in call_kwargs
     # But type should be passed
     assert call_kwargs.get("type") == "humanoid"
+
+
+class TestCreatureRepositorySemanticSearch:
+    """Tests for CreatureRepository semantic search support."""
+
+    @pytest.mark.asyncio
+    async def test_creature_repository_search_with_semantic_query(self) -> None:
+        """Test that search() uses semantic_search when semantic_query provided."""
+
+        class MockClient:
+            async def get_creatures(self, **filters: Any) -> list[Creature]:
+                return []
+
+        class MockCache:
+            def __init__(self) -> None:
+                self.semantic_search_called = False
+                self.search_query = ""
+
+            async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
+                return []
+
+            async def store_entities(self, entities: list[dict[str, Any]], entity_type: str) -> int:
+                return len(entities)
+
+            async def semantic_search(
+                self, entity_type: str, query: str, limit: int = 20, **filters: Any
+            ) -> list[dict[str, Any]]:
+                self.semantic_search_called = True
+                self.search_query = query
+                return []
+
+        cache = MockCache()
+        repo = CreatureRepository(client=MockClient(), cache=cache)
+
+        await repo.search(semantic_query="fire breathing dragons")
+
+        assert cache.semantic_search_called
+        assert cache.search_query == "fire breathing dragons"
+
+    @pytest.mark.asyncio
+    async def test_creature_repository_semantic_search_with_cr_filter(self) -> None:
+        """Test semantic search combines with CR filter."""
+
+        class MockClient:
+            async def get_creatures(self, **filters: Any) -> list[Creature]:
+                return []
+
+        class MockCache:
+            def __init__(self) -> None:
+                self.semantic_filters: dict[str, Any] = {}
+
+            async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
+                return []
+
+            async def store_entities(self, entities: list[dict[str, Any]], entity_type: str) -> int:
+                return len(entities)
+
+            async def semantic_search(
+                self, entity_type: str, query: str, limit: int = 20, **filters: Any
+            ) -> list[dict[str, Any]]:
+                self.semantic_filters = filters
+                return []
+
+        cache = MockCache()
+        repo = CreatureRepository(client=MockClient(), cache=cache)
+
+        await repo.search(semantic_query="undead monsters", challenge_rating="5")
+
+        assert cache.semantic_filters.get("challenge_rating") == "5"
+
+    @pytest.mark.asyncio
+    async def test_creature_repository_search_without_semantic_query(self) -> None:
+        """Test that search() uses get_entities when no semantic_query."""
+
+        class MockClient:
+            async def get_creatures(self, **filters: Any) -> list[Creature]:
+                return []
+
+        class MockCache:
+            def __init__(self) -> None:
+                self.semantic_search_called = False
+                self.get_entities_called = False
+
+            async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
+                self.get_entities_called = True
+                return []
+
+            async def store_entities(self, entities: list[dict[str, Any]], entity_type: str) -> int:
+                return len(entities)
+
+            async def semantic_search(
+                self, entity_type: str, query: str, limit: int = 20, **filters: Any
+            ) -> list[dict[str, Any]]:
+                self.semantic_search_called = True
+                return []
+
+        cache = MockCache()
+        repo = CreatureRepository(client=MockClient(), cache=cache)
+
+        # Search without semantic_query
+        await repo.search(type="humanoid")
+
+        # Should call get_entities, not semantic_search
+        assert cache.get_entities_called
+        assert not cache.semantic_search_called
+
+    @pytest.mark.asyncio
+    async def test_creature_repository_semantic_search_fallback_on_not_implemented(
+        self,
+    ) -> None:
+        """Test that semantic search falls back when cache doesn't support it."""
+
+        class MockClient:
+            async def get_creatures(self, **filters: Any) -> list[Creature]:
+                return []
+
+        class MockCache:
+            def __init__(self) -> None:
+                self.get_entities_called = False
+
+            async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
+                self.get_entities_called = True
+                return [
+                    {
+                        "slug": "goblin",
+                        "name": "Goblin",
+                        "size": "Small",
+                        "type": "humanoid",
+                        "challenge_rating": "1/4",
+                        "alignment": "Neutral Evil",
+                        "armor_class": 15,
+                        "hit_points": 7,
+                        "hit_dice": "2d6",
+                    }
+                ]
+
+            async def store_entities(self, entities: list[dict[str, Any]], entity_type: str) -> int:
+                return len(entities)
+
+            async def semantic_search(
+                self, entity_type: str, query: str, limit: int = 20, **filters: Any
+            ) -> list[dict[str, Any]]:
+                raise NotImplementedError("SQLiteCache does not support semantic search")
+
+        cache = MockCache()
+        repo = CreatureRepository(client=MockClient(), cache=cache)
+
+        # Search with semantic_query (should fall back to get_entities)
+        results = await repo.search(semantic_query="goblin")
+
+        # Should have fallen back to get_entities
+        assert cache.get_entities_called
+        assert len(results) == 1

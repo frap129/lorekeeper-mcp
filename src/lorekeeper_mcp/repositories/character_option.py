@@ -30,7 +30,11 @@ class CharacterOptionClient(Protocol):
 
 
 class CharacterOptionCache(Protocol):
-    """Protocol for character option cache."""
+    """Protocol for character option cache.
+
+    Supports both structured filtering via get_entities() and
+    semantic search via semantic_search() for Milvus backend.
+    """
 
     async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
         """Retrieve entities from cache."""
@@ -38,6 +42,16 @@ class CharacterOptionCache(Protocol):
 
     async def store_entities(self, entities: list[dict[str, Any]], entity_type: str) -> int:
         """Store entities in cache."""
+        ...
+
+    async def semantic_search(
+        self,
+        entity_type: str,
+        query: str,
+        limit: int = 20,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Perform semantic search (optional - may raise NotImplementedError)."""
         ...
 
 
@@ -68,14 +82,21 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
     async def search(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for character options with type routing.
 
+        Supports both structured filtering and semantic search.
+
         Args:
             **filters: Must include 'option_type' (class, race, background,
                 feat, or condition). Other filters depend on type.
+                - semantic_query: Natural language search query (uses vector search)
 
         Returns:
             List of matching character options
         """
         option_type = filters.pop("option_type", None)
+        semantic_query = filters.pop("semantic_query", None)
+
+        if semantic_query:
+            return await self._semantic_search(semantic_query, option_type=option_type, **filters)
 
         if option_type == "class":
             return await self._search_classes(**filters)
@@ -88,6 +109,55 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         if option_type == "condition":
             return await self._search_conditions(**filters)
         return []
+
+    async def _semantic_search(
+        self,
+        query: str,
+        option_type: str | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Perform semantic search for character options.
+
+        Args:
+            query: Natural language search query
+            option_type: Optional type filter (class, race, background, feat, condition)
+            **filters: Additional scalar filters
+
+        Returns:
+            List of character options ranked by semantic similarity
+        """
+        limit = filters.pop("limit", None)
+        search_limit = limit or 20
+
+        # Determine which collections to search
+        type_to_collection = {
+            "class": "classes",
+            "race": "races",
+            "background": "backgrounds",
+            "feat": "feats",
+            "condition": "conditions",
+        }
+
+        if option_type and option_type in type_to_collection:
+            collections = [type_to_collection[option_type]]
+        else:
+            # Search all character option types
+            collections = list(type_to_collection.values())
+
+        all_results: list[dict[str, Any]] = []
+
+        for collection_name in collections:
+            try:
+                results = await self.cache.semantic_search(
+                    collection_name, query, limit=search_limit, **filters
+                )
+                all_results.extend(results)
+            except NotImplementedError:
+                # Fall back to structured search
+                cached = await self.cache.get_entities(collection_name, name=query, **filters)
+                all_results.extend(cached)
+
+        return all_results[:limit] if limit else all_results
 
     async def _search_classes(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for character classes."""

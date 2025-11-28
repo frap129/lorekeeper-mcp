@@ -46,7 +46,11 @@ class RuleClient(Protocol):
 
 
 class RuleCache(Protocol):
-    """Protocol for rule cache."""
+    """Protocol for rule cache.
+
+    Supports both structured filtering via get_entities() and
+    semantic search via semantic_search() for Milvus backend.
+    """
 
     async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
         """Retrieve entities from cache."""
@@ -54,6 +58,16 @@ class RuleCache(Protocol):
 
     async def store_entities(self, entities: list[dict[str, Any]], entity_type: str) -> int:
         """Store entities in cache."""
+        ...
+
+    async def semantic_search(
+        self,
+        entity_type: str,
+        query: str,
+        limit: int = 20,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Perform semantic search (optional - may raise NotImplementedError)."""
         ...
 
 
@@ -84,15 +98,22 @@ class RuleRepository(Repository[dict[str, Any]]):
     async def search(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for rules with type routing.
 
+        Supports both structured filtering and semantic search.
+
         Args:
             **filters: Must include 'rule_type' (rule, condition, damage-type,
                 weapon-property, skill, ability-score, magic-school, language,
                 proficiency, or alignment).
+                - semantic_query: Natural language search query (uses vector search)
 
         Returns:
             List of matching rules
         """
         rule_type = filters.pop("rule_type", None)
+        semantic_query = filters.pop("semantic_query", None)
+
+        if semantic_query:
+            return await self._semantic_search(semantic_query, rule_type=rule_type, **filters)
 
         if rule_type == "rule":
             return await self._search_rules(**filters)
@@ -115,6 +136,60 @@ class RuleRepository(Repository[dict[str, Any]]):
         if rule_type == "alignment":
             return await self._search_alignments(**filters)
         return []
+
+    async def _semantic_search(
+        self,
+        query: str,
+        rule_type: str | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Perform semantic search for rules.
+
+        Args:
+            query: Natural language search query
+            rule_type: Optional type filter
+            **filters: Additional scalar filters
+
+        Returns:
+            List of rules ranked by semantic similarity
+        """
+        limit = filters.pop("limit", None)
+        search_limit = limit or 20
+
+        # Map rule types to collection names
+        type_to_collection = {
+            "rule": "rules",
+            "condition": "conditions",
+            "damage-type": "damagetypes",
+            "weapon-property": "weapon_properties",
+            "skill": "skills",
+            "ability-score": "ability_scores",
+            "magic-school": "magic_schools",
+            "language": "languages",
+            "proficiency": "proficiencies",
+            "alignment": "alignments",
+        }
+
+        if rule_type and rule_type in type_to_collection:
+            collections = [type_to_collection[rule_type]]
+        else:
+            # Search all rule types
+            collections = list(type_to_collection.values())
+
+        all_results: list[dict[str, Any]] = []
+
+        for collection_name in collections:
+            try:
+                results = await self.cache.semantic_search(
+                    collection_name, query, limit=search_limit, **filters
+                )
+                all_results.extend(results)
+            except NotImplementedError:
+                # Fall back to structured search
+                cached = await self.cache.get_entities(collection_name, name=query, **filters)
+                all_results.extend(cached)
+
+        return all_results[:limit] if limit else all_results
 
     async def _search_rules(self, **filters: Any) -> list[dict[str, Any]]:
         """Search for rules."""

@@ -15,7 +15,11 @@ class SpellClient(Protocol):
 
 
 class SpellCache(Protocol):
-    """Protocol for spell cache."""
+    """Protocol for spell cache.
+
+    Supports both structured filtering via get_entities() and
+    semantic search via semantic_search() for Milvus backend.
+    """
 
     async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
         """Retrieve entities from cache."""
@@ -23,6 +27,16 @@ class SpellCache(Protocol):
 
     async def store_entities(self, entities: list[dict[str, Any]], entity_type: str) -> int:
         """Store entities in cache."""
+        ...
+
+    async def semantic_search(
+        self,
+        entity_type: str,
+        query: str,
+        limit: int = 20,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Perform semantic search (optional - may raise NotImplementedError)."""
         ...
 
 
@@ -70,21 +84,31 @@ class SpellRepository(Repository[Spell]):
     async def search(self, **filters: Any) -> list[Spell]:
         """Search for spells with optional filters using cache-aside pattern.
 
+        Supports both structured filtering and semantic search.
+
         Args:
-            **filters: Optional filters (level, school, document, etc.)
+            **filters: Optional filters:
+                - semantic_query: Natural language search query (uses vector search)
+                - level, school, concentration, ritual: Structured filters
+                - class_key: Filter by class (e.g., "wizard", "cleric")
+                - document: Filter by source document
+                - limit: Maximum results to return
 
         Returns:
             List of Spell objects matching the filters
         """
-        # Extract limit parameter (not a cache filter field)
+        # Extract special parameters
         limit = filters.pop("limit", None)
-
-        # Extract class_key as it's not a cacheable field
-        # (spells have multiple classes, not a simple scalar field)
         class_key = filters.pop("class_key", None)
+        semantic_query = filters.pop("semantic_query", None)
 
-        # Try cache first with valid cache filter fields only
-        # Note: document filter is kept in filters for cache (cache-only filter)
+        # Handle semantic search if query provided
+        if semantic_query:
+            return await self._semantic_search(
+                semantic_query, limit=limit, class_key=class_key, **filters
+            )
+
+        # Regular structured search (existing behavior)
         cached = await self.cache.get_entities("spells", **filters)
 
         if cached:
@@ -115,6 +139,84 @@ class SpellRepository(Repository[Spell]):
             await self.cache.store_entities(spell_dicts, "spells")
 
         return spells
+
+    async def _semantic_search(
+        self,
+        query: str,
+        limit: int | None = None,
+        class_key: str | None = None,
+        **filters: Any,
+    ) -> list[Spell]:
+        """Perform semantic search for spells.
+
+        Args:
+            query: Natural language search query
+            limit: Maximum results to return
+            class_key: Optional class filter (applied client-side)
+            **filters: Additional scalar filters (level, school, etc.)
+
+        Returns:
+            List of Spell objects ranked by semantic similarity
+        """
+        search_limit = limit or 20
+
+        try:
+            results = await self.cache.semantic_search(
+                "spells", query, limit=search_limit, **filters
+            )
+        except NotImplementedError:
+            # Fall back to structured search if cache doesn't support semantic search
+            return await self._fallback_structured_search(
+                query, limit=limit, class_key=class_key, **filters
+            )
+
+        spells = [Spell.model_validate(spell) for spell in results]
+
+        # Apply class_key filter client-side if specified
+        if class_key:
+            spells = [
+                spell
+                for spell in spells
+                if hasattr(spell, "classes")
+                and class_key.lower() in [c.lower() for c in spell.classes]
+            ]
+
+        return spells[:limit] if limit else spells
+
+    async def _fallback_structured_search(
+        self,
+        query: str,
+        limit: int | None = None,
+        class_key: str | None = None,
+        **filters: Any,
+    ) -> list[Spell]:
+        """Fall back to structured search using name filter.
+
+        Args:
+            query: Search query (used as name filter)
+            limit: Maximum results to return
+            class_key: Optional class filter
+            **filters: Additional filters
+
+        Returns:
+            List of Spell objects matching name filter
+        """
+        # Use query as name filter for fallback
+        filters["name"] = query
+        cached = await self.cache.get_entities("spells", **filters)
+
+        if cached:
+            results = [Spell.model_validate(spell) for spell in cached]
+            if class_key:
+                results = [
+                    spell
+                    for spell in results
+                    if hasattr(spell, "classes")
+                    and class_key.lower() in [c.lower() for c in spell.classes]
+                ]
+            return results[:limit] if limit else results
+
+        return []
 
     def _map_to_api_params(self, **filters: Any) -> dict[str, Any]:
         """Map repository parameters to API-specific filter operators.

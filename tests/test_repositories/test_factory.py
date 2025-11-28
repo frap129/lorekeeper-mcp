@@ -1,5 +1,6 @@
 """Tests for repository factory."""
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -165,3 +166,88 @@ def test_create_monster_repository_default_uses_v2():
     repo = RepositoryFactory.create_monster_repository()
 
     assert isinstance(repo.client, Open5eV2Client)
+
+
+class TestRepositoryFactoryCacheIntegration:
+    """Tests for repository factory cache backend integration."""
+
+    def test_factory_uses_cache_factory_default(
+        self, tmp_path: "Path", monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
+        """Test that factory uses cache factory with default backend."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        # Set Milvus path to tmp_path
+        db_path = tmp_path / "milvus.db"
+        monkeypatch.setenv("LOREKEEPER_MILVUS_DB_PATH", str(db_path))
+        monkeypatch.setenv("LOREKEEPER_CACHE_BACKEND", "milvus")
+
+        # Clear cached instance
+        RepositoryFactory._cache_instance = None
+
+        # Create a repository
+        RepositoryFactory.create_spell_repository()
+
+        # Cache should be MilvusCache
+        assert isinstance(RepositoryFactory._cache_instance, MilvusCache)
+
+    def test_factory_uses_sqlite_when_configured(
+        self, tmp_path: "Path", monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
+        """Test that factory uses SQLite when configured."""
+        from lorekeeper_mcp.cache.sqlite import SQLiteCache
+
+        # Set SQLite backend
+        db_path = tmp_path / "cache.db"
+        monkeypatch.setenv("LOREKEEPER_CACHE_BACKEND", "sqlite")
+        monkeypatch.setenv("LOREKEEPER_SQLITE_DB_PATH", str(db_path))
+
+        # Clear cached instance
+        RepositoryFactory._cache_instance = None
+
+        # Create a repository
+        RepositoryFactory.create_spell_repository()
+
+        # Cache should be SQLiteCache
+        assert isinstance(RepositoryFactory._cache_instance, SQLiteCache)
+
+    def test_factory_reuses_cache_instance(
+        self, tmp_path: "Path", monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
+        """Test that factory reuses the same cache instance."""
+        db_path = tmp_path / "milvus.db"
+        monkeypatch.setenv("LOREKEEPER_MILVUS_DB_PATH", str(db_path))
+        monkeypatch.setenv("LOREKEEPER_CACHE_BACKEND", "milvus")
+
+        # Clear cached instance
+        RepositoryFactory._cache_instance = None
+
+        # Create multiple repositories
+        spell_repo = RepositoryFactory.create_spell_repository()
+        creature_repo = RepositoryFactory.create_monster_repository()
+
+        # Should use same cache instance
+        assert spell_repo.cache is creature_repo.cache
+
+    def test_factory_reset_cache(self, tmp_path: "Path", monkeypatch: "pytest.MonkeyPatch") -> None:
+        """Test that factory cache can be reset."""
+        db_path = tmp_path / "milvus.db"
+        monkeypatch.setenv("LOREKEEPER_MILVUS_DB_PATH", str(db_path))
+        monkeypatch.setenv("LOREKEEPER_CACHE_BACKEND", "milvus")
+
+        # Clear cached instance
+        RepositoryFactory._cache_instance = None
+
+        # Create a repository
+        RepositoryFactory.create_spell_repository()
+        first_cache = RepositoryFactory._cache_instance
+
+        # Reset cache
+        RepositoryFactory.reset_cache()
+
+        # Create another repository
+        RepositoryFactory.create_spell_repository()
+        second_cache = RepositoryFactory._cache_instance
+
+        # Should be different instances
+        assert first_cache is not second_cache

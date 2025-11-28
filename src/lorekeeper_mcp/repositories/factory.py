@@ -3,8 +3,7 @@
 from typing import Any, Protocol
 
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
-from lorekeeper_mcp.cache.sqlite import SQLiteCache
-from lorekeeper_mcp.config import settings
+from lorekeeper_mcp.cache.factory import get_cache_from_config
 from lorekeeper_mcp.repositories.character_option import CharacterOptionRepository
 from lorekeeper_mcp.repositories.equipment import EquipmentRepository
 from lorekeeper_mcp.repositories.monster import MonsterRepository
@@ -23,12 +22,25 @@ class _CacheProtocol(Protocol):
         """Store entities in cache."""
         ...
 
+    async def semantic_search(
+        self,
+        entity_type: str,
+        query: str,
+        limit: int = 20,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Perform semantic search (optional - may raise NotImplementedError)."""
+        ...
+
 
 class RepositoryFactory:
     """Factory for creating repository instances with dependency injection.
 
     Provides static factory methods for creating properly configured repository
     instances. Supports optional client and cache overrides for testing.
+
+    Uses the cache factory to create cache instances based on environment
+    configuration (LOREKEEPER_CACHE_BACKEND).
     """
 
     _cache_instance: _CacheProtocol | None = None
@@ -37,14 +49,25 @@ class RepositoryFactory:
     def _get_cache() -> _CacheProtocol:
         """Get or create the shared cache instance.
 
+        Creates cache based on environment configuration:
+        - LOREKEEPER_CACHE_BACKEND=milvus (default): MilvusCache with semantic search
+        - LOREKEEPER_CACHE_BACKEND=sqlite: SQLiteCache (legacy, no semantic search)
+
         Returns:
             A cache instance implementing the CacheProtocol.
         """
         if RepositoryFactory._cache_instance is None:
-            db_path = str(settings.db_path)
-            RepositoryFactory._cache_instance = SQLiteCache(db_path=db_path)
+            RepositoryFactory._cache_instance = get_cache_from_config()
         assert RepositoryFactory._cache_instance is not None
         return RepositoryFactory._cache_instance
+
+    @staticmethod
+    def reset_cache() -> None:
+        """Reset the cached cache instance.
+
+        Useful for testing or when configuration changes require a new cache.
+        """
+        RepositoryFactory._cache_instance = None
 
     @staticmethod
     def create_spell_repository(
@@ -54,7 +77,7 @@ class RepositoryFactory:
 
         Args:
             client: Optional custom client instance. Defaults to Open5eV2Client.
-            cache: Optional custom cache instance. Defaults to shared SQLiteCache.
+            cache: Optional custom cache instance. Defaults to cache from config.
 
         Returns:
             A configured SpellRepository instance.
@@ -73,7 +96,7 @@ class RepositoryFactory:
 
         Args:
             client: Optional custom client instance. Defaults to Open5eV2Client.
-            cache: Optional custom cache instance. Defaults to shared SQLiteCache.
+            cache: Optional custom cache instance. Defaults to cache from config.
 
         Returns:
             A configured MonsterRepository instance.
@@ -92,7 +115,7 @@ class RepositoryFactory:
 
         Args:
             client: Optional custom client instance. Defaults to Open5eV2Client.
-            cache: Optional custom cache instance. Defaults to shared SQLiteCache.
+            cache: Optional custom cache instance. Defaults to cache from config.
 
         Returns:
             A configured EquipmentRepository instance.
@@ -111,7 +134,7 @@ class RepositoryFactory:
 
         Args:
             client: Optional custom client instance. Defaults to Open5eV2Client.
-            cache: Optional custom cache instance. Defaults to shared SQLiteCache.
+            cache: Optional custom cache instance. Defaults to cache from config.
 
         Returns:
             A configured CharacterOptionRepository instance.
@@ -130,7 +153,7 @@ class RepositoryFactory:
 
         Args:
             client: Optional custom client instance. Defaults to Open5eV2Client.
-            cache: Optional custom cache instance. Defaults to shared SQLiteCache.
+            cache: Optional custom cache instance. Defaults to cache from config.
 
         Returns:
             A configured RuleRepository instance.

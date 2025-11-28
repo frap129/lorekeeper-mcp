@@ -23,7 +23,11 @@ class EquipmentClient(Protocol):
 
 
 class EquipmentCache(Protocol):
-    """Protocol for equipment cache."""
+    """Protocol for equipment cache.
+
+    Supports both structured filtering via get_entities() and
+    semantic search via semantic_search() for Milvus backend.
+    """
 
     async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
         """Retrieve entities from cache."""
@@ -31,6 +35,16 @@ class EquipmentCache(Protocol):
 
     async def store_entities(self, entities: list[dict[str, Any]], entity_type: str) -> int:
         """Store entities in cache."""
+        ...
+
+    async def semantic_search(
+        self,
+        entity_type: str,
+        query: str,
+        limit: int = 20,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Perform semantic search (optional - may raise NotImplementedError)."""
         ...
 
 
@@ -133,20 +147,80 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
     async def search(self, **filters: Any) -> list[Weapon | Armor | MagicItem]:
         """Search for equipment with optional filters using cache-aside pattern.
 
+        Supports both structured filtering and semantic search.
+
         Args:
-            **filters: Optional filters. Must include 'item_type' to specify
-                'weapon', 'armor', or 'magic-item'. Other filters depend on item type.
+            **filters: Optional filters:
+                - semantic_query: Natural language search query (uses vector search)
+                - item_type: 'weapon', 'armor', or 'magic-item'
+                - document: Filter by source document
+                - limit: Maximum results to return
 
         Returns:
             List of Weapon, Armor, or MagicItem objects matching the filters
         """
         item_type = filters.pop("item_type", None)
+        semantic_query = filters.pop("semantic_query", None)
+
+        if semantic_query:
+            return await self._semantic_search(semantic_query, item_type=item_type, **filters)
 
         if item_type == "armor":
             return await self._search_armor(**filters)  # type: ignore[return-value]
         if item_type == "magic-item":
             return await self._search_magic_items(**filters)  # type: ignore[return-value]
         return await self._search_weapons(**filters)  # type: ignore[return-value]
+
+    async def _semantic_search(
+        self,
+        query: str,
+        item_type: str | None = None,
+        **filters: Any,
+    ) -> list[Weapon | Armor | MagicItem]:
+        """Perform semantic search for equipment.
+
+        Args:
+            query: Natural language search query
+            item_type: Optional item type filter
+            **filters: Additional scalar filters
+
+        Returns:
+            List of equipment items ranked by semantic similarity
+        """
+        limit = filters.pop("limit", None)
+        search_limit = limit or 20
+
+        # Determine which collections to search
+        if item_type == "armor":
+            collections: list[tuple[str, type[Weapon] | type[Armor] | type[MagicItem]]] = [
+                ("armor", Armor)
+            ]
+        elif item_type == "magic-item":
+            collections = [("magic-items", MagicItem)]
+        elif item_type == "weapon":
+            collections = [("weapons", Weapon)]
+        else:
+            # Search all equipment types
+            collections = [
+                ("weapons", Weapon),
+                ("armor", Armor),
+                ("magic-items", MagicItem),
+            ]
+
+        all_results: list[Weapon | Armor | MagicItem] = []
+
+        for collection_name, model_class in collections:
+            try:
+                results = await self.cache.semantic_search(
+                    collection_name, query, limit=search_limit, **filters
+                )
+                all_results.extend(model_class.model_validate(r) for r in results)
+            except NotImplementedError:
+                # Fall back to structured search
+                cached = await self.cache.get_entities(collection_name, name=query, **filters)
+                all_results.extend(model_class.model_validate(r) for r in cached)
+
+        return all_results[:limit] if limit else all_results
 
     async def _search_weapons(self, **filters: Any) -> list[Weapon]:
         """Search for weapons with optional filters.

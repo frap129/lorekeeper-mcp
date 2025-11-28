@@ -21,7 +21,11 @@ class CreatureClient(Protocol):
 
 
 class CreatureCache(Protocol):
-    """Protocol for creature cache."""
+    """Protocol for creature cache.
+
+    Supports both structured filtering via get_entities() and
+    semantic search via semantic_search() for Milvus backend.
+    """
 
     async def get_entities(self, entity_type: str, **filters: Any) -> list[dict[str, Any]]:
         """Retrieve entities from cache."""
@@ -29,6 +33,16 @@ class CreatureCache(Protocol):
 
     async def store_entities(self, entities: list[dict[str, Any]], entity_type: str) -> int:
         """Store entities in cache."""
+        ...
+
+    async def semantic_search(
+        self,
+        entity_type: str,
+        query: str,
+        limit: int = 20,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Perform semantic search (optional - may raise NotImplementedError)."""
         ...
 
 
@@ -76,14 +90,25 @@ class CreatureRepository(Repository[Creature]):
     async def search(self, **filters: Any) -> list[Creature]:
         """Search for creatures with optional filters using cache-aside pattern.
 
+        Supports both structured filtering and semantic search.
+
         Args:
-            **filters: Optional filters (type, size, challenge_rating, etc.)
+            **filters: Optional filters:
+                - semantic_query: Natural language search query (uses vector search)
+                - challenge_rating, type, size: Structured filters
+                - document: Filter by source document
+                - limit: Maximum results to return
 
         Returns:
             List of Creature objects matching the filters
         """
-        # Extract limit parameter (not a cache filter field)
+        # Extract special parameters
         limit = filters.pop("limit", None)
+        semantic_query = filters.pop("semantic_query", None)
+
+        # Handle semantic search if query provided
+        if semantic_query:
+            return await self._semantic_search(semantic_query, limit=limit, **filters)
 
         # Separate cache-compatible filters from API-only filters
         # Cache allows: challenge_rating, name, size, slug, source_api, type, document
@@ -128,6 +153,44 @@ class CreatureRepository(Repository[Creature]):
             creature_dicts = [creature.model_dump() for creature in creatures]
             await self.cache.store_entities(creature_dicts, "creatures")
         return creatures
+
+    async def _semantic_search(
+        self,
+        query: str,
+        limit: int | None = None,
+        **filters: Any,
+    ) -> list[Creature]:
+        """Perform semantic search for creatures.
+
+        Args:
+            query: Natural language search query
+            limit: Maximum results to return
+            **filters: Additional scalar filters (challenge_rating, type, etc.)
+
+        Returns:
+            List of Creature objects ranked by semantic similarity
+        """
+        search_limit = limit or 20
+
+        # Filter to cache-allowed fields only
+        cache_filters = {
+            k: v
+            for k, v in filters.items()
+            if k in {"challenge_rating", "name", "size", "slug", "source_api", "type", "document"}
+        }
+
+        try:
+            results = await self.cache.semantic_search(
+                "creatures", query, limit=search_limit, **cache_filters
+            )
+        except NotImplementedError:
+            # Fall back to structured search
+            cache_filters["name"] = query
+            cached = await self.cache.get_entities("creatures", **cache_filters)
+            results = cached if cached else []
+
+        creatures = [Creature.model_validate(creature) for creature in results]
+        return creatures[:limit] if limit else creatures
 
     def _map_to_api_params(self, **filters: Any) -> dict[str, Any]:
         """Map repository parameters to API-specific filter operators.
