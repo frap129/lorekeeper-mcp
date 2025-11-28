@@ -113,21 +113,76 @@ See [docs/cli-usage.md](docs/cli-usage.md) for detailed CLI documentation.
 
 ## Configuration
 
-LoreKeeper uses environment variables for configuration. Create a `.env` file:
+LoreKeeper uses environment variables for configuration. All settings use the `LOREKEEPER_` prefix. Create a `.env` file:
 
 ```bash
-# Database settings
-DB_PATH=./data/cache.db
-CACHE_TTL_DAYS=7
-ERROR_CACHE_TTL_SECONDS=300
+# Cache backend settings
+LOREKEEPER_CACHE_BACKEND=milvus        # "milvus" (default) or "sqlite"
+LOREKEEPER_MILVUS_DB_PATH=~/.lorekeeper/milvus.db
+LOREKEEPER_EMBEDDING_MODEL=all-MiniLM-L6-v2
+
+# SQLite settings (if using sqlite backend)
+LOREKEEPER_DB_PATH=./data/cache.db
+
+# Cache TTL settings
+LOREKEEPER_CACHE_TTL_DAYS=7
+LOREKEEPER_ERROR_CACHE_TTL_SECONDS=300
 
 # Logging
-LOG_LEVEL=INFO
-DEBUG=false
+LOREKEEPER_LOG_LEVEL=INFO
+LOREKEEPER_DEBUG=false
 
 # API endpoints
-OPEN5E_BASE_URL=https://api.open5e.com
+LOREKEEPER_OPEN5E_BASE_URL=https://api.open5e.com
 ```
+
+## Semantic Search
+
+LoreKeeper uses **Milvus Lite** as the default cache backend, providing semantic search capabilities powered by vector embeddings.
+
+### Features
+
+- **Semantic Search**: Find content by meaning, not just exact text matches
+- **Vector Embeddings**: Uses sentence-transformers for high-quality text embeddings
+- **Zero Configuration**: Works out of the box with sensible defaults
+- **Lightweight**: Embedded database, no external services required
+
+### First-Run Setup
+
+On first run, LoreKeeper downloads the embedding model (~80MB). This is a one-time download:
+
+```bash
+# First run will show:
+# Downloading model 'all-MiniLM-L6-v2'...
+lorekeeper serve
+```
+
+### Configuration
+
+Configure Milvus via environment variables:
+
+```bash
+# Use Milvus backend (default)
+LOREKEEPER_CACHE_BACKEND=milvus
+
+# Custom database path
+LOREKEEPER_MILVUS_DB_PATH=/path/to/milvus.db
+
+# Alternative embedding model
+LOREKEEPER_EMBEDDING_MODEL=all-MiniLM-L6-v2
+```
+
+### Migrating from SQLite
+
+If you were using an older version with SQLite caching, set the backend for backward compatibility:
+
+```bash
+# Keep using SQLite
+LOREKEEPER_CACHE_BACKEND=sqlite
+LOREKEEPER_DB_PATH=./data/cache.db
+```
+
+Note: SQLite cache does not support semantic search—only exact and pattern matching.
 
 ## Development
 

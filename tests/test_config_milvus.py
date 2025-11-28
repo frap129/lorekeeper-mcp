@@ -109,3 +109,29 @@ class TestEmbeddingModelConfig:
         from lorekeeper_mcp.config import settings
 
         assert settings.embedding_model == "custom-model"
+
+
+class TestConfigIntegration:
+    """Integration tests for configuration with cache factory."""
+
+    def test_config_integrates_with_cache_factory(self, tmp_path: Path, monkeypatch):
+        """Test that config values work with cache factory."""
+        db_path = tmp_path / "integration_milvus.db"
+        monkeypatch.setenv("LOREKEEPER_CACHE_BACKEND", "milvus")
+        monkeypatch.setenv("LOREKEEPER_MILVUS_DB_PATH", str(db_path))
+
+        import lorekeeper_mcp.config
+
+        importlib.reload(lorekeeper_mcp.config)
+        from lorekeeper_mcp.cache.factory import create_cache
+        from lorekeeper_mcp.config import settings
+
+        cache = create_cache(
+            backend=settings.cache_backend,
+            db_path=str(settings.milvus_db_path),
+        )
+
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        assert isinstance(cache, MilvusCache)
+        assert cache.db_path == db_path
