@@ -217,6 +217,13 @@ The parser SHALL correctly handle and convert EDN data types to Python types.
 **Given** a field with EDN list `[:verbal :somatic :material]`
 **When** the parser converts the value
 **Then** the value becomes Python list `["verbal", "somatic", "material"]`
+**And** the result can be serialized to JSON without errors
+
+#### Scenario: Handle edn_format ImmutableList type
+**Given** the edn_format library returns an `ImmutableList` for EDN arrays
+**When** the parser's `_edn_to_python` method processes the value
+**Then** the `ImmutableList` is converted to a standard Python `list`
+**And** nested items within the list are also recursively converted
 
 ### Requirement: Treat OrcBrew Book as Document
 The parser SHALL treat the highest-level OrcBrew book heading as the source document for all entities contained within that book.
