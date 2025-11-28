@@ -106,6 +106,9 @@ ignore = [
 "src/lorekeeper_mcp/models/orcbrew/*" = [
     "PLC0415",  # import not at top-level - intentional for circular import avoidance
 ]
+"src/lorekeeper_mcp/cache/embedding.py" = [
+    "PLC0415",  # import not at top-level - intentional for lazy model loading
+]
 
 [tool.ruff.format]
 quote-style = "double"
