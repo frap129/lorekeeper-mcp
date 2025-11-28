@@ -1,10 +1,15 @@
 """OrcBrew spell model with relaxed constraints."""
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field, model_validator
 
 from lorekeeper_mcp.models.base import BaseEntity
+
+if TYPE_CHECKING:
+    from lorekeeper_mcp.models.spell import Spell
 
 
 class OrcBrewSpell(BaseEntity):
@@ -81,3 +86,32 @@ class OrcBrewSpell(BaseEntity):
             data["slug"] = data["name"].lower().replace(" ", "-").replace("'", "").replace("/", "-")
 
         return data
+
+    def to_canonical(self) -> Spell:
+        """Convert OrcBrew spell to canonical Spell model.
+
+        Returns:
+            Spell: A canonical Spell instance with default values for missing fields.
+        """
+        from lorekeeper_mcp.models.spell import Spell
+
+        return Spell(
+            name=self.name,
+            slug=self.slug,
+            desc=self.desc,
+            document=self.document,
+            document_url=self.document_url,
+            source_api=self.source_api,
+            level=self.level,
+            school=self.school,
+            casting_time=self.casting_time or "Unknown",
+            range=self.range or "Self",
+            duration=self.duration or "Instantaneous",
+            components=self.components,
+            concentration=self.concentration,
+            ritual=self.ritual,
+            material=self.material,
+            higher_level=self.higher_level,
+            damage_type=self.damage_type,
+            classes=self.classes,
+        )

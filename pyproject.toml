@@ -101,6 +101,9 @@ ignore = [
     "PLR2004", # magic value comparison
     "PLR0913", # too many arguments in tests
 ]
+"src/lorekeeper_mcp/models/orcbrew/*" = [
+    "PLC0415",  # import not at top-level - intentional for circular import avoidance
+]
 
 [tool.ruff.format]
 quote-style = "double"

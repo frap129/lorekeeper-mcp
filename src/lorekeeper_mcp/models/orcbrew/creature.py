@@ -1,10 +1,15 @@
 """OrcBrew creature model with relaxed constraints."""
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field, model_validator
 
 from lorekeeper_mcp.models.base import BaseEntity
+
+if TYPE_CHECKING:
+    from lorekeeper_mcp.models.creature import Creature
 
 # Challenge rating decimal values for fractional CRs
 CR_ONE_EIGHTH = 0.125
@@ -79,3 +84,38 @@ class OrcBrewCreature(BaseEntity):
                 data["challenge_rating"] = str(challenge)
 
         return data
+
+    def to_canonical(self) -> Creature:
+        """Convert OrcBrew creature to canonical Creature model.
+
+        Returns:
+            Creature: A canonical Creature instance with default values for missing fields.
+        """
+        from lorekeeper_mcp.models.creature import Creature
+
+        return Creature(
+            name=self.name,
+            slug=self.slug,
+            desc=self.desc,
+            document=self.document,
+            document_url=self.document_url,
+            source_api=self.source_api,
+            size=self.size,
+            type=self.type,
+            alignment=self.alignment or "unaligned",
+            armor_class=self.armor_class if self.armor_class is not None else 10,
+            hit_points=self.hit_points if self.hit_points is not None else 1,
+            hit_dice=self.hit_dice or "1d8",
+            challenge_rating=self.challenge_rating or "0",
+            challenge_rating_decimal=self.challenge_rating_decimal,
+            strength=self.strength,
+            dexterity=self.dexterity,
+            constitution=self.constitution,
+            intelligence=self.intelligence,
+            wisdom=self.wisdom,
+            charisma=self.charisma,
+            speed=self.speed,
+            actions=self.actions,
+            legendary_actions=self.legendary_actions,
+            special_abilities=self.special_abilities,
+        )

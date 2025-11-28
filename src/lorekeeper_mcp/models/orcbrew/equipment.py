@@ -1,10 +1,15 @@
 """OrcBrew equipment models with relaxed constraints."""
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field, model_validator
 
 from lorekeeper_mcp.models.base import BaseEntity
+
+if TYPE_CHECKING:
+    from lorekeeper_mcp.models.equipment import Armor, MagicItem, Weapon
 
 
 class OrcBrewWeapon(BaseEntity):
@@ -66,6 +71,37 @@ class OrcBrewWeapon(BaseEntity):
 
         return data
 
+    def to_canonical(self) -> Weapon:
+        """Convert OrcBrew weapon to canonical Weapon model.
+
+        Returns:
+            Weapon: A canonical Weapon instance with default values for missing fields.
+        """
+        from lorekeeper_mcp.models.equipment import Weapon
+
+        return Weapon(
+            name=self.name,
+            slug=self.slug,
+            desc=self.desc,
+            document=self.document,
+            document_url=self.document_url,
+            source_api=self.source_api,
+            damage_dice=self.damage_dice,
+            damage_type=self.damage_type,
+            properties=self.properties,
+            range=self.range if self.range is not None else 5,
+            long_range=self.long_range if self.long_range is not None else 5,
+            distance_unit=self.distance_unit or "feet",
+            is_simple=self.is_simple if self.is_simple is not None else True,
+            is_improvised=self.is_improvised if self.is_improvised is not None else False,
+            category=self.category,
+            cost=self.cost,
+            weight=self.weight,
+            range_normal=self.range_normal,
+            range_long=self.range_long,
+            versatile_dice=self.versatile_dice,
+        )
+
 
 class OrcBrewArmor(BaseEntity):
     """Armor model for OrcBrew data with optional fields.
@@ -85,6 +121,31 @@ class OrcBrewArmor(BaseEntity):
     strength_required: int | None = Field(None, description="Minimum Strength required")
     stealth_disadvantage: bool = Field(False, description="Imposes disadvantage on Stealth")
 
+    def to_canonical(self) -> Armor:
+        """Convert OrcBrew armor to canonical Armor model.
+
+        Returns:
+            Armor: A canonical Armor instance with default values for missing fields.
+        """
+        from lorekeeper_mcp.models.equipment import Armor
+
+        return Armor(
+            name=self.name,
+            slug=self.slug,
+            desc=self.desc,
+            document=self.document,
+            document_url=self.document_url,
+            source_api=self.source_api,
+            category=self.category or "Light",
+            base_ac=self.base_ac,
+            cost=self.cost,
+            weight=self.weight,
+            dex_bonus=self.dex_bonus,
+            max_dex_bonus=self.max_dex_bonus,
+            strength_required=self.strength_required,
+            stealth_disadvantage=self.stealth_disadvantage,
+        )
+
 
 class OrcBrewMagicItem(BaseEntity):
     """Magic item model for OrcBrew data with optional fields.
@@ -100,3 +161,27 @@ class OrcBrewMagicItem(BaseEntity):
     weight: float | None = Field(None, ge=0, description="Weight in pounds")
     armor_class: int | None = Field(None, ge=0, description="AC bonus if armor")
     damage: str | None = Field(None, description="Damage if weapon")
+
+    def to_canonical(self) -> MagicItem:
+        """Convert OrcBrew magic item to canonical MagicItem model.
+
+        Returns:
+            MagicItem: A canonical MagicItem instance.
+        """
+        from lorekeeper_mcp.models.equipment import MagicItem
+
+        return MagicItem(
+            name=self.name,
+            slug=self.slug,
+            desc=self.desc,
+            document=self.document,
+            document_url=self.document_url,
+            source_api=self.source_api,
+            rarity=self.rarity,
+            requires_attunement=self.requires_attunement,
+            type=self.type,
+            wondrous=self.wondrous,
+            weight=self.weight,
+            armor_class=self.armor_class,
+            damage=self.damage,
+        )
