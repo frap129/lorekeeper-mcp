@@ -88,11 +88,22 @@ class Monster(Creature):
     @model_validator(mode="before")
     @classmethod
     def emit_deprecation_warning(cls, data: Any) -> Any:
-        """Emit deprecation warning when Monster is instantiated."""
+        """Emit deprecation warning when Monster is instantiated.
+
+        The stacklevel is set to point to the caller's code (the line where Monster()
+        is instantiated), not to the internal Pydantic validation machinery.
+
+        Call stack when warning is emitted:
+        1. emit_deprecation_warning (this function)
+        2. Pydantic __init__ / validate_python
+        3. Caller's code (Monster instantiation) <- we want to point here
+
+        stacklevel=3 points to frame 3 up from warnings.warn().
+        """
         warnings.warn(
             "Monster is deprecated, use Creature instead. "
             "Monster will be removed in a future release.",
             DeprecationWarning,
-            stacklevel=6,  # Adjust stacklevel to show caller location
+            stacklevel=3,
         )
         return data
