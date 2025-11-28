@@ -165,7 +165,13 @@ async def test_spell_lookup_with_document_filter_integration(
 
 @pytest.mark.asyncio
 async def test_cross_tool_document_consistency(populated_cache: str) -> None:
-    """Test that document filtering works consistently across all tools."""
+    """Test that document filtering works consistently across all tools.
+
+    This test verifies that when filtering by a document that has cached entities
+    of a specific type, the results correctly match that document. It only tests
+    filtering for entity types that actually exist in each document to avoid
+    triggering API fallback on cache miss.
+    """
     # Patch settings
     with patch.object(settings, "db_path", populated_cache):
         # Get available documents
@@ -186,24 +192,23 @@ async def test_cross_tool_document_consistency(populated_cache: str) -> None:
             # Test filtering with each document
             for doc in documents[:2]:  # Test first 2 documents
                 doc_key: str = doc["document"]
-                source_api: str = doc.get("source_api", "")
+                entity_types: dict[str, int] = doc.get("entity_types", {})
 
-                # Try filtering with each tool
-                spells = await lookup_spell(documents=[doc_key], limit=5)
-                creatures = await lookup_creature(documents=[doc_key], limit=5)
-
-                # Should complete without errors
-                assert isinstance(spells, list)
-                assert isinstance(creatures, list)
-
-                # Verify filtering worked if results exist
-                # Only check filtering for matching source APIs
-                if source_api == "open5e_v2":
+                # Only test spells if this document has spells in cache
+                # Otherwise cache-aside pattern would fetch from API
+                if entity_types.get("spells", 0) > 0:
+                    spells = await lookup_spell(documents=[doc_key], limit=5)
+                    assert isinstance(spells, list)
+                    # Verify all returned spells match the document filter
                     for spell in spells:
                         if spell.get("document"):
                             assert spell["document"] == doc_key
 
-                if source_api == "open5e_v2":
+                # Only test creatures/monsters if this document has them in cache
+                if entity_types.get("monsters", 0) > 0:
+                    creatures = await lookup_creature(documents=[doc_key], limit=5)
+                    assert isinstance(creatures, list)
+                    # Verify all returned creatures match the document filter
                     for creature in creatures:
                         if creature.get("document"):
                             assert creature["document"] == doc_key
