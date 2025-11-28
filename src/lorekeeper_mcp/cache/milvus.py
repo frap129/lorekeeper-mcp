@@ -293,3 +293,345 @@ class MilvusCache:
         )
 
         logger.info("Collection created: %s", entity_type)
+
+    def _build_filter_expression(self, filters: dict[str, Any]) -> str:
+        """Build Milvus filter expression from keyword filters.
+
+        Converts Python filter dict to Milvus boolean expression syntax.
+        Example: {"level": 3, "school": "Evocation"} -> 'level == 3 and school == "Evocation"'
+
+        Args:
+            filters: Dictionary of field names to filter values.
+
+        Returns:
+            Milvus filter expression string, or empty string if no filters.
+        """
+        expressions: list[str] = []
+
+        for field, value in filters.items():
+            if value is None:
+                continue
+
+            if isinstance(value, str):
+                expressions.append(f'{field} == "{value}"')
+            elif isinstance(value, bool):
+                # Milvus uses lowercase boolean literals
+                expressions.append(f"{field} == {str(value).lower()}")
+            elif isinstance(value, int | float):
+                expressions.append(f"{field} == {value}")
+            elif isinstance(value, list):
+                # Handle list of values (IN clause)
+                if all(isinstance(v, str) for v in value):
+                    quoted = [f'"{v}"' for v in value]
+                    expressions.append(f"{field} in [{', '.join(quoted)}]")
+                else:
+                    expressions.append(f"{field} in {value}")
+
+        return " and ".join(expressions)
+
+    async def store_entities(
+        self,
+        entities: list[dict[str, Any]],
+        entity_type: str,
+    ) -> int:
+        """Store or update entities in cache with auto-generated embeddings.
+
+        Args:
+            entities: List of entity dictionaries to cache.
+            entity_type: Type of entities being stored.
+
+        Returns:
+            Number of entities successfully stored/updated.
+        """
+        if not entities:
+            return 0
+
+        self._ensure_collection(entity_type)
+
+        # Prepare entities with embeddings
+        prepared_entities = []
+        texts_to_embed = []
+
+        for entity in entities:
+            # Extract searchable text
+            text = self._embedding_service.get_searchable_text(entity, entity_type)
+            texts_to_embed.append(text)
+
+        # Batch encode all texts
+        embeddings = self._embedding_service.encode_batch(texts_to_embed)
+
+        # Get schema for this entity type (or default)
+        schema_def = COLLECTION_SCHEMAS.get(entity_type, DEFAULT_COLLECTION_SCHEMA)
+
+        # Build a mapping of field name to default value based on type
+        field_defaults: dict[str, Any] = {}
+        for field_def in schema_def["indexed_fields"]:
+            field_name = field_def["name"]
+            field_type = field_def["type"]
+            if field_type == "VARCHAR":
+                field_defaults[field_name] = ""
+            elif field_type == "INT64":
+                field_defaults[field_name] = 0
+            elif field_type == "BOOL":
+                field_defaults[field_name] = False
+            elif field_type == "FLOAT":
+                field_defaults[field_name] = 0.0
+
+        # Prepare entities with embeddings
+        for entity, embedding in zip(entities, embeddings, strict=True):
+            prepared = {
+                "slug": entity.get("slug", ""),
+                "name": entity.get("name", ""),
+                "embedding": embedding,
+                "source_api": entity.get("source_api", ""),
+            }
+
+            # Add ALL indexed fields with proper defaults
+            for field_name, default_value in field_defaults.items():
+                if field_name in entity:
+                    prepared[field_name] = entity[field_name]
+                elif field_name == "document":
+                    # Handle document field specially
+                    prepared["document"] = entity.get(
+                        "document", entity.get("document__slug", default_value)
+                    )
+                else:
+                    prepared[field_name] = default_value
+
+            prepared_entities.append(prepared)
+
+        # Upsert to Milvus
+        try:
+            self.client.upsert(
+                collection_name=entity_type,
+                data=prepared_entities,
+            )
+            logger.info("Stored %d entities in %s", len(prepared_entities), entity_type)
+            return len(prepared_entities)
+        except Exception as e:
+            logger.error("Failed to store entities in %s: %s", entity_type, e)
+            raise
+
+    async def get_entities(
+        self,
+        entity_type: str,
+        document: str | list[str] | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Retrieve entities from cache by type with optional filters.
+
+        Args:
+            entity_type: Type of entities to retrieve (e.g., 'spells', 'creatures')
+            document: Optional document filter (string or list of strings)
+            **filters: Optional keyword arguments for filtering entities
+
+        Returns:
+            List of entity dictionaries matching the criteria.
+        """
+        self._ensure_collection(entity_type)
+
+        # Add document to filters if provided
+        if document is not None:
+            filters["document"] = document
+
+        # Build filter expression
+        filter_expr = self._build_filter_expression(filters)
+
+        # Query the collection
+        try:
+            if filter_expr:
+                results = self.client.query(
+                    collection_name=entity_type,
+                    filter=filter_expr,
+                    output_fields=["*"],
+                )
+            else:
+                # Empty filter requires limit in Milvus Lite
+                results = self.client.query(
+                    collection_name=entity_type,
+                    filter="",
+                    output_fields=["*"],
+                    limit=10000,  # Large limit to get all entities
+                )
+        except Exception as e:
+            logger.warning("Query failed for %s: %s", entity_type, e)
+            return []
+
+        # Convert results to dicts, removing embedding field
+        entities = []
+        for result in results:
+            entity = dict(result)
+            entity.pop("embedding", None)  # Don't return embeddings
+            entities.append(entity)
+
+        return entities
+
+    async def semantic_search(
+        self,
+        entity_type: str,
+        query: str,
+        limit: int = 20,
+        document: str | list[str] | None = None,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """Perform semantic search using vector similarity.
+
+        Combines vector similarity search with optional scalar filters
+        for hybrid search functionality.
+
+        Args:
+            entity_type: Type of entities to search (e.g., 'spells', 'creatures')
+            query: Natural language search query
+            limit: Maximum number of results to return (default 20)
+            document: Optional document filter (string or list of strings)
+            **filters: Optional keyword filters for hybrid search
+
+        Returns:
+            List of entity dictionaries ranked by similarity score.
+        """
+        # Handle empty query - fall back to get_entities
+        if not query or not query.strip():
+            return await self.get_entities(entity_type, document=document, **filters)
+
+        self._ensure_collection(entity_type)
+
+        # Generate query embedding
+        query_embedding = self._embedding_service.encode(query)
+
+        # Add document to filters if provided
+        if document is not None:
+            filters["document"] = document
+
+        # Build filter expression
+        filter_expr = self._build_filter_expression(filters)
+
+        # Execute vector search
+        try:
+            search_params = {
+                "metric_type": "COSINE",
+                "params": {"nprobe": 16},
+            }
+
+            results = self.client.search(
+                collection_name=entity_type,
+                data=[query_embedding],
+                filter=filter_expr if filter_expr else "",
+                limit=limit,
+                output_fields=["*"],
+                search_params=search_params,
+            )
+
+            # Extract entities from search results
+            entities = []
+            if results and len(results) > 0:
+                for hit in results[0]:
+                    entity = dict(hit["entity"])
+                    entity.pop("embedding", None)  # Don't return embeddings
+                    entity["_score"] = hit["distance"]  # Include similarity score
+                    entities.append(entity)
+
+            return entities
+
+        except Exception as e:
+            logger.warning(
+                "Semantic search failed for %s: %s, falling back to structured search",
+                entity_type,
+                e,
+            )
+            return await self.get_entities(entity_type, document=document, **filters)
+
+    async def get_entity_count(self, entity_type: str) -> int:
+        """Get count of entities in a collection.
+
+        Args:
+            entity_type: Type of entities to count.
+
+        Returns:
+            Number of entities in the collection.
+        """
+        self._ensure_collection(entity_type)
+
+        try:
+            stats = self.client.get_collection_stats(entity_type)
+            return int(stats.get("row_count", 0))
+        except Exception as e:
+            logger.warning("Failed to get entity count for %s: %s", entity_type, e)
+            return 0
+
+    async def get_available_documents(self) -> list[str]:
+        """Get list of available document keys across all collections.
+
+        Returns:
+            List of unique document keys.
+        """
+        documents: set[str] = set()
+
+        for collection_name in self.client.list_collections():
+            try:
+                results = self.client.query(
+                    collection_name=collection_name,
+                    filter="",
+                    output_fields=["document"],
+                    limit=10000,
+                )
+                for result in results:
+                    doc = result.get("document")
+                    if doc:
+                        documents.add(doc)
+            except Exception as e:
+                logger.debug("Failed to query documents from %s: %s", collection_name, e)
+
+        return sorted(documents)
+
+    async def get_document_metadata(self, document_key: str) -> dict[str, int]:
+        """Get entity counts per type for a specific document.
+
+        Args:
+            document_key: Document key to get metadata for.
+
+        Returns:
+            Dictionary mapping entity types to counts.
+        """
+        metadata: dict[str, int] = {}
+
+        for collection_name in self.client.list_collections():
+            try:
+                results = self.client.query(
+                    collection_name=collection_name,
+                    filter=f'document == "{document_key}"',
+                    output_fields=["slug"],
+                )
+                count = len(results)
+                if count > 0:
+                    metadata[collection_name] = count
+            except Exception as e:
+                logger.debug(
+                    "Failed to query %s for document %s: %s", collection_name, document_key, e
+                )
+
+        return metadata
+
+    async def get_cache_stats(self) -> dict[str, Any]:
+        """Get overall cache statistics.
+
+        Returns:
+            Dictionary with cache statistics.
+        """
+        collections = self.client.list_collections()
+        total_entities = 0
+        collection_stats: dict[str, int] = {}
+
+        for collection_name in collections:
+            try:
+                stats = self.client.get_collection_stats(collection_name)
+                count = stats.get("row_count", 0)
+                collection_stats[collection_name] = count
+                total_entities += count
+            except Exception as e:
+                logger.debug("Failed to get stats for %s: %s", collection_name, e)
+
+        return {
+            "collections": collection_stats,
+            "total_entities": total_entities,
+            "db_path": str(self.db_path),
+        }
