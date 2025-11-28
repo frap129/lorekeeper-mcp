@@ -344,7 +344,7 @@ class MilvusCache:
             Number of entities successfully stored/updated.
         """
         if not entities:
-            return 0
+            raise ValueError("entities list is empty")
 
         self._ensure_collection(entity_type)
 
@@ -397,6 +397,9 @@ class MilvusCache:
                     )
                 else:
                     prepared[field_name] = default_value
+
+            # Store full entity data in dynamic fields
+            prepared["entity_data"] = entity
 
             prepared_entities.append(prepared)
 
@@ -457,11 +460,15 @@ class MilvusCache:
             logger.warning("Query failed for %s: %s", entity_type, e)
             return []
 
-        # Convert results to dicts, removing embedding field
+        # Convert results to dicts, reconstructing from entity_data if available
         entities = []
         for result in results:
-            entity = dict(result)
-            entity.pop("embedding", None)  # Don't return embeddings
+            # If entity_data is stored, use it as the base and merge with indexed fields
+            if "entity_data" in result and isinstance(result["entity_data"], dict):
+                entity = dict(result["entity_data"])
+            else:
+                entity = dict(result)
+                entity.pop("embedding", None)  # Don't return embeddings
             entities.append(entity)
 
         return entities
@@ -525,8 +532,13 @@ class MilvusCache:
             entities = []
             if results and len(results) > 0:
                 for hit in results[0]:
-                    entity = dict(hit["entity"])
-                    entity.pop("embedding", None)  # Don't return embeddings
+                    hit_entity = hit["entity"]
+                    # If entity_data is stored, use it as the base
+                    if "entity_data" in hit_entity and isinstance(hit_entity["entity_data"], dict):
+                        entity = dict(hit_entity["entity_data"])
+                    else:
+                        entity = dict(hit_entity)
+                        entity.pop("embedding", None)  # Don't return embeddings
                     entity["_score"] = hit["distance"]  # Include similarity score
                     entities.append(entity)
 

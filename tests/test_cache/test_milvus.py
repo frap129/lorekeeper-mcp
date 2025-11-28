@@ -551,14 +551,14 @@ class TestMilvusCacheStoreEntities:
 
     @pytest.mark.asyncio
     async def test_store_entities_empty_list(self, tmp_path: Path):
-        """Test storing empty list returns 0."""
+        """Test storing empty list raises ValueError."""
         from lorekeeper_mcp.cache.milvus import MilvusCache
 
         db_path = tmp_path / "test_milvus.db"
         cache = MilvusCache(str(db_path))
 
-        count = await cache.store_entities([], "spells")
-        assert count == 0
+        with pytest.raises(ValueError, match="entities list is empty"):
+            await cache.store_entities([], "spells")
 
     @pytest.mark.asyncio
     async def test_store_entities_upsert_behavior(self, tmp_path: Path):
@@ -615,6 +615,30 @@ class TestMilvusCacheStoreEntities:
         assert len(results) == 1
         assert "embedding" in results[0]
         assert len(results[0]["embedding"]) == 384
+
+    @pytest.mark.asyncio
+    async def test_store_entities_preserves_full_data(self, tmp_path: Path):
+        """Test that full entity data is preserved and retrievable."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        db_path = tmp_path / "test_milvus.db"
+        cache = MilvusCache(str(db_path))
+        entities = [
+            {
+                "slug": "fireball",
+                "name": "Fireball",
+                "desc": "A bright streak flashes from your finger",
+                "level": 3,
+                "document": "srd",
+                "extra_field": "should be preserved",
+            }
+        ]
+        await cache.store_entities(entities, "spells")
+        results = await cache.get_entities("spells")
+
+        assert len(results) == 1
+        assert results[0]["desc"] == "A bright streak flashes from your finger"
+        assert results[0]["extra_field"] == "should be preserved"
 
 
 class TestMilvusCacheSemanticSearch:
