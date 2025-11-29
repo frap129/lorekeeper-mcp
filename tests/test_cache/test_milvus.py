@@ -397,6 +397,70 @@ class TestMilvusCacheBuildFilterExpression:
         result = cache._build_filter_expression({"level": 3, "school": None})
         assert result == "level == 3"
 
+    def test_build_filter_level_min(self, tmp_path: Path):
+        """Test filter expression converts level_min to >= operator."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        db_path = tmp_path / "test_milvus.db"
+        cache = MilvusCache(str(db_path))
+
+        result = cache._build_filter_expression({"level_min": 4})
+        assert result == "level >= 4"
+
+    def test_build_filter_level_max(self, tmp_path: Path):
+        """Test filter expression converts level_max to <= operator."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        db_path = tmp_path / "test_milvus.db"
+        cache = MilvusCache(str(db_path))
+
+        result = cache._build_filter_expression({"level_max": 3})
+        assert result == "level <= 3"
+
+    def test_build_filter_level_min_and_max(self, tmp_path: Path):
+        """Test filter expression with both level_min and level_max."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        db_path = tmp_path / "test_milvus.db"
+        cache = MilvusCache(str(db_path))
+
+        result = cache._build_filter_expression({"level_min": 3, "level_max": 6})
+        assert "level >= 3" in result
+        assert "level <= 6" in result
+        assert " and " in result
+
+    def test_build_filter_range_with_exact_filter(self, tmp_path: Path):
+        """Test filter expression combines range filter with exact filter."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        db_path = tmp_path / "test_milvus.db"
+        cache = MilvusCache(str(db_path))
+
+        result = cache._build_filter_expression({"level_min": 3, "school": "evocation"})
+        assert "level >= 3" in result
+        assert 'school == "evocation"' in result
+        assert " and " in result
+
+    def test_build_filter_generic_field_min(self, tmp_path: Path):
+        """Test filter expression works with any field_min pattern."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        db_path = tmp_path / "test_milvus.db"
+        cache = MilvusCache(str(db_path))
+
+        result = cache._build_filter_expression({"armor_class_min": 15})
+        assert result == "armor_class >= 15"
+
+    def test_build_filter_generic_field_max(self, tmp_path: Path):
+        """Test filter expression works with any field_max pattern."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        db_path = tmp_path / "test_milvus.db"
+        cache = MilvusCache(str(db_path))
+
+        result = cache._build_filter_expression({"challenge_rating_max": 5})
+        assert result == "challenge_rating <= 5"
+
 
 class TestMilvusCacheGetEntities:
     """Tests for MilvusCache.get_entities method."""
