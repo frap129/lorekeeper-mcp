@@ -11,6 +11,15 @@ from lorekeeper_mcp.models.base import BaseEntity as BaseModel
 Monster = Creature
 
 
+def test_api_clients_models_module_removed() -> None:
+    """Test that api_clients.models submodule no longer exists."""
+    with pytest.raises(ImportError):
+        from lorekeeper_mcp.api_clients import models  # noqa: F401
+
+    with pytest.raises(ImportError):
+        from lorekeeper_mcp.api_clients.models import Creature  # noqa: F401
+
+
 def test_base_model_required_fields() -> None:
     """Test that BaseModel validates required fields."""
     model = BaseModel(name="Test Item", slug="test-item")
