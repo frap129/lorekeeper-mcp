@@ -191,16 +191,15 @@ class TestRepositoryFactoryCacheIntegration:
         # Cache should be MilvusCache
         assert isinstance(RepositoryFactory._cache_instance, MilvusCache)
 
-    def test_factory_uses_sqlite_when_configured(
+    def test_factory_uses_milvus_backend(
         self, tmp_path: "Path", monkeypatch: "pytest.MonkeyPatch"
     ) -> None:
-        """Test that factory uses SQLite when configured."""
-        from lorekeeper_mcp.cache.sqlite import SQLiteCache
+        """Test that factory uses Milvus as the only backend."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
 
-        # Set SQLite backend
-        db_path = tmp_path / "cache.db"
-        monkeypatch.setenv("LOREKEEPER_CACHE_BACKEND", "sqlite")
-        monkeypatch.setenv("LOREKEEPER_SQLITE_DB_PATH", str(db_path))
+        # Set Milvus path to tmp_path
+        db_path = tmp_path / "milvus.db"
+        monkeypatch.setenv("LOREKEEPER_MILVUS_DB_PATH", str(db_path))
 
         # Clear cached instance
         RepositoryFactory._cache_instance = None
@@ -208,8 +207,8 @@ class TestRepositoryFactoryCacheIntegration:
         # Create a repository
         RepositoryFactory.create_spell_repository()
 
-        # Cache should be SQLiteCache
-        assert isinstance(RepositoryFactory._cache_instance, SQLiteCache)
+        # Cache should be MilvusCache
+        assert isinstance(RepositoryFactory._cache_instance, MilvusCache)
 
     def test_factory_reuses_cache_instance(
         self, tmp_path: "Path", monkeypatch: "pytest.MonkeyPatch"

@@ -596,7 +596,7 @@ class TestSpellRepositorySemanticSearch:
             async def semantic_search(
                 self, entity_type: str, query: str, limit: int = 20, **filters: Any
             ) -> list[dict[str, Any]]:
-                raise NotImplementedError("SQLiteCache does not support semantic search")
+                raise NotImplementedError("MockCache does not support semantic search")
 
         cache = MockCache()
         repo = SpellRepository(client=MockClient(), cache=cache)

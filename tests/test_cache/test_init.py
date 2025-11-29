@@ -10,12 +10,6 @@ class TestCacheModuleExports:
 
         assert CacheProtocol is not None
 
-    def test_sqlite_cache_exported(self) -> None:
-        """Test that SQLiteCache is exported from cache module."""
-        from lorekeeper_mcp.cache import SQLiteCache
-
-        assert SQLiteCache is not None
-
     def test_milvus_cache_exported(self) -> None:
         """Test that MilvusCache is exported from cache module."""
         from lorekeeper_mcp.cache import MilvusCache
@@ -46,7 +40,6 @@ class TestCacheModuleExports:
 
         expected_exports = [
             "CacheProtocol",
-            "SQLiteCache",
             "MilvusCache",
             "EmbeddingService",
             "create_cache",
@@ -55,11 +48,3 @@ class TestCacheModuleExports:
 
         for export in expected_exports:
             assert export in cache.__all__, f"Missing export: {export}"
-
-    def test_backward_compatibility_sqlite_cache(self) -> None:
-        """Test that existing SQLiteCache import pattern still works."""
-        from lorekeeper_mcp.cache import SQLiteCache
-
-        # Verify class has expected methods
-        assert hasattr(SQLiteCache, "get_entities")
-        assert hasattr(SQLiteCache, "store_entities")

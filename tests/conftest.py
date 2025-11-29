@@ -8,34 +8,28 @@ from typing import Any
 
 import pytest
 
-from lorekeeper_mcp.cache.db import cleanup_expired, delete_entity_type, init_db
-from lorekeeper_mcp.config import settings
+from lorekeeper_mcp.cache.milvus import MilvusCache
 from lorekeeper_mcp.server import mcp
-from lorekeeper_mcp.tools.character_option_lookup import clear_character_option_cache
-from lorekeeper_mcp.tools.creature_lookup import clear_creature_cache
-from lorekeeper_mcp.tools.spell_lookup import clear_spell_cache
 
 
 @pytest.fixture
-async def test_db(tmp_path, monkeypatch):
-    """Provide a temporary database for testing.
+async def test_db(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> AsyncGenerator[MilvusCache, None]:
+    """Provide a temporary Milvus cache for testing.
 
     This fixture:
     - Creates a temporary database file
-    - Initializes the schema
-    - Uses monkeypatch to modify settings.db_path
+    - Provides a MilvusCache instance
     - Cleans up after the test
     """
     # Create temporary database file
     db_file = tmp_path / "test_cache.db"
+    cache = MilvusCache(str(db_file))
 
-    # Patch settings to use temporary database
-    monkeypatch.setattr(settings, "db_path", db_file)
+    yield cache
 
-    # Initialize database schema
-    await init_db()
-
-    yield db_file
+    cache.close()
 
 
 @pytest.fixture
@@ -48,29 +42,24 @@ def mcp_server():
 
 
 @pytest.fixture
-async def live_db(tmp_path: Path, monkeypatch) -> AsyncGenerator[str]:
-    """
-    Provide isolated test database for live tests.
+async def live_db(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> AsyncGenerator[MilvusCache, None]:
+    """Provide isolated test Milvus cache for live tests.
 
-    Creates temporary database, yields path, cleans up after test.
+    Creates temporary database, yields cache instance, cleans up after test.
     """
     db_file = tmp_path / "test_live_cache.db"
+    cache = MilvusCache(str(db_file))
 
-    # Patch settings to use temporary database
-    monkeypatch.setattr(settings, "db_path", str(db_file))
+    yield cache
 
-    # Initialize test database
-    await init_db()
-
-    yield str(db_file)
-
-    # Cleanup handled by tmp_path fixture
+    cache.close()
 
 
 @pytest.fixture
 def rate_limiter():
-    """
-    Enforce rate limiting between API calls to prevent throttling.
+    """Enforce rate limiting between API calls to prevent throttling.
 
     Tracks last call time per API and enforces minimum delay.
     """
@@ -119,20 +108,9 @@ def cache_stats() -> CacheStats:
 
 
 @pytest.fixture
-async def clear_cache(live_db: str) -> AsyncGenerator[None]:
+async def clear_cache(live_db: MilvusCache) -> AsyncGenerator[None, None]:
     """Clear cache before test execution."""
-
-    # Clear in-memory caches
-    clear_spell_cache()
-    clear_creature_cache()
-    clear_character_option_cache()
-
-    # Delete entities from database cache
-    await delete_entity_type("feats", live_db)
-    await delete_entity_type("spells", live_db)
-    await delete_entity_type("creatures", live_db)
-
-    # Clean up any expired entries
-    await cleanup_expired()
+    # MilvusCache doesn't have in-memory clear functions
+    # The test database is already fresh due to tmp_path fixture
     yield
     # Cache will be cleared with temp database

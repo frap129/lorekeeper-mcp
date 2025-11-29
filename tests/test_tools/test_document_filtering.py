@@ -9,10 +9,7 @@ import pytest
 
 from lorekeeper_mcp.api_clients.open5e_v1 import Open5eV1Client
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
-from lorekeeper_mcp.cache.db import bulk_cache_entities
-from lorekeeper_mcp.cache.schema import init_entity_cache
-from lorekeeper_mcp.cache.sqlite import SQLiteCache
-from lorekeeper_mcp.config import settings
+from lorekeeper_mcp.cache.milvus import MilvusCache
 from lorekeeper_mcp.repositories.creature import CreatureRepository
 from lorekeeper_mcp.repositories.spell import SpellRepository
 from lorekeeper_mcp.tools.creature_lookup import (
@@ -31,12 +28,12 @@ from lorekeeper_mcp.tools.spell_lookup import (
 
 
 @pytest.fixture
-async def populated_cache() -> AsyncGenerator[str, None]:
+async def populated_cache() -> AsyncGenerator[MilvusCache, None]:
     """Fixture providing a cache populated with various entities."""
     # Create a temporary database
     with tempfile.TemporaryDirectory() as tmpdir:
         db_path = str(Path(tmpdir) / "test_populated.db")
-        await init_entity_cache(db_path)
+        cache = MilvusCache(db_path)
 
         # Add spells from different documents
         spells = [
@@ -51,6 +48,7 @@ async def populated_cache() -> AsyncGenerator[str, None]:
                 "components": "V,S,M",
                 "material": "a tiny ball of bat guano and sulfur",
                 "document": "srd-5e",
+                "source_api": "open5e_v2",
             },
             {
                 "slug": "magic-missile",
@@ -62,6 +60,7 @@ async def populated_cache() -> AsyncGenerator[str, None]:
                 "duration": "Instantaneous",
                 "components": "V,S",
                 "document": "srd-5e",
+                "source_api": "open5e_v2",
             },
             {
                 "slug": "tasha-spell",
@@ -73,39 +72,55 @@ async def populated_cache() -> AsyncGenerator[str, None]:
                 "duration": "1 minute",
                 "components": "V",
                 "document": "tce",
+                "source_api": "open5e_v2",
             },
         ]
-        await bulk_cache_entities(spells, "spells", db_path=db_path, source_api="open5e_v2")
+        await cache.store_entities(spells, "spells")
 
-        # Add monsters from different documents
-        monsters = [
+        # Add creatures from different documents
+        creatures = [
             {
                 "slug": "goblin",
                 "name": "Goblin",
                 "type": "humanoid",
                 "size": "Small",
-                "challenge_rating": 0.25,
+                "challenge_rating": "0.25",
+                "alignment": "neutral evil",
+                "armor_class": 15,
+                "hit_points": 7,
+                "hit_dice": "2d6",
                 "document": "mm",
+                "source_api": "open5e_v2",
             },
             {
                 "slug": "dragon",
                 "name": "Dragon",
                 "type": "dragon",
                 "size": "Huge",
-                "challenge_rating": 24,
+                "challenge_rating": "24",
+                "alignment": "chaotic evil",
+                "armor_class": 22,
+                "hit_points": 546,
+                "hit_dice": "28d20+252",
                 "document": "mm",
+                "source_api": "open5e_v2",
             },
         ]
-        await bulk_cache_entities(monsters, "monsters", db_path=db_path, source_api="open5e_v2")
+        await cache.store_entities(creatures, "creatures")
 
-        yield db_path
+        yield cache
+
+        cache.close()
 
 
 @pytest.mark.asyncio
-async def test_list_documents_integration(populated_cache: str) -> None:
+async def test_list_documents_integration(populated_cache: MilvusCache) -> None:
     """Test list_documents with real cache data."""
-    # Patch the settings to use the test database
-    with patch.object(settings, "db_path", populated_cache):
+    # Patch the cache factory to return our test cache
+    with patch(
+        "lorekeeper_mcp.tools.list_documents.get_cache_from_config",
+        return_value=populated_cache,
+    ):
         documents = await list_documents()
 
         assert isinstance(documents, list)
@@ -115,7 +130,6 @@ async def test_list_documents_integration(populated_cache: str) -> None:
         # Verify structure
         for doc in documents:
             assert "document" in doc
-            assert "source_api" in doc
             assert "entity_count" in doc
 
         # Verify expected documents
@@ -125,12 +139,11 @@ async def test_list_documents_integration(populated_cache: str) -> None:
 
 @pytest.mark.asyncio
 async def test_spell_lookup_with_document_filter_integration(
-    populated_cache: str,
+    populated_cache: MilvusCache,
 ) -> None:
     """Test spell lookup with document filtering end-to-end."""
-    # Setup repository with test database
-    cache = SQLiteCache(db_path=populated_cache)
-    repo = SpellRepository(client=Open5eV2Client(), cache=cache)
+    # Setup repository with test cache
+    repo = SpellRepository(client=Open5eV2Client(), cache=populated_cache)
     spell_context["repository"] = repo
 
     try:
@@ -164,7 +177,7 @@ async def test_spell_lookup_with_document_filter_integration(
 
 
 @pytest.mark.asyncio
-async def test_cross_tool_document_consistency(populated_cache: str) -> None:
+async def test_cross_tool_document_consistency(populated_cache: MilvusCache) -> None:
     """Test that document filtering works consistently across all tools.
 
     This test verifies that when filtering by a document that has cached entities
@@ -172,8 +185,11 @@ async def test_cross_tool_document_consistency(populated_cache: str) -> None:
     filtering for entity types that actually exist in each document to avoid
     triggering API fallback on cache miss.
     """
-    # Patch settings
-    with patch.object(settings, "db_path", populated_cache):
+    # Patch to return our test cache for list_documents
+    with patch(
+        "lorekeeper_mcp.tools.list_documents.get_cache_from_config",
+        return_value=populated_cache,
+    ):
         # Get available documents
         documents = await list_documents()
 
@@ -181,9 +197,8 @@ async def test_cross_tool_document_consistency(populated_cache: str) -> None:
             pytest.skip("No documents in cache")
 
         # Setup repositories
-        cache = SQLiteCache(db_path=populated_cache)
-        spell_repo = SpellRepository(client=Open5eV2Client(), cache=cache)
-        creature_repo = CreatureRepository(client=Open5eV1Client(), cache=cache)
+        spell_repo = SpellRepository(client=Open5eV2Client(), cache=populated_cache)
+        creature_repo = CreatureRepository(client=Open5eV1Client(), cache=populated_cache)
 
         spell_context["repository"] = spell_repo
         creature_context["repository"] = creature_repo
@@ -204,8 +219,8 @@ async def test_cross_tool_document_consistency(populated_cache: str) -> None:
                         if spell.get("document"):
                             assert spell["document"] == doc_key
 
-                # Only test creatures/monsters if this document has them in cache
-                if entity_types.get("monsters", 0) > 0:
+                # Only test creatures if this document has them in cache
+                if entity_types.get("creatures", 0) > 0:
                     creatures = await lookup_creature(documents=[doc_key], limit=5)
                     assert isinstance(creatures, list)
                     # Verify all returned creatures match the document filter
@@ -219,11 +234,11 @@ async def test_cross_tool_document_consistency(populated_cache: str) -> None:
 
 
 @pytest.mark.asyncio
-async def test_end_to_end_document_filtering(tmp_path):
+async def test_end_to_end_document_filtering(tmp_path: Path) -> None:
     """Test document filtering from tool through repository to cache."""
     # Setup test database
     db_path = str(tmp_path / "test.db")
-    await init_entity_cache(db_path)
+    cache = MilvusCache(db_path)
 
     # Populate cache with spells from different documents
     spells = [
@@ -236,6 +251,7 @@ async def test_end_to_end_document_filtering(tmp_path):
             "range": "150 feet",
             "duration": "Instantaneous",
             "document": "System Reference Document 5.1",
+            "source_api": "open5e_v2",
         },
         {
             "slug": "custom-blast",
@@ -246,6 +262,7 @@ async def test_end_to_end_document_filtering(tmp_path):
             "range": "100 feet",
             "duration": "Instantaneous",
             "document": "Homebrew Grimoire",
+            "source_api": "open5e_v2",
         },
         {
             "slug": "advanced-spell",
@@ -256,13 +273,13 @@ async def test_end_to_end_document_filtering(tmp_path):
             "duration": "1 minute",
             "school": "transmutation",
             "document": "Adventurer's Guide",
+            "source_api": "open5e_v2",
         },
     ]
 
-    await bulk_cache_entities(spells, "spells", db_path=db_path)
+    await cache.store_entities(spells, "spells")
 
     # Create repository with test cache
-    cache = SQLiteCache(db_path=db_path)
     repo = SpellRepository(client=Open5eV2Client(), cache=cache)
 
     # Inject repository into tool context
@@ -286,13 +303,14 @@ async def test_end_to_end_document_filtering(tmp_path):
 
     finally:
         spell_context.clear()
+        cache.close()
 
 
 @pytest.mark.asyncio
-async def test_document_in_tool_responses(tmp_path):
+async def test_document_in_tool_responses(tmp_path: Path) -> None:
     """Test that tool responses include document name."""
     db_path = str(tmp_path / "test.db")
-    await init_entity_cache(db_path)
+    cache = MilvusCache(db_path)
 
     spell = {
         "slug": "test-spell",
@@ -303,12 +321,12 @@ async def test_document_in_tool_responses(tmp_path):
         "range": "60 feet",
         "duration": "10 minutes",
         "document": "Test Document",
+        "source_api": "open5e_v2",
     }
 
-    await bulk_cache_entities([spell], "spells", db_path=db_path)
+    await cache.store_entities([spell], "spells")
 
     # Setup and query
-    cache = SQLiteCache(db_path=db_path)
     repo = SpellRepository(client=Open5eV2Client(), cache=cache)
     spell_context["repository"] = repo
 
@@ -323,3 +341,4 @@ async def test_document_in_tool_responses(tmp_path):
 
     finally:
         spell_context.clear()
+        cache.close()

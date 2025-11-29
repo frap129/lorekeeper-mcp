@@ -13,7 +13,7 @@ import respx
 
 from lorekeeper_mcp.api_clients.open5e_v1 import Open5eV1Client
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
-from lorekeeper_mcp.cache.sqlite import SQLiteCache
+from lorekeeper_mcp.cache.milvus import MilvusCache
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
 from lorekeeper_mcp.server import mcp
 from lorekeeper_mcp.tools.character_option_lookup import lookup_character_option
@@ -358,7 +358,7 @@ async def test_rule_lookup_skill(test_db):
 @pytest.mark.integration
 async def test_cache_persistence(test_db):
     """Test that cache persists data correctly across operations."""
-    cache = SQLiteCache(db_path=str(test_db))
+    cache = MilvusCache(db_path=str(test_db))
 
     test_spell = {
         "name": "Test Spell",
@@ -391,7 +391,7 @@ async def test_cache_persistence(test_db):
 @pytest.mark.integration
 async def test_cache_filtering(test_db):
     """Test cache filtering capabilities."""
-    cache = SQLiteCache(db_path=str(test_db))
+    cache = MilvusCache(db_path=str(test_db))
 
     spells = [
         {

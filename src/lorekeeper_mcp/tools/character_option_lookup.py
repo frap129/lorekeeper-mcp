@@ -6,7 +6,7 @@ The repository abstracts away cache management and handles multi-source data rou
 
 Architecture:
     - Uses CharacterOptionRepository for cache-aside pattern with option-type routing
-    - Repository manages SQLite cache automatically
+    - Repository manages Milvus cache automatically
     - Supports dependency injection for testing
     - Handles class, race, background, and feat filtering across sources
 

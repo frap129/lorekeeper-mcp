@@ -25,7 +25,6 @@ def test_import_sample_file_end_to_end(tmp_path: Path, monkeypatch, caplog) -> N
     test_db = tmp_path / "test_milvus.db"
 
     # Patch settings to use the test Milvus database
-    monkeypatch.setattr(settings, "cache_backend", "milvus")
     monkeypatch.setattr(settings, "milvus_db_path", test_db)
 
     # Get sample file path
@@ -146,7 +145,6 @@ def test_import_megapak_file(tmp_path: Path, monkeypatch) -> None:
 
     # Setup test Milvus database
     test_db = tmp_path / "megapak_milvus.db"
-    monkeypatch.setattr(settings, "cache_backend", "milvus")
     monkeypatch.setattr(settings, "milvus_db_path", test_db)
 
     # Run import

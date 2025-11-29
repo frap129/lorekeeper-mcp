@@ -6,7 +6,7 @@ repository abstracts away cache management and handles multi-type rule routing.
 
 Architecture:
     - Uses RuleRepository for cache-aside pattern with rule-type routing
-    - Repository manages SQLite cache automatically
+    - Repository manages Milvus cache automatically
     - Supports dependency injection for testing
     - Handles rule, condition, damage-type, skill, and other reference data filtering
 
@@ -17,9 +17,9 @@ Examples:
 
     With custom repository (dependency injection):
         from lorekeeper_mcp.repositories.rule import RuleRepository
-        from lorekeeper_mcp.cache.sqlite import SQLiteCache
+        from lorekeeper_mcp.cache.milvus import MilvusCache
 
-        cache = SQLiteCache(db_path="/path/to/cache.db")
+        cache = MilvusCache(db_path="/path/to/cache.db")
         repository = RuleRepository(cache=cache)
         rules = await lookup_rule(rule_type="rule", repository=repository)
 

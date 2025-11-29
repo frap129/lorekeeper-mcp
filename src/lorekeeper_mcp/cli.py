@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--db-path",
     type=click.Path(),
-    envvar="LOREKEEPER_DB_PATH",
-    help="Path to SQLite database file",
+    envvar="LOREKEEPER_MILVUS_DB_PATH",
+    help="Path to Milvus database file",
 )
 @click.option(
     "-v",
@@ -70,7 +70,7 @@ def import_cmd(ctx: click.Context, file: Path, dry_run: bool, force: bool) -> No
     Parses the EDN-formatted file and imports entities into the local cache.
     Supports spells, creatures, classes, equipment, and more.
 
-    Uses the configured cache backend (Milvus by default, or SQLite if configured).
+    Uses the Milvus cache backend for storage.
 
     Example:
         lorekeeper import MegaPak_-_WotC_Books.orcbrew
@@ -78,7 +78,7 @@ def import_cmd(ctx: click.Context, file: Path, dry_run: bool, force: bool) -> No
     verbose = ctx.obj.get("verbose", False)
 
     logger.info(f"Starting import of '{file.name}'...")
-    logger.info(f"Using cache backend: {settings.cache_backend}")
+    logger.info(f"Using Milvus cache at: {settings.milvus_db_path}")
 
     # Parse file
     try:

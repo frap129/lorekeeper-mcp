@@ -9,11 +9,19 @@ import pytest
 @pytest.mark.asyncio
 async def test_live_db_creates_temp_database(live_db, tmp_path):
     """Verify live_db fixture creates isolated test database."""
-    # live_db should return a path to a temporary database
+    # live_db should return a MilvusCache instance
+    from lorekeeper_mcp.cache.milvus import MilvusCache
+
     assert live_db is not None
-    db_path = Path(live_db)
-    assert db_path.exists()
+    assert isinstance(live_db, MilvusCache)
+    # Verify the database path is in a temporary location
+    # Note: MilvusCache uses lazy initialization, so the file may not exist
+    # until the client is actually used
+    db_path = Path(live_db.db_path)
     assert "test" in str(db_path).lower() or str(db_path).startswith("/tmp")
+    # Trigger client initialization to create the database file
+    _ = live_db.client
+    assert db_path.exists()
 
 
 @pytest.mark.asyncio

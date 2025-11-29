@@ -39,8 +39,8 @@ class RepositoryFactory:
     Provides static factory methods for creating properly configured repository
     instances. Supports optional client and cache overrides for testing.
 
-    Uses the cache factory to create cache instances based on environment
-    configuration (LOREKEEPER_CACHE_BACKEND).
+    Uses the cache factory to create Milvus cache instances based on environment
+    configuration.
     """
 
     _cache_instance: _CacheProtocol | None = None
@@ -49,9 +49,8 @@ class RepositoryFactory:
     def _get_cache() -> _CacheProtocol:
         """Get or create the shared cache instance.
 
-        Creates cache based on environment configuration:
-        - LOREKEEPER_CACHE_BACKEND=milvus (default): MilvusCache with semantic search
-        - LOREKEEPER_CACHE_BACKEND=sqlite: SQLiteCache (legacy, no semantic search)
+        Creates cache based on environment configuration. Milvus is the only
+        supported cache backend, providing semantic search capabilities.
 
         Returns:
             A cache instance implementing the CacheProtocol.

@@ -5,7 +5,6 @@ from contextlib import asynccontextmanager
 
 from fastmcp import FastMCP
 
-from lorekeeper_mcp.cache.db import init_db
 from lorekeeper_mcp.tools import (
     list_documents,
     lookup_character_option,
@@ -20,7 +19,8 @@ from lorekeeper_mcp.tools import (
 @asynccontextmanager
 async def lifespan(app: FastMCP) -> AsyncGenerator[None]:
     """Initialize resources on startup, cleanup on shutdown."""
-    await init_db()
+    # Milvus Lite initializes lazily on first cache access
+    # No explicit init_db() needed
     yield
 
 

@@ -4,18 +4,18 @@
 - [x] 1.3 Update `tests/test_models/test_creature.py` to remove Monster deprecation test
 
 ## 2. Remove Deprecated API Client Models Module
-- [ ] 2.1 Delete `src/lorekeeper_mcp/api_clients/models/__init__.py`
-- [ ] 2.2 Delete `src/lorekeeper_mcp/api_clients/models/` directory
-- [ ] 2.3 Remove model re-exports from `src/lorekeeper_mcp/api_clients/__init__.py`
-- [ ] 2.4 Update `tests/test_api_clients/test_models.py` to import from `lorekeeper_mcp.models`
+- [x] 2.1 Delete `src/lorekeeper_mcp/api_clients/models/__init__.py`
+- [x] 2.2 Delete `src/lorekeeper_mcp/api_clients/models/` directory
+- [x] 2.3 Remove model re-exports from `src/lorekeeper_mcp/api_clients/__init__.py`
+- [x] 2.4 Update `tests/test_api_clients/test_models.py` to import from `lorekeeper_mcp.models`
 
 ## 3. Remove Monster Repository Aliases
-- [ ] 3.1 Remove `MonsterClient`, `MonsterCache`, `MonsterRepository` aliases from `src/lorekeeper_mcp/repositories/monster.py`
-- [ ] 3.2 Rename `monster.py` to `creature.py`
-- [ ] 3.3 Update `src/lorekeeper_mcp/tools/creature_lookup.py` to use `CreatureRepository` from `creature.py`
-- [ ] 3.4 Update `src/lorekeeper_mcp/repositories/factory.py` to rename `create_monster_repository` to `create_creature_repository`
-- [ ] 3.5 Update `src/lorekeeper_mcp/repositories/__init__.py` exports
-- [ ] 3.6 Update all tests using `MonsterRepository` to use `CreatureRepository`
+- [x] 3.1 Remove `MonsterClient`, `MonsterCache`, `MonsterRepository` aliases from `src/lorekeeper_mcp/repositories/monster.py`
+- [x] 3.2 Rename `monster.py` to `creature.py`
+- [x] 3.3 Update `src/lorekeeper_mcp/tools/creature_lookup.py` to use `CreatureRepository` from `creature.py`
+- [x] 3.4 Update `src/lorekeeper_mcp/repositories/factory.py` to rename `create_monster_repository` to `create_creature_repository`
+- [x] 3.5 Update `src/lorekeeper_mcp/repositories/__init__.py` exports
+- [x] 3.6 Update all tests using `MonsterRepository` to use `CreatureRepository`
 
 ## 4. Remove SQLite Cache Backend
 - [ ] 4.1 Delete `src/lorekeeper_mcp/cache/sqlite.py`

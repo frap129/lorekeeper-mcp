@@ -4,46 +4,6 @@ import importlib
 from pathlib import Path
 
 
-class TestCacheBackendConfig:
-    """Tests for LOREKEEPER_CACHE_BACKEND configuration."""
-
-    def test_cache_backend_default_is_milvus(self, monkeypatch):
-        """Test that default cache backend is milvus."""
-        # Clear any existing env var
-        monkeypatch.delenv("LOREKEEPER_CACHE_BACKEND", raising=False)
-
-        # Need to reimport to pick up env changes
-        import lorekeeper_mcp.config
-
-        importlib.reload(lorekeeper_mcp.config)
-        from lorekeeper_mcp.config import settings
-
-        assert settings.cache_backend == "milvus"
-
-    def test_cache_backend_from_env(self, monkeypatch):
-        """Test that cache backend can be set from environment."""
-        monkeypatch.setenv("LOREKEEPER_CACHE_BACKEND", "sqlite")
-
-        import lorekeeper_mcp.config
-
-        importlib.reload(lorekeeper_mcp.config)
-        from lorekeeper_mcp.config import settings
-
-        assert settings.cache_backend == "sqlite"
-
-    def test_cache_backend_case_preserved(self, monkeypatch):
-        """Test that cache backend value case is preserved."""
-        monkeypatch.setenv("LOREKEEPER_CACHE_BACKEND", "SQLite")
-
-        import lorekeeper_mcp.config
-
-        importlib.reload(lorekeeper_mcp.config)
-        from lorekeeper_mcp.config import settings
-
-        # Value should be preserved as-is (factory handles case normalization)
-        assert settings.cache_backend == "SQLite"
-
-
 class TestMilvusDbPathConfig:
     """Tests for LOREKEEPER_MILVUS_DB_PATH configuration."""
 
@@ -117,7 +77,6 @@ class TestConfigIntegration:
     def test_config_integrates_with_cache_factory(self, tmp_path: Path, monkeypatch):
         """Test that config values work with cache factory."""
         db_path = tmp_path / "integration_milvus.db"
-        monkeypatch.setenv("LOREKEEPER_CACHE_BACKEND", "milvus")
         monkeypatch.setenv("LOREKEEPER_MILVUS_DB_PATH", str(db_path))
 
         import lorekeeper_mcp.config
@@ -127,7 +86,6 @@ class TestConfigIntegration:
         from lorekeeper_mcp.config import settings
 
         cache = create_cache(
-            backend=settings.cache_backend,
             db_path=str(settings.milvus_db_path),
         )
 

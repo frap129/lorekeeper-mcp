@@ -7,7 +7,7 @@ the D&D 5e API and store results for future queries.
 
 Architecture:
     - Uses SpellRepository for cache-aside pattern
-    - Repository manages SQLite cache automatically
+    - Repository manages Milvus cache automatically
     - Supports test context-based repository injection
 
 Examples:

@@ -2,7 +2,7 @@
 
 This module provides the MilvusCache class that implements CacheProtocol
 using Milvus Lite as the storage backend. It supports:
-- Structured filtering (same as SQLiteCache)
+- Structured filtering
 - Semantic/vector search via embeddings
 - Hybrid search combining both approaches
 """

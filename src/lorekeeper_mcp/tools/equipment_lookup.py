@@ -6,7 +6,7 @@ abstracts away cache management and allows filtering across multiple equipment t
 
 Architecture:
     - Uses EquipmentRepository for cache-aside pattern with item-type routing
-    - Repository manages SQLite cache automatically
+    - Repository manages Milvus cache automatically
     - Supports test context-based repository injection
     - Handles weapon, armor, and magic item filtering
 

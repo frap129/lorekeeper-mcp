@@ -1,8 +1,8 @@
 """Cache protocol definition for entity-based caching abstraction.
 
 This module defines the CacheProtocol interface that any cache implementation
-must conform to. It allows for swappable cache backends (SQLite, Redis, etc.)
-while maintaining a consistent interface for the repository layer.
+must conform to. It allows for swappable cache backends while maintaining a
+consistent interface for the repository layer.
 """
 
 from typing import Any
@@ -13,8 +13,8 @@ from typing_extensions import Protocol
 class CacheProtocol(Protocol):
     """Protocol defining the cache interface for entity storage and retrieval.
 
-    Any cache implementation (SQLite, Redis, Milvus, etc.) must provide methods
-    conforming to this protocol to be used with the repository layer.
+    Any cache implementation must provide methods conforming to this protocol
+    to be used with the repository layer.
 
     The protocol supports both structured filtering via get_entities() and
     semantic/vector search via semantic_search() for implementations that
@@ -91,6 +91,6 @@ class CacheProtocol(Protocol):
 
         Raises:
             NotImplementedError: If the cache backend does not support
-                semantic search (e.g., SQLiteCache).
+                semantic search.
         """
         ...

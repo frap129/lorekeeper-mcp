@@ -127,30 +127,3 @@ class TestCacheProtocolSemanticSearch:
         assert callable(cache.get_entities)
         assert callable(cache.store_entities)
         assert callable(cache.semantic_search)
-
-    def test_sqlite_cache_has_semantic_search_stub(self, tmp_path: Any) -> None:
-        """Test that SQLiteCache has semantic_search stub that raises NotImplementedError."""
-        from lorekeeper_mcp.cache.sqlite import SQLiteCache
-
-        db_path = tmp_path / "test_sqlite.db"
-        cache = SQLiteCache(str(db_path))
-
-        assert hasattr(cache, "semantic_search")
-        assert callable(cache.semantic_search)
-
-
-class TestSQLiteCacheSemanticSearchStub:
-    """Tests for SQLiteCache semantic_search stub."""
-
-    @pytest.mark.asyncio
-    async def test_sqlite_cache_semantic_search_raises_not_implemented(self, tmp_path: Any) -> None:
-        """Test that SQLiteCache.semantic_search raises NotImplementedError."""
-        from lorekeeper_mcp.cache.sqlite import SQLiteCache
-
-        db_path = tmp_path / "test_sqlite.db"
-        cache = SQLiteCache(str(db_path))
-
-        with pytest.raises(NotImplementedError) as exc_info:
-            await cache.semantic_search("spells", "fire damage")
-
-        assert "SQLiteCache does not support semantic search" in str(exc_info.value)

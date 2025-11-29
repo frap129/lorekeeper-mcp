@@ -6,7 +6,8 @@ available in the cache across all sources (Open5e, OrcBrew).
 
 from typing import Any
 
-from lorekeeper_mcp.cache.db import get_available_documents, get_document_metadata
+from lorekeeper_mcp.cache.milvus import MilvusCache
+from lorekeeper_mcp.config import settings
 
 
 async def list_documents(
@@ -54,22 +55,30 @@ async def list_documents(
         This queries only the cache and does not make API calls. You must
         populate your cache first using the build command.
     """
-    # Get documents from cache
-    documents = await get_available_documents(source_api=source)
+    # Get cache instance - MilvusCache is the only supported backend
+    cache = MilvusCache(str(settings.milvus_db_path))
 
-    # Optionally enrich with metadata
-    enriched_documents = []
-    for doc in documents:
-        enriched = dict(doc)
+    # Get list of available documents from cache
+    document_keys = await cache.get_available_documents()
 
-        # Try to get metadata for this document
-        metadata = await get_document_metadata(doc["document"])
-        if metadata:
-            # Add useful metadata fields
-            for field in ["publisher", "license", "description"]:
-                if field in metadata:
-                    enriched[field] = metadata[field]
+    # Build result with metadata for each document
+    enriched_documents: list[dict[str, Any]] = []
+    for doc_key in document_keys:
+        # Get entity counts per type for this document
+        metadata = await cache.get_document_metadata(doc_key)
+
+        # Calculate total entity count
+        total_count = sum(metadata.values())
+
+        enriched: dict[str, Any] = {
+            "document": doc_key,
+            "entity_count": total_count,
+            "entity_types": metadata,
+        }
 
         enriched_documents.append(enriched)
+
+    # Sort by entity count (highest first)
+    enriched_documents.sort(key=lambda x: x["entity_count"], reverse=True)
 
     return enriched_documents
