@@ -56,7 +56,7 @@ async def test_full_spell_search_workflow():
     # Use context-based injection for spell search
     search_spell_module._repository_context["repository"] = mock_spell_repository
     try:
-        result = await search_spell(name="Fireball", level=3, limit=5)
+        result = await search_spell(search="Fireball", level=3, limit=5)
     finally:
         # Clean up context
         if "repository" in search_spell_module._repository_context:
@@ -108,7 +108,7 @@ async def test_full_creature_search_workflow():
     # Use context-based injection for creature search
     search_creature_module._repository_context["repository"] = mock_creature_repository
     try:
-        result = await search_creature(name="Ancient Red Dragon", cr=24)
+        result = await search_creature(search="Ancient Red Dragon", cr=24)
     finally:
         # Clean up context
         if "repository" in search_creature_module._repository_context:
@@ -162,7 +162,7 @@ async def test_character_option_search_workflow():
     try:
         result = await search_character_option(
             type="class",
-            name="Wizard",
+            search="Wizard",
         )
 
         assert isinstance(result, list)
@@ -195,7 +195,7 @@ async def test_equipment_search_workflow():
 
     result = await search_equipment(
         type="weapon",
-        name="Longsword",
+        search="Longsword",
     )
 
     # Clean up context
@@ -221,7 +221,7 @@ async def test_rule_search_workflow():
     # Set up context injection
     search_rule_module._repository_context["repository"] = mock_repository
 
-    result = await search_rule(rule_type="condition", name="Grappled")
+    result = await search_rule(rule_type="condition", search="Grappled")
 
     # Clean up context
     if "repository" in search_rule_module._repository_context:

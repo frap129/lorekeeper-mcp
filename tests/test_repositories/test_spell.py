@@ -456,8 +456,8 @@ class TestSpellRepositorySemanticSearch:
     """Tests for SpellRepository semantic search support."""
 
     @pytest.mark.asyncio
-    async def test_spell_repository_search_with_semantic_query(self) -> None:
-        """Test that search() uses semantic_search when semantic_query provided."""
+    async def test_spell_repository_search_with_search_param(self) -> None:
+        """Test that search() uses semantic_search when search param provided."""
 
         class MockClient:
             async def get_spells(self, **filters: Any) -> list[Spell]:
@@ -486,16 +486,16 @@ class TestSpellRepositorySemanticSearch:
         cache = MockCache()
         repo = SpellRepository(client=MockClient(), cache=cache)
 
-        # Search with semantic_query
-        await repo.search(semantic_query="fire damage spells")
+        # Search with search param
+        await repo.search(search="fire damage spells")
 
         # Should call semantic_search, not get_entities
         assert cache.semantic_search_called
         assert cache.search_query == "fire damage spells"
 
     @pytest.mark.asyncio
-    async def test_spell_repository_search_without_semantic_query(self) -> None:
-        """Test that search() uses get_entities when no semantic_query."""
+    async def test_spell_repository_search_without_search_param(self) -> None:
+        """Test that search() uses get_entities when no search param."""
 
         class MockClient:
             async def get_spells(self, **filters: Any) -> list[Spell]:
@@ -522,7 +522,7 @@ class TestSpellRepositorySemanticSearch:
         cache = MockCache()
         repo = SpellRepository(client=MockClient(), cache=cache)
 
-        # Search without semantic_query
+        # Search without search param
         await repo.search(level=3)
 
         # Should call get_entities, not semantic_search
@@ -556,8 +556,8 @@ class TestSpellRepositorySemanticSearch:
         cache = MockCache()
         repo = SpellRepository(client=MockClient(), cache=cache)
 
-        # Search with semantic_query AND level filter
-        await repo.search(semantic_query="fire", level=3, school="Evocation")
+        # Search with search param AND level filter
+        await repo.search(search="fire", level=3, school="Evocation")
 
         # Filters should be passed to semantic_search
         assert cache.semantic_filters.get("level") == 3
@@ -601,8 +601,8 @@ class TestSpellRepositorySemanticSearch:
         cache = MockCache()
         repo = SpellRepository(client=MockClient(), cache=cache)
 
-        # Search with semantic_query (should fall back to get_entities)
-        results = await repo.search(semantic_query="fire")
+        # Search with search param (should fall back to get_entities)
+        results = await repo.search(search="fire")
 
         # Should have fallen back to get_entities
         assert cache.get_entities_called

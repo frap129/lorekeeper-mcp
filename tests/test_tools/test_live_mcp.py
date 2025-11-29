@@ -39,7 +39,7 @@ class TestLiveSpellLookup:
         """Verify well-known spell can be found by name."""
 
         await rate_limiter("open5e")
-        results = await search_spell(name="Magic Missile")
+        results = await search_spell(search="Magic Missile")
 
         assert len(results) > 0, "Should find at least one 'Magic Missile' spell"
         first_result = results[0]
@@ -54,7 +54,7 @@ class TestLiveSpellLookup:
         """Verify non-existent spell returns empty results."""
 
         await rate_limiter("open5e")
-        results = await search_spell(name="NonexistentSpell12345XYZ")
+        results = await search_spell(search="NonexistentSpell12345XYZ")
 
         assert len(results) == 0, "Non-existent spell should return empty list"
 
@@ -64,7 +64,7 @@ class TestLiveSpellLookup:
         """Verify spell response contains expected schema fields."""
 
         await rate_limiter("open5e")
-        results = await search_spell(name="Fireball")
+        results = await search_spell(search="Fireball")
 
         assert len(results) > 0, "Should find Fireball spell"
         spell = results[0]
@@ -240,7 +240,7 @@ class TestLiveSpellLookup:
         await rate_limiter("open5e")
 
         # Query that should match nothing
-        results = await search_spell(name="ZZZNonexistent", level=9, school="abjuration")
+        results = await search_spell(search="ZZZNonexistent", level=9, school="abjuration")
 
         assert isinstance(results, list), "Should return list"
         assert len(results) == 0, "Should return empty list for no matches"
@@ -255,7 +255,7 @@ class TestLiveCreatureLookup:
         """Verify creatures can be found by name search."""
 
         await rate_limiter("open5e")
-        results = await search_creature(name="Goblin", limit=50)
+        results = await search_creature(search="Goblin", limit=50)
 
         assert len(results) > 0, "Should find creatures matching 'Goblin'"
         # Verify at least one result contains "goblin" in name
@@ -268,7 +268,7 @@ class TestLiveCreatureLookup:
         """Verify non-existent creature returns empty results."""
 
         await rate_limiter("open5e")
-        results = await search_creature(name="NonexistentCreature12345XYZ")
+        results = await search_creature(search="NonexistentCreature12345XYZ")
 
         assert len(results) == 0, "Non-existent creature should return empty list"
 
@@ -278,7 +278,7 @@ class TestLiveCreatureLookup:
         """Verify creature response contains expected schema fields."""
 
         await rate_limiter("open5e")
-        results = await search_creature(name="Goblin")
+        results = await search_creature(search="Goblin")
 
         assert len(results) > 0, "Should find Goblin"
         creature = results[0]
@@ -338,9 +338,9 @@ class TestLiveCreatureLookup:
         await rate_limiter("open5e")
 
         # First call
-        first = await search_creature(name="Dragon")
+        first = await search_creature(search="Dragon")
         # Second call (cached)
-        second = await search_creature(name="Dragon")
+        second = await search_creature(search="Dragon")
 
         assert second == first, "Cached results should match"
 
@@ -361,7 +361,7 @@ class TestLiveCreatureLookup:
         """Verify handling of no matches."""
 
         await rate_limiter("open5e")
-        results = await search_creature(name="ZZZNonexistent", cr=30)
+        results = await search_creature(search="ZZZNonexistent", cr=30)
 
         assert isinstance(results, list), "Should return list"
         assert len(results) == 0, "Should return empty list"
@@ -506,9 +506,9 @@ class TestLiveCacheValidation:
         await rate_limiter("open5e")
 
         # Call both tools
-        spells = await search_spell(name="Fire")
+        spells = await search_spell(search="Fire")
         await rate_limiter("open5e")
-        creatures = await search_creature(name="Fire")
+        creatures = await search_creature(search="Fire")
 
         # Should get different results (spells vs creatures)
         assert spells != creatures, "Different tools should have different results"
@@ -553,7 +553,7 @@ class TestLivePerformance:
         await rate_limiter("open5e")
 
         start = time.time()
-        results = await search_spell(name="Detect Magic")
+        results = await search_spell(search="Detect Magic")
         duration = time.time() - start
 
         assert len(results) > 0, "Should find spell"
@@ -567,11 +567,11 @@ class TestLivePerformance:
         await rate_limiter("open5e")
 
         # Prime cache
-        await search_creature(name="Goblin")
+        await search_creature(search="Goblin")
 
         # Measure cached performance
         start = time.time()
-        await search_creature(name="Goblin")
+        await search_creature(search="Goblin")
         duration = time.time() - start
 
         assert duration < 0.05, f"Cached call took {duration:.3f}s, expected <0.05s"

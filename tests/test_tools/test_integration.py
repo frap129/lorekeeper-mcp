@@ -52,7 +52,7 @@ def test_tool_schemas_valid():
     # Check search_spell schema
     spell_tool = tools.get("search_spell")
     assert spell_tool is not None
-    assert "name" in spell_tool.parameters["properties"]
+    assert "search" in spell_tool.parameters["properties"]
     assert "level" in spell_tool.parameters["properties"]
     assert "limit" in spell_tool.parameters["properties"]
 
@@ -111,7 +111,7 @@ async def test_spell_search_basic(test_db):
     )
 
     # Use default repository (not mocked)
-    result = await search_spell(name="fireball")
+    result = await search_spell(search="fireball")
     # Verify result structure
     assert isinstance(result, list)
     if len(result) > 0:
@@ -191,7 +191,7 @@ async def test_creature_search_basic(test_db):
     )
 
     # Test basic creature search
-    result = await search_creature(name="dragon")
+    result = await search_creature(search="dragon")
     assert isinstance(result, list)
     if len(result) > 0:
         assert "name" in result[0]
@@ -249,7 +249,7 @@ async def test_creature_search_by_cr(test_db):
 @respx.mock
 async def test_equipment_search_weapons(test_db):
     """Test equipment search for weapons."""
-    result = await search_equipment(name="longsword", type="weapon")
+    result = await search_equipment(search="longsword", type="weapon")
     assert isinstance(result, list)
 
 
@@ -261,7 +261,7 @@ async def test_equipment_search_weapons(test_db):
 @respx.mock
 async def test_equipment_search_armor(test_db):
     """Test equipment search for armor."""
-    result = await search_equipment(name="plate", type="armor")
+    result = await search_equipment(search="plate", type="armor")
     assert isinstance(result, list)
 
 
@@ -278,7 +278,7 @@ async def test_equipment_search_armor(test_db):
 @respx.mock
 async def test_character_option_search_class(test_db):
     """Test character option search for classes."""
-    result = await search_character_option(type="class", name="barbarian")
+    result = await search_character_option(type="class", search="barbarian")
     assert isinstance(result, list)
 
 
@@ -290,7 +290,7 @@ async def test_character_option_search_class(test_db):
 @respx.mock
 async def test_character_option_search_race(test_db):
     """Test character option search for races."""
-    result = await search_character_option(type="race", name="dwarf")
+    result = await search_character_option(type="race", search="dwarf")
     assert isinstance(result, list)
 
 
@@ -302,7 +302,7 @@ async def test_character_option_search_race(test_db):
 @respx.mock
 async def test_rule_search_ability_scores_with_cache(test_db):
     """Test ability score search with cache support."""
-    result1 = await search_rule(rule_type="ability-score", name="Strength")
+    result1 = await search_rule(rule_type="ability-score", search="Strength")
     assert len(result1) == 1
     assert result1[0]["name"] == "Strength"
 
@@ -322,7 +322,7 @@ async def test_rule_search_ability_scores_with_cache(test_db):
 @respx.mock
 async def test_rule_search_condition(test_db):
     """Test rule search for conditions."""
-    result = await search_rule(rule_type="condition", name="blinded")
+    result = await search_rule(rule_type="condition", search="blinded")
     assert isinstance(result, list)
 
 
@@ -334,7 +334,7 @@ async def test_rule_search_condition(test_db):
 @respx.mock
 async def test_rule_search_damage_type(test_db):
     """Test rule search for damage types."""
-    result = await search_rule(rule_type="damage-type", name="fire")
+    result = await search_rule(rule_type="damage-type", search="fire")
     assert isinstance(result, list)
 
 
@@ -346,7 +346,7 @@ async def test_rule_search_damage_type(test_db):
 @respx.mock
 async def test_rule_search_skill(test_db):
     """Test rule search for skills."""
-    result = await search_rule(rule_type="skill", name="acrobatics")
+    result = await search_rule(rule_type="skill", search="acrobatics")
     assert isinstance(result, list)
 
 

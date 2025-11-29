@@ -56,7 +56,7 @@ async def test_search_spell_by_name(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    result = await search_spell(name="Fireball")
+    result = await search_spell(search="Fireball")
 
     assert len(result) == 1
     assert result[0]["name"] == "Fireball"
@@ -107,7 +107,7 @@ async def test_search_spell_empty_results(repository_context):
     """Test spell lookup with no results."""
     repository_context.search.return_value = []
 
-    result = await search_spell(name="NonexistentSpell")
+    result = await search_spell(search="NonexistentSpell")
 
     assert result == []
 
@@ -118,7 +118,7 @@ async def test_search_spell_api_error(repository_context):
     repository_context.search.side_effect = ApiError("API unavailable")
 
     with pytest.raises(ApiError, match="API unavailable"):
-        await search_spell(name="Fireball")
+        await search_spell(search="Fireball")
 
 
 @pytest.mark.asyncio
@@ -127,12 +127,12 @@ async def test_search_spell_network_error(repository_context):
     repository_context.search.side_effect = NetworkError("Connection timeout")
 
     with pytest.raises(NetworkError, match="Connection timeout"):
-        await search_spell(name="Fireball")
+        await search_spell(search="Fireball")
 
 
 @pytest.mark.asyncio
-async def test_spell_search_by_name_server_side(repository_context):
-    """Test that spell lookup passes name filter to repository for server-side filtering."""
+async def test_spell_search_by_search_param_server_side(repository_context):
+    """Test that spell lookup passes search filter to repository for server-side filtering."""
     spell_fireball = Spell(
         name="Fireball",
         slug="fireball",
@@ -155,17 +155,17 @@ async def test_spell_search_by_name_server_side(repository_context):
     # Repository returns only matching spells (server-side filtered)
     repository_context.search.return_value = [spell_fireball]
 
-    # Call with name filter - should pass to repository
-    result = await search_spell(name="fireball")
+    # Call with search filter - should pass to repository
+    result = await search_spell(search="fireball")
 
     # Should return Fireball
     assert len(result) == 1
     assert result[0]["name"] == "Fireball"
 
-    # Verify repository.search was called WITH name parameter (server-side filtering)
+    # Verify repository.search was called WITH search parameter (server-side filtering)
     repository_context.search.assert_awaited_once()
     call_kwargs = repository_context.search.call_args[1]
-    assert call_kwargs["name"] == "fireball"
+    assert call_kwargs["search"] == "fireball"
 
 
 @pytest.mark.asyncio
@@ -382,7 +382,7 @@ async def test_search_spell_with_damage_type(repository_context):
 
 @pytest.mark.asyncio
 async def test_search_spell_backward_compatibility(repository_context):
-    """Test that search_spell is backward compatible without new parameters."""
+    """Test that search_spell works with search parameter instead of deprecated name parameter."""
     spell_obj = Spell(
         name="Fireball",
         slug="fireball",
@@ -404,14 +404,14 @@ async def test_search_spell_backward_compatibility(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    # Call without new parameters - should work as before
-    result = await search_spell(name="Fireball")
+    # Call with search parameter - should work
+    result = await search_spell(search="Fireball")
 
     assert len(result) == 1
     assert result[0]["name"] == "Fireball"
-    # Verify only name parameter was passed (not level_min, level_max, damage_type)
+    # Verify search parameter was passed
     call_kwargs = repository_context.search.call_args[1]
-    assert "name" in call_kwargs
+    assert "search" in call_kwargs
     assert "level_min" not in call_kwargs
     assert "level_max" not in call_kwargs
     assert "damage_type" not in call_kwargs
@@ -478,7 +478,7 @@ async def test_search_spell_with_documents(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    results = await search_spell(name="fireball", documents=["srd-5e"])
+    results = await search_spell(search="fireball", documents=["srd-5e"])
 
     assert len(results) == 1
     assert results[0]["document"] == "srd-5e"
@@ -490,8 +490,8 @@ async def test_search_spell_with_documents(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_search_spell_with_semantic_query(repository_context):
-    """Test spell lookup with semantic_query parameter."""
+async def test_search_spell_with_search_param(repository_context):
+    """Test spell lookup with search parameter."""
     spell_obj = Spell(
         name="Fireball",
         slug="fireball",
@@ -513,20 +513,20 @@ async def test_search_spell_with_semantic_query(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    result = await search_spell(semantic_query="fire damage explosion")
+    result = await search_spell(search="fire damage explosion")
 
     assert len(result) == 1
     assert result[0]["name"] == "Fireball"
 
-    # Verify repository.search was called with semantic_query parameter
+    # Verify repository.search was called with search parameter
     repository_context.search.assert_awaited_once()
     call_kwargs = repository_context.search.call_args[1]
-    assert call_kwargs["semantic_query"] == "fire damage explosion"
+    assert call_kwargs["search"] == "fire damage explosion"
 
 
 @pytest.mark.asyncio
-async def test_search_spell_semantic_query_with_filters(repository_context):
-    """Test spell lookup combining semantic_query with traditional filters."""
+async def test_search_spell_search_param_with_filters(repository_context):
+    """Test spell lookup combining search with traditional filters."""
     spell_obj = Spell(
         name="Fireball",
         slug="fireball",
@@ -548,20 +548,20 @@ async def test_search_spell_semantic_query_with_filters(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    result = await search_spell(semantic_query="fire explosion", level=3, school="evocation")
+    result = await search_spell(search="fire explosion", level=3, school="evocation")
 
     assert len(result) == 1
 
     # Verify all parameters were passed to repository
     call_kwargs = repository_context.search.call_args[1]
-    assert call_kwargs["semantic_query"] == "fire explosion"
+    assert call_kwargs["search"] == "fire explosion"
     assert call_kwargs["level"] == 3
     assert call_kwargs["school"] == "evocation"
 
 
 @pytest.mark.asyncio
-async def test_search_spell_semantic_query_none_not_passed(repository_context):
-    """Test that semantic_query=None is not passed to repository."""
+async def test_search_spell_search_none_not_passed(repository_context):
+    """Test that search=None is not passed to repository."""
     spell_obj = Spell(
         name="Fireball",
         slug="fireball",
@@ -583,9 +583,9 @@ async def test_search_spell_semantic_query_none_not_passed(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    # Call without semantic_query (default is None)
-    await search_spell(name="Fireball")
+    # Call without search (using only scalar filters)
+    await search_spell(level=3)
 
     call_kwargs = repository_context.search.call_args[1]
-    # semantic_query should not be in the params when None
-    assert "semantic_query" not in call_kwargs
+    # search should not be in the params when None
+    assert "search" not in call_kwargs

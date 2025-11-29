@@ -331,7 +331,7 @@ async def test_document_in_tool_responses(tmp_path: Path) -> None:
     spell_context["repository"] = repo
 
     try:
-        results = await search_spell(name="Test Spell")
+        results = await search_spell(search="Test Spell")
 
         assert len(results) == 1
         result = results[0]

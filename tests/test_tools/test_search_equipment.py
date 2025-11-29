@@ -131,7 +131,7 @@ async def test_search_weapon(repository_context, sample_longsword):
     """Test looking up a weapon."""
     repository_context.search.return_value = [sample_longsword]
 
-    result = await search_equipment(type="weapon", name="Longsword")
+    result = await search_equipment(type="weapon", search="Longsword")
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
@@ -144,7 +144,7 @@ async def test_search_armor(repository_context, sample_chain_mail):
     """Test looking up armor."""
     repository_context.search.return_value = [sample_chain_mail]
 
-    result = await search_equipment(type="armor", name="Chain Mail")
+    result = await search_equipment(type="armor", search="Chain Mail")
 
     assert len(result) == 1
     assert result[0]["name"] == "Chain Mail"
@@ -200,23 +200,23 @@ async def test_search_equipment_network_error(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_equipment_search_by_name_client_side(
+async def test_equipment_search_by_search_param(
     repository_context, sample_longsword, sample_dagger
 ):
-    """Test that equipment search passes name filter to repository for server-side filtering."""
-    # Repository returns only matching weapon when called with name filter
+    """Test that equipment search passes search filter to repository for server-side filtering."""
+    # Repository returns only matching weapon when called with search filter
     repository_context.search.return_value = [sample_longsword]
 
-    # Call with name filter - should pass to repository
-    result = await search_equipment(type="weapon", name="longsword")
+    # Call with search filter - should pass to repository
+    result = await search_equipment(type="weapon", search="longsword")
 
     # Should only return Longsword
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
 
-    # Verify repository.search was called with name parameter
+    # Verify repository.search was called with search parameter
     repository_context.search.assert_awaited_once_with(
-        limit=20, item_type="weapon", name="longsword"
+        limit=20, item_type="weapon", search="longsword"
     )
 
 
@@ -270,7 +270,7 @@ async def test_search_magic_items(repository_context):
 
     repository_context.search.return_value = [sample_bag]
 
-    result = await search_equipment(type="magic-item", name="Bag")
+    result = await search_equipment(type="magic-item", search="Bag")
 
     assert len(result) == 1
     assert result[0]["name"] == "Bag of Holding"
@@ -387,7 +387,7 @@ async def test_search_magic_items_empty_results(repository_context):
     """Test magic item search when no results are found."""
     repository_context.search.return_value = []
 
-    result = await search_equipment(type="magic-item", name="NonExistent")
+    result = await search_equipment(type="magic-item", search="NonExistent")
 
     assert len(result) == 0
 
@@ -528,15 +528,15 @@ async def test_search_equipment_backward_compatibility_no_new_params(
     """Test backward compatibility when new parameters are not used."""
     repository_context.search.return_value = [sample_longsword]
 
-    # Old-style call without new parameters should still work
-    result = await search_equipment(type="weapon", name="longsword", limit=20)
+    # Old-style call with search instead of deprecated name parameter
+    result = await search_equipment(type="weapon", search="longsword", limit=20)
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
 
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["item_type"] == "weapon"
-    assert call_kwargs["name"] == "longsword"
+    assert call_kwargs["search"] == "longsword"
     assert call_kwargs["limit"] == 20
     # New parameters should not be present
     assert "cost_min" not in call_kwargs
@@ -621,7 +621,7 @@ async def test_search_equipment_with_documents() -> None:
     _repository_context["repository"] = MockRepository()
 
     try:
-        results = await search_equipment(type="weapon", name="longsword", documents=["srd-5e"])
+        results = await search_equipment(type="weapon", search="longsword", documents=["srd-5e"])
         assert len(results) == 1
         assert results[0]["name"] == "Longsword"
     finally:
@@ -629,48 +629,44 @@ async def test_search_equipment_with_documents() -> None:
 
 
 @pytest.mark.asyncio
-async def test_search_equipment_with_semantic_query(repository_context, sample_longsword):
-    """Test equipment search with semantic_query parameter."""
+async def test_search_equipment_with_search_param(repository_context, sample_longsword):
+    """Test equipment search with search parameter."""
     repository_context.search.return_value = [sample_longsword]
 
-    result = await search_equipment(type="weapon", semantic_query="slashing blade for combat")
+    result = await search_equipment(type="weapon", search="slashing blade for combat")
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
 
-    # Verify repository.search was called with semantic_query parameter
+    # Verify repository.search was called with search parameter
     repository_context.search.assert_awaited_once()
     call_kwargs = repository_context.search.call_args[1]
-    assert call_kwargs["semantic_query"] == "slashing blade for combat"
+    assert call_kwargs["search"] == "slashing blade for combat"
 
 
 @pytest.mark.asyncio
-async def test_search_equipment_semantic_query_with_filters(repository_context, sample_dagger):
-    """Test equipment search combining semantic_query with traditional filters."""
+async def test_search_equipment_search_param_with_filters(repository_context, sample_dagger):
+    """Test equipment search combining search with traditional filters."""
     repository_context.search.return_value = [sample_dagger]
 
-    result = await search_equipment(
-        type="weapon", semantic_query="small throwing knife", is_simple=True
-    )
+    result = await search_equipment(type="weapon", search="small throwing knife", is_simple=True)
 
     assert len(result) == 1
 
     # Verify all parameters were passed to repository
     call_kwargs = repository_context.search.call_args[1]
-    assert call_kwargs["semantic_query"] == "small throwing knife"
+    assert call_kwargs["search"] == "small throwing knife"
     assert call_kwargs["is_simple"] is True
 
 
 @pytest.mark.asyncio
-async def test_search_equipment_semantic_query_none_not_passed(
-    repository_context, sample_longsword
-):
-    """Test that semantic_query=None is not passed to repository."""
+async def test_search_equipment_search_none_not_passed(repository_context, sample_longsword):
+    """Test that search=None is not passed to repository."""
     repository_context.search.return_value = [sample_longsword]
 
-    # Call without semantic_query (default is None)
-    await search_equipment(type="weapon", name="Longsword")
+    # Call without search (using only type filter)
+    await search_equipment(type="weapon")
 
     call_kwargs = repository_context.search.call_args[1]
-    # semantic_query should not be in the params when None
-    assert "semantic_query" not in call_kwargs
+    # search should not be in the params when None
+    assert "search" not in call_kwargs

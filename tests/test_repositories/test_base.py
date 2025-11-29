@@ -22,7 +22,7 @@ class MockRepository(Repository[Spell]):
         """Search for spells matching filters."""
         results = self.spells
         for key, value in filters.items():
-            if key == "name" and value:
+            if key == "search" and value:
                 results = [s for s in results if value.lower() in s.name.lower()]
             elif key == "level" and value is not None:
                 results = [s for s in results if s.level == value]
@@ -41,7 +41,7 @@ async def test_repository_protocol_get_all() -> None:
 async def test_repository_protocol_search() -> None:
     """Test that Repository protocol defines search method."""
     repo = MockRepository()
-    result = await repo.search(name="fireball")
+    result = await repo.search(search="fireball")
     assert isinstance(result, list)
 
 

@@ -28,7 +28,7 @@ async def test_search_class_with_repository(repository_context):
     """Test looking up a class using repository context."""
     repository_context.search.return_value = [{"name": "Paladin", "hit_dice": "1d10"}]
 
-    result = await search_character_option(type="class", name="Paladin")
+    result = await search_character_option(type="class", search="Paladin")
 
     assert len(result) == 1
     assert result[0]["name"] == "Paladin"
@@ -43,7 +43,7 @@ async def test_search_race_with_repository(repository_context):
     """Test looking up a race using repository context."""
     repository_context.search.return_value = [{"name": "Elf", "speed": 30}]
 
-    result = await search_character_option(type="race", name="Elf")
+    result = await search_character_option(type="race", search="Elf")
 
     assert len(result) == 1
     assert result[0]["name"] == "Elf"
@@ -56,7 +56,7 @@ async def test_search_background_with_repository(repository_context):
     """Test looking up a background using repository context."""
     repository_context.search.return_value = [{"name": "Acolyte"}]
 
-    result = await search_character_option(type="background", name="Acolyte")
+    result = await search_character_option(type="background", search="Acolyte")
 
     assert len(result) == 1
     assert result[0]["name"] == "Acolyte"
@@ -69,7 +69,7 @@ async def test_search_feat_with_repository(repository_context):
     """Test looking up a feat using repository context."""
     repository_context.search.return_value = [{"name": "Sharpshooter"}]
 
-    result = await search_character_option(type="feat", name="Sharpshooter")
+    result = await search_character_option(type="feat", search="Sharpshooter")
 
     assert len(result) == 1
     assert result[0]["name"] == "Sharpshooter"
@@ -103,7 +103,7 @@ async def test_search_character_option_empty_results(repository_context):
     """Test character option search with no results."""
     repository_context.search.return_value = []
 
-    result = await search_character_option(type="class", name="NonexistentClass")
+    result = await search_character_option(type="class", search="NonexistentClass")
 
     assert result == []
 
@@ -165,46 +165,46 @@ def repository_context(mock_character_option_repository):
 
 
 @pytest.mark.asyncio
-async def test_search_character_option_with_semantic_query(repository_context):
-    """Test character option search with semantic_query parameter."""
+async def test_search_character_option_with_search_param(repository_context):
+    """Test character option search with search parameter."""
     repository_context.search.return_value = [{"name": "Fighter", "hit_dice": "1d10"}]
 
-    result = await search_character_option(type="class", semantic_query="martial combat warrior")
+    result = await search_character_option(type="class", search="martial combat warrior")
 
     assert len(result) == 1
     assert result[0]["name"] == "Fighter"
 
-    # Verify repository.search was called with semantic_query parameter
+    # Verify repository.search was called with search parameter
     repository_context.search.assert_awaited_once()
     call_kwargs = repository_context.search.call_args[1]
-    assert call_kwargs["semantic_query"] == "martial combat warrior"
+    assert call_kwargs["search"] == "martial combat warrior"
 
 
 @pytest.mark.asyncio
-async def test_search_character_option_semantic_query_with_filters(repository_context):
-    """Test character option search combining semantic_query with traditional filters."""
+async def test_search_character_option_search_param_with_filters(repository_context):
+    """Test character option search combining search with traditional filters."""
     repository_context.search.return_value = [{"name": "Acolyte"}]
 
     result = await search_character_option(
-        type="background", semantic_query="religious servant", documents=["srd-5e"]
+        type="background", search="religious servant", documents=["srd-5e"]
     )
 
     assert len(result) == 1
 
     # Verify all parameters were passed to repository
     call_kwargs = repository_context.search.call_args[1]
-    assert call_kwargs["semantic_query"] == "religious servant"
+    assert call_kwargs["search"] == "religious servant"
     assert call_kwargs["document"] == ["srd-5e"]
 
 
 @pytest.mark.asyncio
-async def test_search_character_option_semantic_query_none_not_passed(repository_context):
-    """Test that semantic_query=None is not passed to repository."""
+async def test_search_character_option_search_none_not_passed(repository_context):
+    """Test that search=None is not passed to repository."""
     repository_context.search.return_value = [{"name": "Fighter"}]
 
-    # Call without semantic_query (default is None)
+    # Call without search (default is None)
     await search_character_option(type="class")
 
     call_kwargs = repository_context.search.call_args[1]
-    # semantic_query should not be in the params when None
-    assert "semantic_query" not in call_kwargs
+    # search should not be in the params when None
+    assert "search" not in call_kwargs

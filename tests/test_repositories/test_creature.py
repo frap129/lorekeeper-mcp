@@ -512,8 +512,8 @@ class TestCreatureRepositorySemanticSearch:
     """Tests for CreatureRepository semantic search support."""
 
     @pytest.mark.asyncio
-    async def test_creature_repository_search_with_semantic_query(self) -> None:
-        """Test that search() uses semantic_search when semantic_query provided."""
+    async def test_creature_repository_search_with_search_param(self) -> None:
+        """Test that search() uses semantic_search when search param provided."""
 
         class MockClient:
             async def get_creatures(self, **filters: Any) -> list[Creature]:
@@ -540,7 +540,7 @@ class TestCreatureRepositorySemanticSearch:
         cache = MockCache()
         repo = CreatureRepository(client=MockClient(), cache=cache)
 
-        await repo.search(semantic_query="fire breathing dragons")
+        await repo.search(search="fire breathing dragons")
 
         assert cache.semantic_search_called
         assert cache.search_query == "fire breathing dragons"
@@ -572,13 +572,13 @@ class TestCreatureRepositorySemanticSearch:
         cache = MockCache()
         repo = CreatureRepository(client=MockClient(), cache=cache)
 
-        await repo.search(semantic_query="undead monsters", challenge_rating="5")
+        await repo.search(search="undead monsters", challenge_rating="5")
 
         assert cache.semantic_filters.get("challenge_rating") == "5"
 
     @pytest.mark.asyncio
-    async def test_creature_repository_search_without_semantic_query(self) -> None:
-        """Test that search() uses get_entities when no semantic_query."""
+    async def test_creature_repository_search_without_search_param(self) -> None:
+        """Test that search() uses get_entities when no search param."""
 
         class MockClient:
             async def get_creatures(self, **filters: Any) -> list[Creature]:
@@ -605,7 +605,7 @@ class TestCreatureRepositorySemanticSearch:
         cache = MockCache()
         repo = CreatureRepository(client=MockClient(), cache=cache)
 
-        # Search without semantic_query
+        # Search without search param
         await repo.search(type="humanoid")
 
         # Should call get_entities, not semantic_search
@@ -653,8 +653,8 @@ class TestCreatureRepositorySemanticSearch:
         cache = MockCache()
         repo = CreatureRepository(client=MockClient(), cache=cache)
 
-        # Search with semantic_query (should fall back to get_entities)
-        results = await repo.search(semantic_query="goblin")
+        # Search with search param (should fall back to get_entities)
+        results = await repo.search(search="goblin")
 
         # Should have fallen back to get_entities
         assert cache.get_entities_called
