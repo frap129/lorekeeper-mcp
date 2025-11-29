@@ -80,8 +80,8 @@
 - [x] 10.5 Update `.env.example` to remove SQLite variables
 
 ## 11. Validation
-- [ ] 11.1 Run full test suite to verify no regressions (`just test`)
-- [ ] 11.2 Run type checking (`just type-check`)
-- [ ] 11.3 Run linting (`just lint`)
-- [ ] 11.4 Run live tests to ensure everything works (`pytest -m live`)
-- [ ] 11.5 Verify MCP server starts correctly (`just serve`)
+- [x] 11.1 Run full test suite to verify no regressions (`just test`)
+- [x] 11.2 Run type checking (`just type-check`)
+- [x] 11.3 Run linting (`just lint`)
+- [~] 11.4 Run live tests to ensure everything works (`pytest -m live`) - Skipped: Live tests require network and have long timeouts
+- [x] 11.5 Verify MCP server starts correctly (`just serve`)
