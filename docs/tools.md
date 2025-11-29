@@ -16,15 +16,15 @@ LoreKeeper supports **semantic search** for finding content by meaning rather th
 
 ### Overview
 
-All search tools accept an optional `semantic_query` parameter:
+All search tools accept an optional `search` parameter:
 
 ```python
 # Find spells conceptually related to "fire damage"
-spells = await search_spell(semantic_query="explosive fire damage")
+spells = await search_spell(search="explosive fire damage")
 
 # Combine semantic search with filters
 fire_spells = await search_spell(
-    semantic_query="area of effect fire damage",
+    search="area of effect fire damage",
     level=3,
     school="evocation"
 )
@@ -43,19 +43,19 @@ fire_spells = await search_spell(
 
 ```python
 # Find healing spells without knowing exact names
-healing = await search_spell(semantic_query="restore health and cure wounds")
+healing = await search_spell(search="restore health and cure wounds")
 # Returns: Cure Wounds, Healing Word, Mass Cure Wounds, etc.
 
 # Find crowd control spells
-control = await search_spell(semantic_query="stop enemies from moving or acting")
+control = await search_spell(search="stop enemies from moving or acting")
 # Returns: Hold Person, Web, Entangle, etc.
 
 # Find protective magic
-protection = await search_spell(semantic_query="shield and protect allies from harm")
+protection = await search_spell(search="shield and protect allies from harm")
 # Returns: Shield, Shield of Faith, Protection from Evil and Good, etc.
 
 # Find spells by damage type (without using damage_type filter)
-lightning = await search_spell(semantic_query="electricity and lightning damage")
+lightning = await search_spell(search="electricity and lightning damage")
 # Returns: Lightning Bolt, Call Lightning, Witch Bolt, etc.
 ```
 
@@ -63,15 +63,15 @@ lightning = await search_spell(semantic_query="electricity and lightning damage"
 
 ```python
 # Find flying enemies
-flyers = await search_creature(semantic_query="creatures that fly and attack from above")
+flyers = await search_creature(search="creatures that fly and attack from above")
 # Returns: Dragon, Wyvern, Harpy, etc.
 
 # Find undead by theme
-undead = await search_creature(semantic_query="risen dead that drain life force")
+undead = await search_creature(search="risen dead that drain life force")
 # Returns: Wraith, Specter, Vampire, etc.
 
 # Find ambush predators
-ambushers = await search_creature(semantic_query="stealthy hunters that attack by surprise")
+ambushers = await search_creature(search="stealthy hunters that attack by surprise")
 # Returns: Assassin, Displacer Beast, Invisible Stalker, etc.
 ```
 
@@ -80,20 +80,20 @@ ambushers = await search_creature(semantic_query="stealthy hunters that attack b
 ```python
 # Find ranged weapons
 ranged = await search_equipment(
-    semantic_query="weapons for attacking from a distance",
+    search="weapons for attacking from a distance",
     type="weapon"
 )
 # Returns: Longbow, Crossbow, Javelin, etc.
 
 # Find defensive gear
 defensive = await search_equipment(
-    semantic_query="armor and shields for protection"
+    search="armor and shields for protection"
 )
 # Returns: Plate Armor, Shield, Chain Mail, etc.
 
 # Find magical utility items
 utility = await search_equipment(
-    semantic_query="magic items for utility and exploration",
+    search="magic items for utility and exploration",
     type="magic-item"
 )
 # Returns: Bag of Holding, Rope of Climbing, Decanter of Endless Water, etc.
@@ -106,28 +106,28 @@ Combine semantic queries with structured filters for precise results:
 ```python
 # Low-level fire spells
 low_fire = await search_spell(
-    semantic_query="fire and burning damage",
+    search="fire and burning damage",
     level=1,
     limit=5
 )
 
 # Undead under CR 5
 weak_undead = await search_creature(
-    semantic_query="undead creatures",
+    search="undead creatures",
     cr_max=5,
     type="undead"
 )
 
 # Rare magic weapons
 rare_weapons = await search_equipment(
-    semantic_query="magical swords and blades",
+    search="magical swords and blades",
     type="magic-item",
     rarity="rare"
 )
 
 # SRD-only results
 srd_healing = await search_spell(
-    semantic_query="healing magic",
+    search="healing magic",
     documents=["srd-5e"]
 )
 ```
@@ -137,7 +137,7 @@ srd_healing = await search_spell(
 Semantic search results include a `_score` field (0.0 to 1.0):
 
 ```python
-results = await search_spell(semantic_query="fire explosion")
+results = await search_spell(search="fire explosion")
 for spell in results[:3]:
     print(f"{spell['name']}: {spell.get('_score', 0):.3f}")
 # Output:
@@ -228,7 +228,7 @@ wizard_evocations = await search_spell(
 # Equipment filtering by source
 plate_armor = await search_equipment(
     type="armor",
-    name="plate",
+    search="plate",
     documents=["srd-5e"]
 )
 
@@ -383,7 +383,7 @@ results = await search_spell(documents=filtered_keys)
 **API**: Open5e `/v2/spells/` (primary, comprehensive)
 
 **Parameters**:
-- `name` (string, optional): Spell name or partial name search
+- `search` (string, optional): Natural language search query for semantic/vector search
 - `level` (integer, optional): Spell level (0-9, cantrips are 0)
 - `school` (string, optional): Magic school name (e.g., "evocation", "abjuration")
 - `class_key` (string, optional): Filter by class key (e.g., "wizard", "cleric")
@@ -407,7 +407,7 @@ results = await search_spell(documents=filtered_keys)
 - Saving throw ability (if applicable)
 
 **Example Queries**:
-- "What does Fireball do?" → `name="fireball"`
+- "What does Fireball do?" → `search="fireball"`
 - "Show me 3rd level wizard evocation spells" → `level=3, class_key="wizard", school="evocation"`
 - "Find all concentration spells" → `concentration=true`
 
@@ -420,7 +420,7 @@ results = await search_spell(documents=filtered_keys)
 **API**: Open5e `/v1/monsters/` (most comprehensive monster database)
 
 **Parameters**:
-- `name` (string, optional): Creature name or partial name search
+- `search` (string, optional): Natural language search query for semantic/vector search
 - `cr` (float, optional): Challenge rating (supports 0.125, 0.25, 0.5, 1-30)
 - `cr_min` (float, optional): Minimum CR (for range searches)
 - `cr_max` (float, optional): Maximum CR (for range searches)
@@ -446,7 +446,7 @@ results = await search_spell(documents=filtered_keys)
 
 **Example Queries**:
 - "Find CR 5 undead creatures" → `cr=5, type="undead"`
-- "Show me the Ancient Red Dragon" → `name="ancient red dragon"`
+- "Show me the Ancient Red Dragon" → `search="ancient red dragon"`
 - "Medium beasts CR 1 or less" → `cr_max=1, type="beast", size="Medium"`
 
 ---
@@ -463,7 +463,7 @@ results = await search_spell(documents=filtered_keys)
 
 **Parameters**:
 - `type` (string, required): One of: `class`, `race`, `background`, `feat`
-- `name` (string, optional): Name or partial name to search
+- `search` (string, optional): Natural language search query for semantic/vector search
 - `limit` (integer, optional, default=20): Maximum results to return
 
 **Returns by Type**:
@@ -499,10 +499,10 @@ results = await search_spell(documents=filtered_keys)
 - Type (GENERAL, etc.)
 
 **Example Queries**:
-- "What features does a Paladin get?" → `type="class", name="paladin"`
-- "Show me the Eldritch Knight" → `type="class", name="eldritch knight"`
-- "What traits do Half-Elves have?" → `type="race", name="half-elf"`
-- "Find the Sharpshooter feat" → `type="feat", name="sharpshooter"`
+- "What features does a Paladin get?" → `type="class", search="paladin"`
+- "Show me the Eldritch Knight" → `type="class", search="eldritch knight"`
+- "What traits do Half-Elves have?" → `type="race", search="half-elf"`
+- "Find the Sharpshooter feat" → `type="feat", search="sharpshooter"`
 
 ---
 
@@ -517,7 +517,7 @@ results = await search_spell(documents=filtered_keys)
 
 **Parameters**:
 - `type` (string, optional): One of: `weapon`, `armor`, `magic-item`, `all` (default: `all`)
-- `name` (string, optional): Item name or partial name
+- `search` (string, optional): Natural language search query for semantic/vector search
 - `rarity` (string, optional): Magic item rarity (common, uncommon, rare, very rare, legendary, artifact)
 - `damage_dice` (string, optional): Weapon damage dice (e.g., "1d8", "2d6")
 - `is_simple` (boolean, optional): Simple weapons only
@@ -552,10 +552,10 @@ results = await search_spell(documents=filtered_keys)
 - Attunement requirement
 
 **Example Queries**:
-- "What's the damage for a longsword?" → `type="weapon", name="longsword"`
+- "What's the damage for a longsword?" → `type="weapon", search="longsword"`
 - "Show me rare magic weapons" → `type="magic-item", rarity="rare"`
 - "Find light armor" → `type="armor"`
-- "What does a Bag of Holding do?" → `type="magic-item", name="bag of holding"`
+- "What does a Bag of Holding do?" → `type="magic-item", search="bag of holding"`
 
 ---
 
@@ -570,7 +570,7 @@ results = await search_spell(documents=filtered_keys)
 
 **Parameters**:
 - `rule_type` (string, required): One of: `rule`, `condition`, `damage-type`, `weapon-property`, `skill`, `ability-score`, `magic-school`, `language`, `proficiency`, `alignment`
-- `name` (string, optional): Name or partial name to search
+- `search` (string, optional): Natural language search query for semantic/vector search
 - `section` (string, optional): For rules - section name (e.g., "combat", "spellcasting")
 - `limit` (integer, optional, default=20): Maximum results to return
 
@@ -600,10 +600,10 @@ results = await search_spell(documents=filtered_keys)
 - Related game elements
 
 **Example Queries**:
-- "What does the Grappled condition do?" → `rule_type="condition", name="grappled"`
-- "Explain opportunity attacks" → `rule_type="rule", section="combat", name="opportunity attack"`
-- "What is radiant damage?" → `rule_type="damage-type", name="radiant"`
-- "How does the Stealth skill work?" → `rule_type="skill", name="stealth"`
+- "What does the Grappled condition do?" → `rule_type="condition", search="grappled"`
+- "Explain opportunity attacks" → `rule_type="rule", section="combat", search="opportunity attack"`
+- "What is radiant damage?" → `rule_type="damage-type", search="radiant"`
+- "How does the Stealth skill work?" → `rule_type="skill", search="stealth"`
 - "What are weapon properties?" → `rule_type="weapon-property"`
 
 ---
@@ -655,7 +655,7 @@ LoreKeeper uses **Milvus Lite** for caching:
 
 ### Semantic Search
 
-When `semantic_query` is provided (Milvus backend):
+When `search` is provided (Milvus backend):
 1. Query text is converted to a 384-dimensional embedding vector
 2. Vector similarity search finds semantically related content
 3. Results are ranked by cosine similarity (0.0 to 1.0)
@@ -674,9 +674,9 @@ When `semantic_query` is provided (Milvus backend):
 
 ### Search Behavior
 - **Semantic search**: Natural language queries find conceptually related results
-- **Exact match**: If `name` parameter exactly matches, return single result
-- **Partial match**: If `name` is partial, return up to `limit` results ranked by relevance
-- **No name**: If no `name` provided, filter by other parameters and return up to `limit` results
+- **Exact match**: If `search` parameter exactly matches, return single result
+- **Partial match**: If `search` is partial, return up to `limit` results ranked by relevance
+- **No search**: If no `search` provided, filter by other parameters and return up to `limit` results
 
 ### Response Formatting
 - Return structured data suitable for AI consumption

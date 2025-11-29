@@ -152,16 +152,16 @@ LoreKeeper uses **Milvus Lite** as the default cache backend, providing semantic
 
 ```python
 # Find spells by concept (not just keywords)
-healing = await lookup_spell(semantic_query="restore health and cure wounds")
+healing = await lookup_spell(search="restore health and cure wounds")
 # Returns: Cure Wounds, Healing Word, Mass Cure Wounds, etc.
 
 # Find creatures by behavior
-flyers = await lookup_creature(semantic_query="flying creatures with ranged attacks")
+flyers = await lookup_creature(search="flying creatures with ranged attacks")
 # Returns: Dragon, Wyvern, Harpy, etc.
 
 # Hybrid search: semantic + structured filters
 fire_evocation = await lookup_spell(
-    semantic_query="area fire damage",
+    search="area fire damage",
     level=3,
     school="evocation"
 )
