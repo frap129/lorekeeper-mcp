@@ -2,32 +2,28 @@
 
 This module provides a search tool that exposes the Open5e unified search
 endpoint with fuzzy and semantic matching capabilities for cross-entity searches.
-Semantic search is enabled by default for conceptual matching.
+Semantic search is always enabled for conceptual matching.
 
 Architecture:
     - Uses Open5eV2Client.unified_search() for fuzzy and semantic search
     - Supports searching across multiple content types
     - Handles limit distribution when searching multiple types
-    - Semantic search enabled by default (use semantic=False for structured-only)
+    - Semantic search is always enabled for better matching
 
 Examples:
-    Basic search (semantic enabled by default):
+    Basic search:
         results = await search_dnd_content(query="fireball")
 
-    Fuzzy search for typos:
-        results = await search_dnd_content(query="firbal", enable_fuzzy=True)
-
     Semantic search for related content:
-        results = await search_dnd_content(query="healing magic")  # semantic=True by default
-
-    Structured-only search (disable semantic):
-        results = await search_dnd_content(query="fireball", semantic=False)
+        results = await search_dnd_content(query="healing magic")
 
     Filter by content type:
         spells = await search_dnd_content(query="fire", content_types=["Spell"])
+
+    Filter by document:
+        results = await search_dnd_content(query="fireball", documents=["srd-5e"])
 """
 
-import warnings
 from typing import Any
 
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
@@ -46,18 +42,17 @@ async def search_dnd_content(
     query: str,
     content_types: list[str] | None = None,
     documents: list[str] | None = None,
-    enable_fuzzy: bool = True,
-    enable_semantic: bool = True,
-    semantic: bool | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
-    Search across all D&D content with advanced fuzzy and semantic matching.
+    Search across all D&D content with semantic matching.
 
     This tool uses Open5e's unified search endpoint to find content across
-    multiple types (spells, creatures, items, etc.) with typo tolerance and
-    conceptual matching. Perfect for exploratory searches like "find anything
-    related to fire" or when you're not sure of exact spelling.
+    multiple types (spells, creatures, items, etc.) with fuzzy typo tolerance
+    and semantic conceptual matching. Perfect for exploratory searches like
+    "find anything related to fire" or when you're not sure of exact spelling.
+
+    Semantic search is always enabled to provide the best conceptual matching.
 
     Examples:
         # Cross-entity search
@@ -66,11 +61,8 @@ async def search_dnd_content(
         # Typo-tolerant search
         search_dnd_content(query="firbal")  # Finds "Fireball" despite typo
 
-        # Concept-based search (semantic search enabled by default)
+        # Concept-based search
         search_dnd_content(query="healing magic")  # Finds healing spells
-
-        # Structured-only search (disable semantic search)
-        search_dnd_content(query="fireball", semantic=False)  # Exact matches only
 
         # Type-filtered search
         search_dnd_content(query="fire", content_types=["Spell"])  # Only spells
@@ -86,13 +78,6 @@ async def search_dnd_content(
         documents: Filter results to specific documents. Provide list of
             document names from list_documents() tool. Post-filters search
             results by document field. Examples: ["srd-5e"], ["srd-5e", "tce"].
-        enable_fuzzy: Enable fuzzy matching for typo tolerance (default True)
-        enable_semantic: Enable semantic/vector search for conceptual
-            matching (default True). Deprecated: use `semantic` parameter instead.
-        semantic: Enable semantic/vector search for conceptual matching.
-            When True (default), uses vector similarity to find content matching
-            the conceptual meaning. When False, uses structured-only search for
-            exact matches. If provided, overrides `enable_semantic`.
         limit: Maximum number of results to return (default 20)
 
     Returns:
@@ -106,19 +91,7 @@ async def search_dnd_content(
     if documents is not None and len(documents) == 0:
         return []
 
-    # Emit deprecation warning when enable_semantic is explicitly set to non-default
-    # and semantic is not provided (user is using deprecated parameter)
-    if semantic is None and enable_semantic is False:
-        warnings.warn(
-            "enable_semantic parameter is deprecated, use semantic=False instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
     client = _get_open5e_client()
-
-    # Use semantic parameter if provided, otherwise fall back to enable_semantic
-    use_semantic = semantic if semantic is not None else enable_semantic
 
     if content_types:
         all_results: list[dict[str, Any]] = []
@@ -127,8 +100,8 @@ async def search_dnd_content(
         for content_type in content_types:
             results = await client.unified_search(
                 query=query,
-                fuzzy=enable_fuzzy,
-                vector=use_semantic,
+                fuzzy=True,
+                vector=True,
                 object_model=content_type,
                 limit=per_type_limit,
             )
@@ -145,8 +118,8 @@ async def search_dnd_content(
 
     results = await client.unified_search(
         query=query,
-        fuzzy=enable_fuzzy,
-        vector=use_semantic,
+        fuzzy=True,
+        vector=True,
         limit=limit,
     )
 

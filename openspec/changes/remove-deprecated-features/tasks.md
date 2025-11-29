@@ -18,24 +18,24 @@
 - [x] 3.6 Update all tests using `MonsterRepository` to use `CreatureRepository`
 
 ## 4. Remove SQLite Cache Backend
-- [ ] 4.1 Delete `src/lorekeeper_mcp/cache/sqlite.py`
-- [ ] 4.2 Delete `src/lorekeeper_mcp/cache/db.py`
-- [ ] 4.3 Delete `src/lorekeeper_mcp/cache/schema.py`
-- [ ] 4.4 Update `src/lorekeeper_mcp/cache/__init__.py` to remove SQLite exports
-- [ ] 4.5 Update `src/lorekeeper_mcp/cache/factory.py` to remove SQLite backend support
-- [ ] 4.6 Update `src/lorekeeper_mcp/config.py` to remove SQLite configuration
-- [ ] 4.7 Update `src/lorekeeper_mcp/cli.py` to remove SQLite references
-- [ ] 4.8 Delete `tests/test_cache/test_sqlite.py`
-- [ ] 4.9 Delete `tests/test_cache/test_db.py`
-- [ ] 4.10 Delete `tests/test_cache/test_schema.py`
-- [ ] 4.11 Update all tests that reference SQLite to use Milvus only
+- [x] 4.1 Delete `src/lorekeeper_mcp/cache/sqlite.py`
+- [x] 4.2 Delete `src/lorekeeper_mcp/cache/db.py`
+- [x] 4.3 Delete `src/lorekeeper_mcp/cache/schema.py`
+- [x] 4.4 Update `src/lorekeeper_mcp/cache/__init__.py` to remove SQLite exports
+- [x] 4.5 Update `src/lorekeeper_mcp/cache/factory.py` to remove SQLite backend support
+- [x] 4.6 Update `src/lorekeeper_mcp/config.py` to remove SQLite configuration
+- [x] 4.7 Update `src/lorekeeper_mcp/cli.py` to remove SQLite references
+- [x] 4.8 Delete `tests/test_cache/test_sqlite.py`
+- [x] 4.9 Delete `tests/test_cache/test_db.py`
+- [x] 4.10 Delete `tests/test_cache/test_schema.py`
+- [x] 4.11 Update all tests that reference SQLite to use Milvus only
 
 ## 5. Remove Deprecated Search Toggle Parameters
-- [ ] 5.1 Remove `enable_semantic` parameter from `search_dnd_content()`
-- [ ] 5.2 Remove `semantic` parameter from `search_dnd_content()`
-- [ ] 5.3 Remove `enable_fuzzy` parameter from `search_dnd_content()`
-- [ ] 5.4 Update docstrings to reflect semantic search is always enabled
-- [ ] 5.5 Update any tests using removed parameters
+- [x] 5.1 Remove `enable_semantic` parameter from `search_dnd_content()`
+- [x] 5.2 Remove `semantic` parameter from `search_dnd_content()`
+- [x] 5.3 Remove `enable_fuzzy` parameter from `search_dnd_content()`
+- [x] 5.4 Update docstrings to reflect semantic search is always enabled
+- [x] 5.5 Update any tests using removed parameters
 
 ## 6. Rename Tools to search_* Convention
 - [ ] 6.1 Rename `src/lorekeeper_mcp/tools/spell_lookup.py` to `search_spell.py`

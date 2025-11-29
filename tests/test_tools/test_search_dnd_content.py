@@ -61,8 +61,8 @@ async def test_search_dnd_content_tool(mock_client_factory):
 
 
 @pytest.mark.asyncio
-async def test_search_dnd_content_with_fuzzy(mock_client_factory):
-    """Test search_dnd_content tool with fuzzy matching enabled."""
+async def test_search_dnd_content_fuzzy_always_enabled(mock_client_factory):
+    """Test search_dnd_content tool has fuzzy matching always enabled."""
 
     mock_results = [
         {
@@ -74,7 +74,7 @@ async def test_search_dnd_content_with_fuzzy(mock_client_factory):
     ]
     mock_client_factory.unified_search.return_value = mock_results
 
-    result = await search_dnd_content(query="firbal", enable_fuzzy=True)
+    result = await search_dnd_content(query="firbal")
 
     assert len(result) == 1
     call_kwargs = mock_client_factory.unified_search.call_args[1]
@@ -82,8 +82,8 @@ async def test_search_dnd_content_with_fuzzy(mock_client_factory):
 
 
 @pytest.mark.asyncio
-async def test_search_dnd_content_with_semantic(mock_client_factory):
-    """Test search_dnd_content tool with semantic search enabled."""
+async def test_search_dnd_content_semantic_always_enabled(mock_client_factory):
+    """Test search_dnd_content tool has semantic search always enabled."""
 
     mock_results = [
         {
@@ -95,7 +95,7 @@ async def test_search_dnd_content_with_semantic(mock_client_factory):
     ]
     mock_client_factory.unified_search.return_value = mock_results
 
-    result = await search_dnd_content(query="healing magic", enable_semantic=True)
+    result = await search_dnd_content(query="healing magic")
 
     assert len(result) == 1
     call_kwargs = mock_client_factory.unified_search.call_args[1]
@@ -343,42 +343,15 @@ async def test_search_dnd_content_documents_with_content_types(mock_client_facto
 
 
 @pytest.mark.asyncio
-async def test_search_dnd_content_semantic_default_true(mock_client_factory):
-    """Test that semantic search is enabled by default."""
+async def test_search_dnd_content_both_fuzzy_and_vector_always_enabled(mock_client_factory):
+    """Test that both fuzzy and semantic search are always enabled by default."""
     mock_results = [{"object_name": "Fireball", "object_model": "Spell", "match_type": "vector"}]
     mock_client_factory.unified_search.return_value = mock_results
 
-    # Call without specifying semantic parameter
+    # Call without specifying any parameters
     await search_dnd_content(query="fire explosion")
 
-    # Verify vector/semantic search was enabled by default
+    # Verify both fuzzy and vector/semantic search were enabled
     call_kwargs = mock_client_factory.unified_search.call_args[1]
     assert call_kwargs["vector"] is True
-
-
-@pytest.mark.asyncio
-async def test_search_dnd_content_semantic_false_disables_vector_search(mock_client_factory):
-    """Test that semantic=False disables vector/semantic search."""
-    mock_results = [{"object_name": "Fireball", "object_model": "Spell", "match_type": "exact"}]
-    mock_client_factory.unified_search.return_value = mock_results
-
-    # Call with semantic=False for structured-only search
-    await search_dnd_content(query="fireball", semantic=False)
-
-    # Verify vector search was disabled
-    call_kwargs = mock_client_factory.unified_search.call_args[1]
-    assert call_kwargs["vector"] is False
-
-
-@pytest.mark.asyncio
-async def test_search_dnd_content_semantic_true_enables_vector_search(mock_client_factory):
-    """Test that semantic=True explicitly enables vector/semantic search."""
-    mock_results = [{"object_name": "Cure Wounds", "object_model": "Spell", "match_type": "vector"}]
-    mock_client_factory.unified_search.return_value = mock_results
-
-    # Call with explicit semantic=True
-    await search_dnd_content(query="healing magic", semantic=True)
-
-    # Verify vector search was enabled
-    call_kwargs = mock_client_factory.unified_search.call_args[1]
-    assert call_kwargs["vector"] is True
+    assert call_kwargs["fuzzy"] is True
