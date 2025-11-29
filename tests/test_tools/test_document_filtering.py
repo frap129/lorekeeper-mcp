@@ -13,7 +13,7 @@ from lorekeeper_mcp.cache.db import bulk_cache_entities
 from lorekeeper_mcp.cache.schema import init_entity_cache
 from lorekeeper_mcp.cache.sqlite import SQLiteCache
 from lorekeeper_mcp.config import settings
-from lorekeeper_mcp.repositories.monster import MonsterRepository
+from lorekeeper_mcp.repositories.creature import CreatureRepository
 from lorekeeper_mcp.repositories.spell import SpellRepository
 from lorekeeper_mcp.tools.creature_lookup import (
     _repository_context as creature_context,
@@ -183,7 +183,7 @@ async def test_cross_tool_document_consistency(populated_cache: str) -> None:
         # Setup repositories
         cache = SQLiteCache(db_path=populated_cache)
         spell_repo = SpellRepository(client=Open5eV2Client(), cache=cache)
-        creature_repo = MonsterRepository(client=Open5eV1Client(), cache=cache)
+        creature_repo = CreatureRepository(client=Open5eV1Client(), cache=cache)
 
         spell_context["repository"] = spell_repo
         creature_context["repository"] = creature_repo

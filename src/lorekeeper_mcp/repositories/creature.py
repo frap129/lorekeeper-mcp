@@ -1,8 +1,4 @@
-"""Repository for creatures with cache-aside pattern.
-
-Formerly named monster.py. The Monster terminology has been deprecated
-in favor of Creature for consistency with D&D 5e canonical terminology.
-"""
+"""Repository for creatures with cache-aside pattern."""
 
 from typing import Any, Protocol
 
@@ -291,13 +287,3 @@ class CreatureRepository(Repository[Creature]):
             filtered = [m for m in filtered if m.hit_points is not None and m.hit_points >= min_hp]
 
         return filtered
-
-
-# Backward-compatible aliases (deprecated)
-# Note: Protocols cannot be subclassed for deprecation warnings easily,
-# so we just create direct aliases. Users who import Monster* names
-# will get the Creature* classes without warning. The deprecation
-# warning for the Monster model class is in models/creature.py.
-MonsterClient = CreatureClient
-MonsterCache = CreatureCache
-MonsterRepository = CreatureRepository

@@ -6,8 +6,8 @@ allowing you to focus on creature searching. Cache misses automatically fetch fr
 multiple D&D 5e sources and store results for future queries.
 
 Architecture:
-    - Uses CreatureRepository (MonsterRepository) for cache-aside pattern with multi-source support
-    - Repository manages SQLite cache automatically
+    - Uses CreatureRepository for cache-aside pattern with multi-source support
+    - Repository manages cache automatically
     - Supports test context-based repository injection
     - Handles Open5e v1 and D&D 5e API data normalization
     - Returns canonical Creature models from lorekeeper_mcp.models
@@ -19,9 +19,9 @@ Examples:
 
     With context-based injection (testing):
         from lorekeeper_mcp.tools.creature_lookup import _repository_context
-        from lorekeeper_mcp.repositories.monster import MonsterRepository
+        from lorekeeper_mcp.repositories.creature import CreatureRepository
 
-        repository = MonsterRepository(cache=my_cache)
+        repository = CreatureRepository(cache=my_cache)
         _repository_context["repository"] = repository
         creatures = await lookup_creature(cr_min=1, cr_max=3)
 
@@ -31,24 +31,24 @@ Examples:
 
 from typing import Any, cast
 
+from lorekeeper_mcp.repositories.creature import CreatureRepository
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
-from lorekeeper_mcp.repositories.monster import MonsterRepository
 
 _repository_context: dict[str, Any] = {}
 
 
-def _get_repository() -> MonsterRepository:
+def _get_repository() -> CreatureRepository:
     """Get creature repository, respecting test context.
 
     Returns the repository from _repository_context if set, otherwise creates
     a default creature repository using RepositoryFactory.
 
     Returns:
-        MonsterRepository instance for creature lookups.
+        CreatureRepository instance for creature lookups.
     """
     if "repository" in _repository_context:
-        return cast(MonsterRepository, _repository_context["repository"])
-    return RepositoryFactory.create_monster_repository()
+        return cast(CreatureRepository, _repository_context["repository"])
+    return RepositoryFactory.create_creature_repository()
 
 
 def clear_creature_cache() -> None:
@@ -134,7 +134,7 @@ async def lookup_creature(
 
         With test context injection (testing):
             from lorekeeper_mcp.tools.creature_lookup import _repository_context
-            custom_repo = MonsterRepository(cache=my_cache)
+            custom_repo = CreatureRepository(cache=my_cache)
             _repository_context["repository"] = custom_repo
             creatures = await lookup_creature(size="Tiny")
 

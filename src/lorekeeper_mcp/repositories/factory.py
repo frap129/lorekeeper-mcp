@@ -5,8 +5,8 @@ from typing import Any, Protocol
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.cache.factory import get_cache_from_config
 from lorekeeper_mcp.repositories.character_option import CharacterOptionRepository
+from lorekeeper_mcp.repositories.creature import CreatureRepository
 from lorekeeper_mcp.repositories.equipment import EquipmentRepository
-from lorekeeper_mcp.repositories.monster import MonsterRepository
 from lorekeeper_mcp.repositories.rule import RuleRepository
 from lorekeeper_mcp.repositories.spell import SpellRepository
 
@@ -89,23 +89,23 @@ class RepositoryFactory:
         return SpellRepository(client=client, cache=cache)
 
     @staticmethod
-    def create_monster_repository(
+    def create_creature_repository(
         client: Any | None = None, cache: _CacheProtocol | None = None
-    ) -> MonsterRepository:
-        """Create a MonsterRepository instance.
+    ) -> CreatureRepository:
+        """Create a CreatureRepository instance.
 
         Args:
             client: Optional custom client instance. Defaults to Open5eV2Client.
             cache: Optional custom cache instance. Defaults to cache from config.
 
         Returns:
-            A configured MonsterRepository instance.
+            A configured CreatureRepository instance.
         """
         if client is None:
             client = Open5eV2Client()
         if cache is None:
             cache = RepositoryFactory._get_cache()
-        return MonsterRepository(client=client, cache=cache)
+        return CreatureRepository(client=client, cache=cache)
 
     @staticmethod
     def create_equipment_repository(

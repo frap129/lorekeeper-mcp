@@ -453,16 +453,16 @@ async def test_repository_factory_creates_instances():
     try:
         # Create repositories that support Open5e API
         spell_repo = RepositoryFactory.create_spell_repository(client=v2_client)
-        monster_repo = RepositoryFactory.create_monster_repository(client=v1_client)
+        creature_repo = RepositoryFactory.create_creature_repository(client=v1_client)
 
         # Verify repositories are created
         assert spell_repo is not None
-        assert monster_repo is not None
+        assert creature_repo is not None
 
         # Verify repositories have required methods
         assert hasattr(spell_repo, "search")
         assert hasattr(spell_repo, "get_all")
-        assert hasattr(monster_repo, "search")
+        assert hasattr(creature_repo, "search")
     finally:
         await v1_client.close()
         await v2_client.close()

@@ -7,7 +7,7 @@ import pytest
 
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.models import Creature
-from lorekeeper_mcp.repositories.monster import CreatureRepository
+from lorekeeper_mcp.repositories.creature import CreatureRepository
 
 
 @pytest.fixture
@@ -659,3 +659,14 @@ class TestCreatureRepositorySemanticSearch:
         # Should have fallen back to get_entities
         assert cache.get_entities_called
         assert len(results) == 1
+
+
+def test_creature_repository_imports_from_creature_module() -> None:
+    """Test CreatureRepository imports from repositories.creature not monster."""
+    from lorekeeper_mcp.repositories.creature import CreatureRepository
+
+    assert CreatureRepository is not None
+
+    # monster.py should not exist
+    with pytest.raises(ImportError):
+        from lorekeeper_mcp.repositories.monster import MonsterRepository  # noqa: F401
