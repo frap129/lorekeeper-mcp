@@ -1,4 +1,4 @@
-"""Search tool for unified D&D content search across multiple types.
+"""Unified search tool for D&D content across multiple types.
 
 This module provides a search tool that exposes the Open5e unified search
 endpoint with fuzzy and semantic matching capabilities for cross-entity searches.
@@ -12,16 +12,16 @@ Architecture:
 
 Examples:
     Basic search:
-        results = await search_dnd_content(query="fireball")
+        results = await search_all(query="fireball")
 
     Semantic search for related content:
-        results = await search_dnd_content(query="healing magic")
+        results = await search_all(query="healing magic")
 
     Filter by content type:
-        spells = await search_dnd_content(query="fire", content_types=["Spell"])
+        spells = await search_all(query="fire", content_types=["Spell"])
 
     Filter by document:
-        results = await search_dnd_content(query="fireball", documents=["srd-5e"])
+        results = await search_all(query="fireball", documents=["srd-5e"])
 """
 
 from typing import Any
@@ -56,20 +56,20 @@ async def search_all(
 
     Examples:
         # Cross-entity search
-        search_dnd_content(query="dragon")  # Finds dragons, dragon spells, etc.
+        search_all(query="dragon")  # Finds dragons, dragon spells, etc.
 
         # Typo-tolerant search
-        search_dnd_content(query="firbal")  # Finds "Fireball" despite typo
+        search_all(query="firbal")  # Finds "Fireball" despite typo
 
         # Concept-based search
-        search_dnd_content(query="healing magic")  # Finds healing spells
+        search_all(query="healing magic")  # Finds healing spells
 
         # Type-filtered search
-        search_dnd_content(query="fire", content_types=["Spell"])  # Only spells
+        search_all(query="fire", content_types=["Spell"])  # Only spells
 
         # Document-filtered search
-        search_dnd_content(query="fireball", documents=["srd-5e"])
-        search_dnd_content(query="spell", documents=["srd-5e", "tce"])
+        search_all(query="fireball", documents=["srd-5e"])
+        search_all(query="spell", documents=["srd-5e", "tce"])
 
     Args:
         query: Search term (handles typos and concepts automatically)

@@ -16,14 +16,14 @@ LoreKeeper supports **semantic search** for finding content by meaning rather th
 
 ### Overview
 
-All lookup tools and the search tool accept an optional `semantic_query` parameter:
+All search tools accept an optional `semantic_query` parameter:
 
 ```python
 # Find spells conceptually related to "fire damage"
-spells = await lookup_spell(semantic_query="explosive fire damage")
+spells = await search_spell(semantic_query="explosive fire damage")
 
 # Combine semantic search with filters
-fire_spells = await lookup_spell(
+fire_spells = await search_spell(
     semantic_query="area of effect fire damage",
     level=3,
     school="evocation"
@@ -43,19 +43,19 @@ fire_spells = await lookup_spell(
 
 ```python
 # Find healing spells without knowing exact names
-healing = await lookup_spell(semantic_query="restore health and cure wounds")
+healing = await search_spell(semantic_query="restore health and cure wounds")
 # Returns: Cure Wounds, Healing Word, Mass Cure Wounds, etc.
 
 # Find crowd control spells
-control = await lookup_spell(semantic_query="stop enemies from moving or acting")
+control = await search_spell(semantic_query="stop enemies from moving or acting")
 # Returns: Hold Person, Web, Entangle, etc.
 
 # Find protective magic
-protection = await lookup_spell(semantic_query="shield and protect allies from harm")
+protection = await search_spell(semantic_query="shield and protect allies from harm")
 # Returns: Shield, Shield of Faith, Protection from Evil and Good, etc.
 
 # Find spells by damage type (without using damage_type filter)
-lightning = await lookup_spell(semantic_query="electricity and lightning damage")
+lightning = await search_spell(semantic_query="electricity and lightning damage")
 # Returns: Lightning Bolt, Call Lightning, Witch Bolt, etc.
 ```
 
@@ -63,15 +63,15 @@ lightning = await lookup_spell(semantic_query="electricity and lightning damage"
 
 ```python
 # Find flying enemies
-flyers = await lookup_creature(semantic_query="creatures that fly and attack from above")
+flyers = await search_creature(semantic_query="creatures that fly and attack from above")
 # Returns: Dragon, Wyvern, Harpy, etc.
 
 # Find undead by theme
-undead = await lookup_creature(semantic_query="risen dead that drain life force")
+undead = await search_creature(semantic_query="risen dead that drain life force")
 # Returns: Wraith, Specter, Vampire, etc.
 
 # Find ambush predators
-ambushers = await lookup_creature(semantic_query="stealthy hunters that attack by surprise")
+ambushers = await search_creature(semantic_query="stealthy hunters that attack by surprise")
 # Returns: Assassin, Displacer Beast, Invisible Stalker, etc.
 ```
 
@@ -79,20 +79,20 @@ ambushers = await lookup_creature(semantic_query="stealthy hunters that attack b
 
 ```python
 # Find ranged weapons
-ranged = await lookup_equipment(
+ranged = await search_equipment(
     semantic_query="weapons for attacking from a distance",
     type="weapon"
 )
 # Returns: Longbow, Crossbow, Javelin, etc.
 
 # Find defensive gear
-defensive = await lookup_equipment(
+defensive = await search_equipment(
     semantic_query="armor and shields for protection"
 )
 # Returns: Plate Armor, Shield, Chain Mail, etc.
 
 # Find magical utility items
-utility = await lookup_equipment(
+utility = await search_equipment(
     semantic_query="magic items for utility and exploration",
     type="magic-item"
 )
@@ -105,28 +105,28 @@ Combine semantic queries with structured filters for precise results:
 
 ```python
 # Low-level fire spells
-low_fire = await lookup_spell(
+low_fire = await search_spell(
     semantic_query="fire and burning damage",
     level=1,
     limit=5
 )
 
 # Undead under CR 5
-weak_undead = await lookup_creature(
+weak_undead = await search_creature(
     semantic_query="undead creatures",
     cr_max=5,
     type="undead"
 )
 
 # Rare magic weapons
-rare_weapons = await lookup_equipment(
+rare_weapons = await search_equipment(
     semantic_query="magical swords and blades",
     type="magic-item",
     rarity="rare"
 )
 
 # SRD-only results
-srd_healing = await lookup_spell(
+srd_healing = await search_spell(
     semantic_query="healing magic",
     documents=["srd-5e"]
 )
@@ -137,7 +137,7 @@ srd_healing = await lookup_spell(
 Semantic search results include a `_score` field (0.0 to 1.0):
 
 ```python
-results = await lookup_spell(semantic_query="fire explosion")
+results = await search_spell(semantic_query="fire explosion")
 for spell in results[:3]:
     print(f"{spell['name']}: {spell.get('_score', 0):.3f}")
 # Output:
@@ -161,10 +161,7 @@ for spell in results[:3]:
 
 ### Backend Requirements
 
-Semantic search requires the **Milvus Lite** cache backend. If using SQLite:
-- `semantic_query` parameter is ignored
-- Only structured filters are applied
-- Consider switching to Milvus for semantic capabilities
+Semantic search requires the **Milvus Lite** cache backend (the only supported backend).
 
 ---
 
@@ -172,7 +169,7 @@ Semantic search requires the **Milvus Lite** cache backend. If using SQLite:
 
 ### Overview
 
-All LoreKeeper lookup tools and the search tool support filtering content by source document. This enables precise control over which sources you query, allowing you to:
+All LoreKeeper search tools support filtering content by source document. This enables precise control over which sources you query, allowing you to:
 
 - **Limit searches to SRD (free) content only** - Use only freely available System Reference Document content
 - **Filter by specific published books** - Query only content from "Tasha's Cauldron of Everything", "Xanathar's Guide", etc.
@@ -207,20 +204,20 @@ Each document in the results contains:
 
 #### In Lookup Tools
 
-All lookup tools (`lookup_spell`, `lookup_creature`, `lookup_character_option`, `lookup_equipment`, `lookup_rule`) accept a `documents` parameter:
+All search tools (`search_spell`, `search_creature`, `search_character_option`, `search_equipment`, `search_rule`) accept a `documents` parameter:
 
 ```python
 # Filter to SRD only
-srd_spells = await lookup_spell(level=3, documents=["srd-5e"])
+srd_spells = await search_spell(level=3, documents=["srd-5e"])
 
 # Filter to multiple documents
-multi_source = await lookup_creature(
+multi_source = await search_creature(
     type="dragon",
     documents=["srd-5e", "tce", "phb"]
 )
 
 # Complex filtering with multiple parameters
-wizard_evocations = await lookup_spell(
+wizard_evocations = await search_spell(
     class_key="wizard",
     school="evocation",
     level_min=1,
@@ -229,14 +226,14 @@ wizard_evocations = await lookup_spell(
 )
 
 # Equipment filtering by source
-plate_armor = await lookup_equipment(
+plate_armor = await search_equipment(
     type="armor",
     name="plate",
     documents=["srd-5e"]
 )
 
 # Character options from specific books
-tasha_feats = await lookup_character_option(
+tasha_feats = await search_character_option(
     type="feat",
     documents=["tce"]  # Tasha's Cauldron of Everything
 )
@@ -244,23 +241,23 @@ tasha_feats = await lookup_character_option(
 
 #### In Search Tool
 
-The `search_dnd_content()` tool also supports document filtering:
+The `search_all()` tool also supports document filtering:
 
 ```python
 # Search spells in SRD only
-srd_results = await search_dnd_content(
+srd_results = await search_all(
     query="fireball",
     documents=["srd-5e"]
 )
 
 # Search across multiple books
-published_results = await search_dnd_content(
+published_results = await search_all(
     query="dragon",
     documents=["srd-5e", "tce", "xgte"]
 )
 
 # General search with no filter (all documents)
-all_results = await search_dnd_content(query="magic item")
+all_results = await search_all(query="magic item")
 ```
 
 ### Common Document Keys
@@ -289,16 +286,16 @@ Get only free, System Reference Document content:
 
 ```python
 # Only SRD spells
-srd_spells = await lookup_spell(documents=["srd-5e"])
+srd_spells = await search_spell(documents=["srd-5e"])
 
 # Only SRD creatures up to CR 5
-srd_creatures = await lookup_creature(
+srd_creatures = await search_creature(
     cr_max=5,
     documents=["srd-5e"]
 )
 
 # Only SRD equipment
-srd_gear = await lookup_equipment(documents=["srd-5e"])
+srd_gear = await search_equipment(documents=["srd-5e"])
 ```
 
 #### Published Books Only
@@ -306,7 +303,7 @@ srd_gear = await lookup_equipment(documents=["srd-5e"])
 Get only officially published content (excluding homebrew):
 
 ```python
-published = await lookup_spell(
+published = await search_spell(
     school="evocation",
     documents=[
         "srd-5e", "phb", "tce", "xgte", "vrgr", "dmg", "mm"
@@ -320,13 +317,13 @@ Query a specific book without mixing sources:
 
 ```python
 # Only Tasha's content
-tasha_content = await lookup_character_option(
+tasha_content = await search_character_option(
     type="feat",
     documents=["tce"]
 )
 
 # Only Xanathar's Guide
-xgte_content = await lookup_spell(
+xgte_content = await search_spell(
     school="evocation",
     documents=["xgte"]
 )
@@ -342,7 +339,7 @@ docs = await list_documents(source="orcbrew")
 homebrew_keys = [d["document"] for d in docs]
 
 # Query only homebrew
-homebrew_creatures = await lookup_creature(
+homebrew_creatures = await search_creature(
     documents=homebrew_keys
 )
 ```
@@ -360,7 +357,7 @@ all_keys = [d["document"] for d in all_docs]
 excluded = "homebrew-grimoire"
 filtered_keys = [k for k in all_keys if excluded not in k.lower()]
 # 3. Query with remaining documents
-results = await lookup_spell(documents=filtered_keys)
+results = await search_spell(documents=filtered_keys)
 ```
 
 ### Performance Notes
@@ -379,7 +376,7 @@ results = await lookup_spell(documents=filtered_keys)
 
 ---
 
-## Tool 1: `lookup_spell`
+## Tool 1: `search_spell`
 
 **Purpose**: Search and retrieve spell information
 
@@ -416,7 +413,7 @@ results = await lookup_spell(documents=filtered_keys)
 
 ---
 
-## Tool 2: `lookup_creature`
+## Tool 2: `search_creature`
 
 **Purpose**: Search and retrieve monster/creature stat blocks
 
@@ -454,7 +451,7 @@ results = await lookup_spell(documents=filtered_keys)
 
 ---
 
-## Tool 3: `lookup_character_option`
+## Tool 3: `search_character_option`
 
 **Purpose**: Get character creation and advancement options
 
@@ -509,7 +506,7 @@ results = await lookup_spell(documents=filtered_keys)
 
 ---
 
-## Tool 4: `lookup_equipment`
+## Tool 4: `search_equipment`
 
 **Purpose**: Search for weapons, armor, adventuring gear, and magic items
 
@@ -562,7 +559,7 @@ results = await lookup_spell(documents=filtered_keys)
 
 ---
 
-## Tool 5: `lookup_rule`
+## Tool 5: `search_rule`
 
 **Purpose**: Look up game rules, mechanics, conditions, and reference information
 
@@ -611,40 +608,33 @@ results = await lookup_spell(documents=filtered_keys)
 
 ---
 
-## Tool 6: `search_dnd_content`
+## Tool 6: `search_all`
 
 **Purpose**: General-purpose search across all D&D content types with semantic search support
 
 **Parameters**:
 - `query` (string, required): Search query (supports natural language with semantic search)
-- `entity_types` (list[string], optional): Limit search to specific types (spells, creatures, equipment, etc.)
+- `content_types` (list[string], optional): Limit search to specific types (spells, creatures, equipment, etc.)
 - `documents` (list[string], optional): Filter by source documents
-- `semantic` (boolean, optional, default=true): Use semantic search (Milvus backend only)
 - `limit` (integer, optional, default=20): Maximum results per entity type
 
 **Returns**:
 - Results grouped by entity type
-- Each result includes entity data and similarity score (when semantic=true)
+- Each result includes entity data and similarity score
 
 **Example Queries**:
 ```python
 # Semantic search across all content
-results = await search_dnd_content(query="fire damage")
+results = await search_all(query="fire damage")
 
 # Search specific entity types
-results = await search_dnd_content(
+results = await search_all(
     query="healing magic",
-    entity_types=["spells", "magicitems"]
-)
-
-# Disable semantic search for exact matching
-results = await search_dnd_content(
-    query="fireball",
-    semantic=False
+    content_types=["Spell", "Item"]
 )
 
 # Search within specific documents
-results = await search_dnd_content(
+results = await search_all(
     query="dragon breath",
     documents=["srd-5e"]
 )
@@ -656,18 +646,12 @@ results = await search_dnd_content(
 
 ### Caching Strategy
 
-LoreKeeper uses two cache backends:
+LoreKeeper uses **Milvus Lite** for caching:
 
-**Milvus Lite (default):**
 - Stores entity data with embedding vectors
 - Supports semantic/vector search
 - Entity embeddings generated automatically on storage
 - TTL: Infinite (entities never expire)
-
-**SQLite (legacy):**
-- Stores entity data as JSON blobs
-- Pattern matching only (no semantic search)
-- TTL: Configurable (default 7 days)
 
 ### Semantic Search
 
@@ -709,18 +693,18 @@ When `semantic_query` is provided (Milvus backend):
 
 | Tool | Category | API Endpoint | Version |
 |------|----------|-------------|---------|
-| lookup_spell | Spells | Open5e `/v2/spells/` | v2 ✓ |
-| lookup_creature | Monsters | Open5e `/v1/monsters/` | v1 |
-| lookup_character_option | Classes | Open5e `/v1/classes/` | v1 |
-| lookup_character_option | Races | Open5e `/v1/races/` | v1 |
-| lookup_character_option | Backgrounds | Open5e `/v2/backgrounds/` | v2 ✓ |
-| lookup_character_option | Feats | Open5e `/v2/feats/` | v2 ✓ |
-| lookup_equipment | Weapons | Open5e `/v2/weapons/` | v2 ✓ |
-| lookup_equipment | Armor | Open5e `/v2/armor/` | v2 ✓ |
-| lookup_equipment | Magic Items | Open5e `/v1/magicitems/` | v1 |
-| lookup_rule | Rules | Open5e `/v2/rules/`, `/v2/rule-sections/` | v2 ✓ |
-| lookup_rule | Conditions | Open5e `/v2/conditions/` | v2 ✓ |
-| lookup_rule | Reference | Open5e (various) | v2 ✓ |
+| search_spell | Spells | Open5e `/v2/spells/` | v2 ✓ |
+| search_creature | Monsters | Open5e `/v1/monsters/` | v1 |
+| search_character_option | Classes | Open5e `/v1/classes/` | v1 |
+| search_character_option | Races | Open5e `/v1/races/` | v1 |
+| search_character_option | Backgrounds | Open5e `/v2/backgrounds/` | v2 ✓ |
+| search_character_option | Feats | Open5e `/v2/feats/` | v2 ✓ |
+| search_equipment | Weapons | Open5e `/v2/weapons/` | v2 ✓ |
+| search_equipment | Armor | Open5e `/v2/armor/` | v2 ✓ |
+| search_equipment | Magic Items | Open5e `/v1/magicitems/` | v1 |
+| search_rule | Rules | Open5e `/v2/rules/`, `/v2/rule-sections/` | v2 ✓ |
+| search_rule | Conditions | Open5e `/v2/conditions/` | v2 ✓ |
+| search_rule | Reference | Open5e (various) | v2 ✓ |
 
 ### Why Open5e Was Chosen
 - **Comprehensive coverage**: Open5e v2 provides comprehensive, well-structured game data

@@ -73,11 +73,11 @@
 - [x] 9.5 Update `database-setup` spec to remove SQLite
 
 ## 10. Update Documentation
-- [ ] 10.1 Update docstrings in all tool files
-- [ ] 10.2 Update `docs/architecture.md` to remove SQLite/Monster references
-- [ ] 10.3 Update `docs/cache.md` to reflect Milvus-only
-- [ ] 10.4 Update `docs/tools.md` to reflect new tool names
-- [ ] 10.5 Update `.env.example` to remove SQLite variables
+- [x] 10.1 Update docstrings in all tool files
+- [x] 10.2 Update `docs/architecture.md` to remove SQLite/Monster references
+- [x] 10.3 Update `docs/cache.md` to reflect Milvus-only
+- [x] 10.4 Update `docs/tools.md` to reflect new tool names
+- [x] 10.5 Update `.env.example` to remove SQLite variables
 
 ## 11. Validation
 - [ ] 11.1 Run full test suite to verify no regressions (`just test`)

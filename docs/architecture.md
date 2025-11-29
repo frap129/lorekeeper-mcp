@@ -110,7 +110,7 @@ All configuration and data structures use Pydantic models:
 
 ```python
 class Settings(BaseSettings):
-    db_path: Path = Field(default=Path("./data/cache.db"))
+    milvus_db_path: Path = Field(default=Path("~/.lorekeeper/milvus.db"))
     cache_ttl_days: int = Field(default=7, ge=1, le=365)
 
 class Spell(BaseModel):
@@ -136,7 +136,7 @@ graph TD
     C --> D[Repositories]
     D --> E[API Clients]
     D --> F[Cache Layer]
-    F --> G[SQLite Database]
+    F --> G[Milvus Database]
     E --> H[Open5e API]
     J[Configuration] --> B
     J --> D
@@ -199,16 +199,17 @@ mcp = FastMCP(
 - Cache integration
 
 **Tool Categories**:
-- `lookup_spell`: Spell information
-- `lookup_creature`: Monster/creature stat blocks
-- `lookup_character_option`: Classes, races, backgrounds, feats
-- `lookup_equipment`: Weapons, armor, magic items
-- `lookup_rule`: Rules, conditions, references
+- `search_spell`: Spell information
+- `search_creature`: Creature stat blocks
+- `search_character_option`: Classes, races, backgrounds, feats
+- `search_equipment`: Weapons, armor, magic items
+- `search_rule`: Rules, conditions, references
+- `search_all`: Unified cross-entity search
 
 **Design Pattern**:
 ```python
 @mcp.tool()
-async def lookup_spell(
+async def search_spell(
     name: str | None = None,
     level: int | None = None,
     school: str | None = None,
@@ -236,7 +237,7 @@ async def lookup_spell(
 
 **Repository Types**:
 - `SpellRepository` - D&D 5e spells (uses Open5e v2 API)
-- `MonsterRepository` - Creature stat blocks (uses Open5e v2 `/creatures/` endpoint)
+- `CreatureRepository` - Creature stat blocks (uses Open5e v2 `/creatures/` endpoint)
 - `EquipmentRepository` - Weapons, armor, magic items (uses Open5e v2 API)
 - `CharacterOptionRepository` - Classes, races, backgrounds, feats (uses Open5e v1 API)
 - `RuleRepository` - Rules, conditions, reference data (uses Open5e v2 API)
@@ -281,7 +282,7 @@ from lorekeeper_mcp.repositories.factory import RepositoryFactory
 
 # Create repositories with dependency injection
 spell_repo = RepositoryFactory.create_spell_repository()
-monster_repo = RepositoryFactory.create_monster_repository()
+creature_repo = RepositoryFactory.create_creature_repository()
 equipment_repo = RepositoryFactory.create_equipment_repository()
 character_repo = RepositoryFactory.create_character_option_repository()
 rule_repo = RepositoryFactory.create_rule_repository()
@@ -330,31 +331,15 @@ class Open5eClient:
 ### Cache Layer
 
 **Responsibilities**:
-- Data persistence and retrieval
-- TTL management
-- Cache invalidation
+- Data persistence and retrieval with semantic search
+- Vector/embedding storage for semantic matching
 - Performance optimization
 
-**Database Schema**:
-```sql
-CREATE TABLE api_cache (
-    cache_key TEXT PRIMARY KEY,
-    response_data TEXT NOT NULL,
-    created_at REAL NOT NULL,
-    expires_at REAL NOT NULL,
-    content_type TEXT NOT NULL,
-    source_api TEXT NOT NULL
-);
-
-CREATE INDEX idx_expires_at ON api_cache(expires_at);
-CREATE INDEX idx_content_type ON api_cache(content_type);
-```
-
-**Performance Optimizations**:
-- WAL mode for concurrent access
-- Indexes on frequently queried columns
-- Connection pooling
-- Batch operations for cleanup
+**Milvus Lite Features**:
+- Embedded vector database (no external services)
+- Semantic search via embeddings
+- Hybrid search combining vectors and scalar filters
+- Automatic embedding generation using sentence-transformers
 
 ### Configuration Layer
 
@@ -372,17 +357,17 @@ CREATE INDEX idx_content_type ON api_cache(content_type);
 
 ## Design Decisions
 
-### 1. SQLite vs. External Cache
+### 1. Milvus Lite vs. External Cache
 
-**Decision**: Use SQLite instead of Redis or other external caches
+**Decision**: Use Milvus Lite instead of Redis or SQLite
 
 **Rationale**:
-- No external dependencies
-- Persistent across restarts
-- ACID compliance for data integrity
-- Excellent Python support with aiosqlite
-- Sufficient performance for use case
-- Easy backup and migration
+- Semantic search capabilities built-in
+- Embedded database (no external dependencies)
+- Vector search enables natural language queries
+- Hybrid search combines semantic + structured filtering
+- Excellent Python support with pymilvus
+- Single database for both data and embeddings
 
 ### 2. API Selection Strategy
 
@@ -432,16 +417,16 @@ CREATE INDEX idx_content_type ON api_cache(content_type);
 ### Cache Performance
 
 **Optimizations**:
-- WAL mode for concurrent reads/writes
-- Indexes on expiration and content type
-- Connection pooling
-- Efficient cache key generation
+- Vector indexing for fast semantic search
+- Scalar indexes on filter columns
+- Efficient embedding generation with batching
+- Lazy model loading
 
 **Metrics to Monitor**:
+- Semantic search latency
 - Cache hit ratio (target: >80%)
-- Average cache retrieval time
+- Embedding generation time
 - Database size growth
-- Cleanup operation frequency
 
 ### API Performance
 
@@ -470,12 +455,12 @@ CREATE INDEX idx_content_type ON api_cache(content_type);
 ### Horizontal Scaling
 
 **Current Limitations**:
-- SQLite file-based storage (not suitable for multi-instance)
+- Milvus Lite file-based storage (not suitable for multi-instance)
 - In-process cache (no distributed caching)
 
 **Future Enhancements**:
-- PostgreSQL for multi-instance deployments
-- Redis for distributed caching
+- Milvus cluster for multi-instance deployments
+- Redis for distributed session caching
 - Load balancer support
 - Container orchestration
 
@@ -525,8 +510,8 @@ CREATE INDEX idx_content_type ON api_cache(content_type);
 ## Architecture Evolution
 
 ### Phase 1: Current Implementation
-- Single-instance SQLite cache
-- Basic MCP tools
+- Single-instance Milvus Lite cache with semantic search
+- Hybrid search MCP tools
 - Open5e API integration
 
 ### Phase 2: Enhanced Features
@@ -559,14 +544,14 @@ The repository pattern provides a clean abstraction layer between business logic
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    MCP Tools Layer                      │
-│  (lookup_spell, lookup_creature, lookup_equipment...)   │
+│  (search_spell, search_creature, search_equipment...)   │
 └──────────────────────┬──────────────────────────────────┘
                        │ Depends on abstract Repository interface
                        ▼
 ┌─────────────────────────────────────────────────────────┐
 │                  Repository Layer                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
-│  │    Spell     │  │   Monster    │  │ Equipment    │   │
+│  │    Spell     │  │   Creature   │  │ Equipment    │   │
 │  │ Repository   │  │ Repository   │  │ Repository   │   │
 │  └──┬───────┬───┘  └──┬───────┬───┘  └──┬───────┬───┘   │
 │     │       │         │       │         │       │        │
@@ -575,7 +560,7 @@ The repository pattern provides a clean abstraction layer between business logic
       ▼       ▼         ▼       ▼         ▼       ▼
 ┌─────────────────┐ ┌─────────────────────────────────┐
 │   Cache Layer   │ │      API Client Layer            │
-│   (SQLite)      │ │  ┌──────────────────┐            │
+│   (Milvus Lite) │ │  ┌──────────────────┐            │
 │                 │ │  │   Open5e API     │            │
 └─────────────────┘ │  │     Clients      │            │
                     │  └──────────────────┘            │
@@ -588,7 +573,7 @@ The repository pattern provides a clean abstraction layer between business logic
 ```python
 # Tool receives AI request
 @mcp.tool()
-async def lookup_spell(name: str) -> str:
+async def search_spell(name: str) -> str:
     spell_repo = RepositoryFactory.create_spell_repository()
     spells = await spell_repo.search(name=name)
     return format_response(spells)
@@ -625,16 +610,16 @@ class SpellRepository:
 ### Data Flow Example: Creature Lookup
 
 ```
-User Query: "lookup_creature name:goblin"
+User Query: "search_creature name:goblin"
             ↓
     ┌──────────────────────────────┐
-    │  lookup_creature Tool        │
+    │  search_creature Tool        │
     │  Gets repository from        │
     │  RepositoryFactory           │
     └───────────┬──────────────────┘
                 ▼
     ┌──────────────────────────────┐
-    │  MonsterRepository           │
+    │  CreatureRepository          │
     │  .search(name="goblin")      │
     └───────────┬──────────────────┘
                 ▼
@@ -684,15 +669,14 @@ The repository layer implements a **cache-aside pattern**:
    - **Efficiency**: Reduces API rate limit consumption
    - **Flexibility**: TTL values configurable per entity type
 
-### Monster/Creature Repository
+### Creature Repository
 
-The MonsterRepository handles D&D creature data from Open5e API v2. It:
-- Uses the `/v2/creatures/` endpoint (v1 `/monsters/` is deprecated)
-- Caches results in the `creatures` database table
+The CreatureRepository handles D&D creature data from Open5e API v2. It:
+- Uses the `/v2/creatures/` endpoint
+- Caches results in the `creatures` Milvus collection
 - Supports filtering by CR, type, size, armor class, and hit points
+- Supports semantic search via embedding vectors
 - Maps repository parameters to API-specific operators
-
-**Note**: Despite the "Monster" name in the class, this repository uses the modern "creatures" endpoint and terminology for compatibility with Open5e v2 API.
 
 ### Multi-Source Repositories
 
@@ -763,7 +747,7 @@ src/lorekeeper_mcp/repositories/
 ├── base.py                  # Repository protocol definition
 ├── factory.py               # RepositoryFactory for DI
 ├── spell.py                 # SpellRepository
-├── monster.py               # MonsterRepository
+├── creature.py              # CreatureRepository
 ├── equipment.py             # EquipmentRepository
 ├── character_option.py      # CharacterOptionRepository
 └── rule.py                  # RuleRepository
@@ -841,6 +825,6 @@ The repository pattern enables several future capabilities:
 3. **Change Tracking**: Automatic cache invalidation on updates
 4. **Event System**: Notify on cache updates
 5. **Performance Metrics**: Track cache hit rates per repository
-6. **Distributed Caching**: Swap SQLite for Redis without changing tools
+6. **Distributed Caching**: Scale to Milvus cluster without changing tools
 
 This architecture provides a clean, extensible foundation for the LoreKeeper MCP project's data layer.
