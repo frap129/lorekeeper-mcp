@@ -1,5 +1,6 @@
 """Tests for equipment search tool."""
 
+import importlib
 import inspect
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -8,11 +9,12 @@ import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
 from lorekeeper_mcp.models import Armor, MagicItem, Weapon
-from lorekeeper_mcp.tools import search_equipment as search_equipment_module
 from lorekeeper_mcp.tools.search_equipment import (
     _repository_context,
     search_equipment,
 )
+
+search_equipment_module = importlib.import_module("lorekeeper_mcp.tools.search_equipment")
 
 
 @pytest.fixture

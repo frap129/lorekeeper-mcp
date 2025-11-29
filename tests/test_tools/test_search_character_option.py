@@ -1,13 +1,17 @@
 """Tests for character option search tool."""
 
+import importlib
 import inspect
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
-from lorekeeper_mcp.tools import search_character_option as search_character_option_module
 from lorekeeper_mcp.tools.search_character_option import search_character_option
+
+search_character_option_module = importlib.import_module(
+    "lorekeeper_mcp.tools.search_character_option"
+)
 
 
 @pytest.fixture

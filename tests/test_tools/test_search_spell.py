@@ -1,5 +1,6 @@
 """Tests for spell search tool."""
 
+import importlib
 import inspect
 from unittest.mock import AsyncMock, MagicMock
 
@@ -7,8 +8,9 @@ import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
 from lorekeeper_mcp.models import Spell
-from lorekeeper_mcp.tools import search_spell as search_spell_module
 from lorekeeper_mcp.tools.search_spell import search_spell
+
+search_spell_module = importlib.import_module("lorekeeper_mcp.tools.search_spell")
 
 
 @pytest.fixture

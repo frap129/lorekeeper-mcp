@@ -1,13 +1,15 @@
 """Tests for rule search tool."""
 
 import contextlib
+import importlib
 import inspect
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lorekeeper_mcp.tools import search_rule as search_rule_module
 from lorekeeper_mcp.tools.search_rule import search_rule
+
+search_rule_module = importlib.import_module("lorekeeper_mcp.tools.search_rule")
 
 
 @pytest.mark.asyncio

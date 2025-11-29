@@ -1,5 +1,6 @@
 """Tests for creature search tool."""
 
+import importlib
 import inspect
 from unittest.mock import AsyncMock, MagicMock
 
@@ -7,8 +8,9 @@ import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
 from lorekeeper_mcp.models import Creature
-from lorekeeper_mcp.tools import search_creature as search_creature_module
 from lorekeeper_mcp.tools.search_creature import search_creature
+
+search_creature_module = importlib.import_module("lorekeeper_mcp.tools.search_creature")
 
 
 @pytest.fixture

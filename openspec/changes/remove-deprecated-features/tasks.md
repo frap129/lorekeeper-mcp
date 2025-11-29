@@ -38,27 +38,27 @@
 - [x] 5.5 Update any tests using removed parameters
 
 ## 6. Rename Tools to search_* Convention
-- [ ] 6.1 Rename `src/lorekeeper_mcp/tools/spell_lookup.py` to `search_spell.py`
-- [ ] 6.2 Rename function `lookup_spell` to `search_spell` in `search_spell.py`
-- [ ] 6.3 Rename `src/lorekeeper_mcp/tools/creature_lookup.py` to `search_creature.py`
-- [ ] 6.4 Rename function `lookup_creature` to `search_creature` in `search_creature.py`
-- [ ] 6.5 Rename `src/lorekeeper_mcp/tools/equipment_lookup.py` to `search_equipment.py`
-- [ ] 6.6 Rename function `lookup_equipment` to `search_equipment` in `search_equipment.py`
-- [ ] 6.7 Rename `src/lorekeeper_mcp/tools/character_option_lookup.py` to `search_character_option.py`
-- [ ] 6.8 Rename function `lookup_character_option` to `search_character_option` in `search_character_option.py`
-- [ ] 6.9 Rename `src/lorekeeper_mcp/tools/rule_lookup.py` to `search_rule.py`
-- [ ] 6.10 Rename function `lookup_rule` to `search_rule` in `search_rule.py`
-- [ ] 6.11 Rename `src/lorekeeper_mcp/tools/search_dnd_content.py` to `search_all.py`
-- [ ] 6.12 Rename function `search_dnd_content` to `search_all` in `search_all.py`
-- [ ] 6.13 Update `src/lorekeeper_mcp/tools/__init__.py` with new exports
-- [ ] 6.14 Update `src/lorekeeper_mcp/server.py` tool registrations
-- [ ] 6.15 Update all test files to use new tool names
+- [x] 6.1 Rename `src/lorekeeper_mcp/tools/spell_lookup.py` to `search_spell.py`
+- [x] 6.2 Rename function `lookup_spell` to `search_spell` in `search_spell.py`
+- [x] 6.3 Rename `src/lorekeeper_mcp/tools/creature_lookup.py` to `search_creature.py`
+- [x] 6.4 Rename function `lookup_creature` to `search_creature` in `search_creature.py`
+- [x] 6.5 Rename `src/lorekeeper_mcp/tools/equipment_lookup.py` to `search_equipment.py`
+- [x] 6.6 Rename function `lookup_equipment` to `search_equipment` in `search_equipment.py`
+- [x] 6.7 Rename `src/lorekeeper_mcp/tools/character_option_lookup.py` to `search_character_option.py`
+- [x] 6.8 Rename function `lookup_character_option` to `search_character_option` in `search_character_option.py`
+- [x] 6.9 Rename `src/lorekeeper_mcp/tools/rule_lookup.py` to `search_rule.py`
+- [x] 6.10 Rename function `lookup_rule` to `search_rule` in `search_rule.py`
+- [x] 6.11 Rename `src/lorekeeper_mcp/tools/search_dnd_content.py` to `search_all.py`
+- [x] 6.12 Rename function `search_dnd_content` to `search_all` in `search_all.py`
+- [x] 6.13 Update `src/lorekeeper_mcp/tools/__init__.py` with new exports
+- [x] 6.14 Update `src/lorekeeper_mcp/server.py` tool registrations
+- [x] 6.15 Update all test files to use new tool names
 
 ## 7. Remove Deprecated Clear Cache Functions
-- [ ] 7.1 Remove `clear_spell_cache()` function from `search_spell.py`
-- [ ] 7.2 Remove `clear_creature_cache()` function from `search_creature.py`
-- [ ] 7.3 Remove `clear_character_option_cache()` function from `search_character_option.py`
-- [ ] 7.4 Update any tests that reference these functions
+- [x] 7.1 Remove `clear_spell_cache()` function from `search_spell.py`
+- [x] 7.2 Remove `clear_creature_cache()` function from `search_creature.py`
+- [x] 7.3 Remove `clear_character_option_cache()` function from `search_character_option.py`
+- [x] 7.4 Update any tests that reference these functions
 
 ## 8. Remove "monsters" Table Alias in Entity Cache
 - [ ] 8.1 Remove "monsters" → "creatures" alias handling from cache query functions
