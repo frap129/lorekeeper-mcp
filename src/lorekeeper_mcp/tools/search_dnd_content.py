@@ -27,6 +27,7 @@ Examples:
         spells = await search_dnd_content(query="fire", content_types=["Spell"])
 """
 
+import warnings
 from typing import Any
 
 from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
@@ -104,6 +105,15 @@ async def search_dnd_content(
     """
     if documents is not None and len(documents) == 0:
         return []
+
+    # Emit deprecation warning when enable_semantic is explicitly set to non-default
+    # and semantic is not provided (user is using deprecated parameter)
+    if semantic is None and enable_semantic is False:
+        warnings.warn(
+            "enable_semantic parameter is deprecated, use semantic=False instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     client = _get_open5e_client()
 
