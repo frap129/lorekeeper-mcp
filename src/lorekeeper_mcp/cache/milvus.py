@@ -346,6 +346,13 @@ class MilvusCache:
         if not entities:
             raise ValueError("entities list is empty")
 
+        # Validate required fields
+        for i, entity in enumerate(entities):
+            if "slug" not in entity or not entity.get("slug"):
+                raise ValueError(f"Entity at index {i} is missing required 'slug' field")
+            if "name" not in entity or not entity.get("name"):
+                raise ValueError(f"Entity at index {i} is missing required 'name' field")
+
         self._ensure_collection(entity_type)
 
         # Prepare entities with embeddings
