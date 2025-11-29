@@ -290,10 +290,17 @@ class MilvusCache:
         """Build Milvus filter expression from keyword filters.
 
         Converts Python filter dict to Milvus boolean expression syntax.
-        Example: {"level": 3, "school": "Evocation"} -> 'level == 3 and school == "Evocation"'
+        Supports:
+        - Exact match: {"level": 3} -> 'level == 3'
+        - Range min: {"level_min": 3} -> 'level >= 3'
+        - Range max: {"level_max": 6} -> 'level <= 6'
+        - String values: {"school": "Evocation"} -> 'school == "Evocation"'
+        - List values (IN): {"document": ["srd", "phb"]} -> 'document in ["srd", "phb"]'
 
         Args:
             filters: Dictionary of field names to filter values.
+                Field names ending in '_min' are converted to >= operators.
+                Field names ending in '_max' are converted to <= operators.
 
         Returns:
             Milvus filter expression string, or empty string if no filters.
@@ -304,20 +311,39 @@ class MilvusCache:
             if value is None:
                 continue
 
+            # Detect range filter suffixes and determine operator
+            if field.endswith("_min"):
+                actual_field = field[:-4]  # Remove '_min' suffix
+                operator = ">="
+            elif field.endswith("_max"):
+                actual_field = field[:-4]  # Remove '_max' suffix
+                operator = "<="
+            else:
+                actual_field = field
+                operator = "=="
+
             if isinstance(value, str):
-                expressions.append(f'{field} == "{value}"')
+                expressions.append(f'{actual_field} {operator} "{value}"')
             elif isinstance(value, bool):
                 # Milvus uses lowercase boolean literals
-                expressions.append(f"{field} == {str(value).lower()}")
+                expressions.append(f"{actual_field} {operator} {str(value).lower()}")
             elif isinstance(value, int | float):
-                expressions.append(f"{field} == {value}")
+                expressions.append(f"{actual_field} {operator} {value}")
             elif isinstance(value, list):
-                # Handle list of values (IN clause)
+                # Handle list of values (IN clause) - only for equality operator
+                if operator != "==":
+                    # Range operators don't make sense with lists, skip
+                    logger.warning(
+                        "Range operator %s not supported with list values for field %s",
+                        operator,
+                        field,
+                    )
+                    continue
                 if all(isinstance(v, str) for v in value):
                     quoted = [f'"{v}"' for v in value]
-                    expressions.append(f"{field} in [{', '.join(quoted)}]")
+                    expressions.append(f"{actual_field} in [{', '.join(quoted)}]")
                 else:
-                    expressions.append(f"{field} in {value}")
+                    expressions.append(f"{actual_field} in {value}")
 
         return " and ".join(expressions)
 

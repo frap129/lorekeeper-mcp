@@ -1232,6 +1232,163 @@ class TestMilvusCacheHybridSearchAccuracy:
         assert len(result) == 1
         assert result[0]["slug"] == "fireball"
 
+    @pytest.mark.asyncio
+    async def test_hybrid_search_level_min_filter(self, tmp_path: Path):
+        """Test hybrid search with level_min filter only returns spells at or above level."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        db_path = tmp_path / "test_milvus.db"
+        cache = MilvusCache(str(db_path))
+
+        entities = [
+            {
+                "slug": "fireball",
+                "name": "Fireball",
+                "desc": "A bright streak flashes and explodes into fire.",
+                "level": 3,
+                "document": "srd",
+            },
+            {
+                "slug": "fire-bolt",
+                "name": "Fire Bolt",
+                "desc": "A mote of fire at a creature dealing fire damage.",
+                "level": 0,
+                "document": "srd",
+            },
+            {
+                "slug": "fire-storm",
+                "name": "Fire Storm",
+                "desc": "A storm of fire dealing massive fire damage.",
+                "level": 7,
+                "document": "srd",
+            },
+            {
+                "slug": "wall-of-fire",
+                "name": "Wall of Fire",
+                "desc": "Create a wall of fire that damages creatures.",
+                "level": 4,
+                "document": "srd",
+            },
+        ]
+        await cache.store_entities(entities, "spells")
+
+        # Search for fire spells with level >= 4
+        result = await cache.semantic_search("spells", "fire damage", level_min=4)
+
+        # Should only return spells at level 4 or higher
+        assert len(result) == 2
+        returned_slugs = {r["slug"] for r in result}
+        assert returned_slugs == {"fire-storm", "wall-of-fire"}
+        for r in result:
+            assert r["level"] >= 4
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_level_max_filter(self, tmp_path: Path):
+        """Test hybrid search with level_max filter only returns spells at or below level."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        db_path = tmp_path / "test_milvus.db"
+        cache = MilvusCache(str(db_path))
+
+        entities = [
+            {
+                "slug": "fireball",
+                "name": "Fireball",
+                "desc": "A bright streak flashes and explodes into fire.",
+                "level": 3,
+                "document": "srd",
+            },
+            {
+                "slug": "fire-bolt",
+                "name": "Fire Bolt",
+                "desc": "A mote of fire at a creature dealing fire damage.",
+                "level": 0,
+                "document": "srd",
+            },
+            {
+                "slug": "fire-storm",
+                "name": "Fire Storm",
+                "desc": "A storm of fire dealing massive fire damage.",
+                "level": 7,
+                "document": "srd",
+            },
+            {
+                "slug": "wall-of-fire",
+                "name": "Wall of Fire",
+                "desc": "Create a wall of fire that damages creatures.",
+                "level": 4,
+                "document": "srd",
+            },
+        ]
+        await cache.store_entities(entities, "spells")
+
+        # Search for fire spells with level <= 3
+        result = await cache.semantic_search("spells", "fire damage", level_max=3)
+
+        # Should only return spells at level 3 or lower
+        assert len(result) == 2
+        returned_slugs = {r["slug"] for r in result}
+        assert returned_slugs == {"fireball", "fire-bolt"}
+        for r in result:
+            assert r["level"] <= 3
+
+    @pytest.mark.asyncio
+    async def test_hybrid_search_level_range_filter(self, tmp_path: Path):
+        """Test hybrid search with both level_min and level_max filters."""
+        from lorekeeper_mcp.cache.milvus import MilvusCache
+
+        db_path = tmp_path / "test_milvus.db"
+        cache = MilvusCache(str(db_path))
+
+        entities = [
+            {
+                "slug": "fireball",
+                "name": "Fireball",
+                "desc": "A bright streak flashes and explodes into fire.",
+                "level": 3,
+                "document": "srd",
+            },
+            {
+                "slug": "fire-bolt",
+                "name": "Fire Bolt",
+                "desc": "A mote of fire at a creature dealing fire damage.",
+                "level": 0,
+                "document": "srd",
+            },
+            {
+                "slug": "fire-storm",
+                "name": "Fire Storm",
+                "desc": "A storm of fire dealing massive fire damage.",
+                "level": 7,
+                "document": "srd",
+            },
+            {
+                "slug": "wall-of-fire",
+                "name": "Wall of Fire",
+                "desc": "Create a wall of fire that damages creatures.",
+                "level": 4,
+                "document": "srd",
+            },
+            {
+                "slug": "delayed-blast-fireball",
+                "name": "Delayed Blast Fireball",
+                "desc": "A delayed fire explosion.",
+                "level": 7,
+                "document": "srd",
+            },
+        ]
+        await cache.store_entities(entities, "spells")
+
+        # Search for fire spells with level between 3 and 5 (inclusive)
+        result = await cache.semantic_search("spells", "fire damage", level_min=3, level_max=5)
+
+        # Should only return spells at levels 3, 4, or 5
+        assert len(result) == 2
+        returned_slugs = {r["slug"] for r in result}
+        assert returned_slugs == {"fireball", "wall-of-fire"}
+        for r in result:
+            assert 3 <= r["level"] <= 5
+
 
 class TestMilvusCachePerformance:
     """Performance benchmark tests (7.6)."""
