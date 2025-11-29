@@ -5,7 +5,8 @@ and DungeonMastersVault for exporting D&D content.
 """
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+from collections.abc import Set as AbstractSet
 from pathlib import Path
 from typing import Any, cast
 
@@ -81,8 +82,12 @@ class OrcBrewParser:
         # Handle dicts and ImmutableDict (Mapping protocol)
         if isinstance(obj, Mapping):
             return {self._keyword_to_string(k): self._edn_to_python(v) for k, v in obj.items()}
-        # Handle lists, tuples, sets
-        if isinstance(obj, list | tuple | set):
+        # Handle lists, tuples, sets, and ImmutableList (Sequence protocol)
+        # Note: str is also a Sequence but should not be converted to list
+        if isinstance(obj, Sequence) and not isinstance(obj, str):
+            return [self._edn_to_python(item) for item in obj]
+        # Handle sets and frozensets (AbstractSet protocol)
+        if isinstance(obj, AbstractSet):
             return [self._edn_to_python(item) for item in obj]
         return obj
 
