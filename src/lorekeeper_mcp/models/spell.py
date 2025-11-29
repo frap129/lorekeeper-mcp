@@ -49,6 +49,16 @@ class Spell(BaseEntity):
         # Handle components - default to empty if missing
         if "components" not in data or not data["components"]:
             data["components"] = ""
+        elif isinstance(data["components"], dict):
+            # OrcBrew format: {'verbal': True, 'somatic': True, 'material': True}
+            parts = []
+            if data["components"].get("verbal"):
+                parts.append("V")
+            if data["components"].get("somatic"):
+                parts.append("S")
+            if data["components"].get("material"):
+                parts.append("M")
+            data["components"] = ", ".join(parts)
         elif isinstance(data["components"], list):
             data["components"] = ", ".join(str(c) for c in data["components"])
 
