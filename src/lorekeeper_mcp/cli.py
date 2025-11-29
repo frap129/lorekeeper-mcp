@@ -121,50 +121,56 @@ async def _import_entities(
     total_imported = 0
     total_skipped = 0
 
-    for orcbrew_type, entities in entities_by_type.items():
-        lorekeeper_type = map_entity_type(orcbrew_type)
+    try:
+        for orcbrew_type, entities in entities_by_type.items():
+            lorekeeper_type = map_entity_type(orcbrew_type)
 
-        if not lorekeeper_type:
-            logger.warning(
-                f"Skipping {len(entities)} entities of unsupported type '{orcbrew_type}'"
-            )
-            total_skipped += len(entities)
-            continue
+            if not lorekeeper_type:
+                logger.warning(
+                    f"Skipping {len(entities)} entities of unsupported type '{orcbrew_type}'"
+                )
+                total_skipped += len(entities)
+                continue
 
-        logger.info(f"Importing {lorekeeper_type}... ({len(entities)} entities)")
+            logger.info(f"Importing {lorekeeper_type}... ({len(entities)} entities)")
 
-        # Normalize entities
-        normalized_entities = []
-        skipped_count = 0
+            # Normalize entities
+            normalized_entities = []
+            skipped_count = 0
 
-        for entity in entities:
+            for entity in entities:
+                try:
+                    normalized = normalize_entity(entity, orcbrew_type)
+                    # Add source_api field for tracking
+                    normalized["source_api"] = "orcbrew"
+                    normalized_entities.append(normalized)
+                except ValueError as e:
+                    if verbose:
+                        logger.warning(f"Skipping entity: {e}")
+                    skipped_count += 1
+
+            # Store in cache using the configured backend
             try:
-                normalized = normalize_entity(entity, orcbrew_type)
-                # Add source_api field for tracking
-                normalized["source_api"] = "orcbrew"
-                normalized_entities.append(normalized)
-            except ValueError as e:
-                if verbose:
-                    logger.warning(f"Skipping entity: {e}")
-                skipped_count += 1
+                imported_count = await cache.store_entities(
+                    normalized_entities,
+                    lorekeeper_type,
+                )
+                logger.info(f"✓ Imported {imported_count} {lorekeeper_type}")
+                if skipped_count > 0:
+                    logger.warning(
+                        f"  Skipped {skipped_count} entities due to missing required fields"
+                    )
 
-        # Store in cache using the configured backend
-        try:
-            imported_count = await cache.store_entities(
-                normalized_entities,
-                lorekeeper_type,
-            )
-            logger.info(f"✓ Imported {imported_count} {lorekeeper_type}")
-            if skipped_count > 0:
-                logger.warning(f"  Skipped {skipped_count} entities due to missing required fields")
+                total_imported += imported_count
+                total_skipped += skipped_count
+            except Exception as e:
+                logger.error(f"Failed to import {lorekeeper_type}: {e}")
+                raise
 
-            total_imported += imported_count
-            total_skipped += skipped_count
-        except Exception as e:
-            logger.error(f"Failed to import {lorekeeper_type}: {e}")
-            raise
-
-    logger.info(f"Total: {total_imported} imported, {total_skipped} skipped")
+        logger.info(f"Total: {total_imported} imported, {total_skipped} skipped")
+    finally:
+        # Close the cache connection to ensure data is persisted and released
+        cache.close()
 
 
 # Register import command with alternate name to avoid Python keyword

@@ -1,7 +1,6 @@
 """Tests for list_documents tool."""
 
-import sys
-from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -11,36 +10,19 @@ from lorekeeper_mcp.tools.list_documents import list_documents
 @pytest.mark.asyncio
 async def test_list_documents() -> None:
     """Test list_documents returns document list."""
-    # Get the module from sys.modules to avoid shadowing
-    list_docs_module = sys.modules["lorekeeper_mcp.tools.list_documents"]
+    # Mock the MilvusCache to return test data
+    mock_cache = AsyncMock()
+    mock_cache.get_available_documents = AsyncMock(return_value=["srd-5e"])
+    mock_cache.get_document_metadata = AsyncMock(return_value={"spells": 50, "creatures": 50})
 
-    original_get_docs = list_docs_module.get_available_documents
-    original_get_metadata = list_docs_module.get_document_metadata
-
-    async def mock_get_docs(**kwargs: Any) -> list[dict[str, Any]]:
-        return [
-            {
-                "document": "srd-5e",
-                "source_api": "open5e_v2",
-                "entity_count": 100,
-                "entity_types": {"spells": 50, "creatures": 50},
-            }
-        ]
-
-    async def mock_get_metadata(doc_key: str) -> dict[str, Any] | None:
-        return None
-
-    list_docs_module.get_available_documents = mock_get_docs
-    list_docs_module.get_document_metadata = mock_get_metadata
-
-    try:
+    with patch("lorekeeper_mcp.tools.list_documents.MilvusCache", return_value=mock_cache):
         result = await list_documents()
         assert isinstance(result, list)
         assert len(result) > 0
         assert "document" in result[0]
-    finally:
-        list_docs_module.get_available_documents = original_get_docs
-        list_docs_module.get_document_metadata = original_get_metadata
+        assert result[0]["document"] == "srd-5e"
+        assert result[0]["entity_count"] == 100
+        assert result[0]["entity_types"] == {"spells": 50, "creatures": 50}
 
 
 @pytest.mark.asyncio

@@ -94,3 +94,15 @@ class CacheProtocol(Protocol):
                 semantic search.
         """
         ...
+
+    def close(self) -> None:
+        """Close the cache connection.
+
+        Releases any resources held by the cache (file handles, network
+        connections, etc.). Safe to call multiple times or when connection
+        was never initialized.
+
+        After close() is called, the cache should not be used for further
+        operations without re-initialization.
+        """
+        ...

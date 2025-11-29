@@ -1,33 +1,29 @@
 """End-to-end integration tests for MCP tools."""
 
+import importlib
 import inspect
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from lorekeeper_mcp.models import Creature, Spell
-from lorekeeper_mcp.tools import (
-    search_character_option,
-    search_creature,
-    search_equipment,
-    search_rule,
-    search_spell,
+
+# Import actual modules to access both functions and _repository_context
+# Use importlib to get the actual module objects (not the re-exported functions)
+search_character_option_module = importlib.import_module(
+    "lorekeeper_mcp.tools.search_character_option"
 )
-from lorekeeper_mcp.tools import (
-    search_character_option as search_character_option_module,
-)
-from lorekeeper_mcp.tools import (
-    search_creature as search_creature_module,
-)
-from lorekeeper_mcp.tools import (
-    search_equipment as search_equipment_module,
-)
-from lorekeeper_mcp.tools import (
-    search_rule as search_rule_module,
-)
-from lorekeeper_mcp.tools import (
-    search_spell as search_spell_module,
-)
+search_creature_module = importlib.import_module("lorekeeper_mcp.tools.search_creature")
+search_equipment_module = importlib.import_module("lorekeeper_mcp.tools.search_equipment")
+search_rule_module = importlib.import_module("lorekeeper_mcp.tools.search_rule")
+search_spell_module = importlib.import_module("lorekeeper_mcp.tools.search_spell")
+
+# Get the actual functions from the modules
+search_character_option = search_character_option_module.search_character_option
+search_creature = search_creature_module.search_creature
+search_equipment = search_equipment_module.search_equipment
+search_rule = search_rule_module.search_rule
+search_spell = search_spell_module.search_spell
 
 
 @pytest.mark.asyncio
@@ -50,6 +46,8 @@ async def test_full_spell_search_workflow():
         document_url="https://example.com/fireball",
         higher_level="When you cast this spell...",
         damage_type=None,
+        document="srd",
+        source_api="open5e",
     )
 
     mock_spell_repository = MagicMock()
@@ -94,11 +92,14 @@ async def test_full_creature_search_workflow():
         wisdom=15,
         charisma=23,
         challenge_rating="24",
+        challenge_rating_decimal=24.0,
         speed={"walk": 40, "climb": 40, "fly": 80},
         actions=None,
         legendary_actions=None,
         special_abilities=None,
         document_url="https://example.com/dragon",
+        document="srd",
+        source_api="open5e",
     )
 
     mock_creature_repository = MagicMock()

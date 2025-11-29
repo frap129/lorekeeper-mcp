@@ -423,6 +423,9 @@ class MilvusCache:
                 collection_name=entity_type,
                 data=prepared_entities,
             )
+            # Flush to ensure data is persisted and visible for queries
+            # This is required by Milvus Lite before data can be read back
+            self.client.flush(entity_type)
             logger.info("Stored %d entities in %s", len(prepared_entities), entity_type)
             return len(prepared_entities)
         except Exception as e:

@@ -116,9 +116,9 @@ async def populated_cache() -> AsyncGenerator[MilvusCache, None]:
 @pytest.mark.asyncio
 async def test_list_documents_integration(populated_cache: MilvusCache) -> None:
     """Test list_documents with real cache data."""
-    # Patch the cache factory to return our test cache
+    # Patch the MilvusCache constructor to return our test cache
     with patch(
-        "lorekeeper_mcp.tools.list_documents.get_cache_from_config",
+        "lorekeeper_mcp.tools.list_documents.MilvusCache",
         return_value=populated_cache,
     ):
         documents = await list_documents()
@@ -187,7 +187,7 @@ async def test_cross_tool_document_consistency(populated_cache: MilvusCache) -> 
     """
     # Patch to return our test cache for list_documents
     with patch(
-        "lorekeeper_mcp.tools.list_documents.get_cache_from_config",
+        "lorekeeper_mcp.tools.list_documents.MilvusCache",
         return_value=populated_cache,
     ):
         # Get available documents
