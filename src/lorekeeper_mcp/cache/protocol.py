@@ -31,7 +31,7 @@ class CacheProtocol(Protocol):
 
         Args:
             entity_type: Type of entities to retrieve (e.g., 'spells',
-                'monsters', 'equipment')
+                'creatures', 'equipment')
             document: Optional document filter (string or list of strings)
             **filters: Optional keyword arguments for filtering entities
                 by indexed fields (e.g., level=3, school="Evocation")
@@ -54,7 +54,7 @@ class CacheProtocol(Protocol):
                 should have at minimum a 'slug' field for identification
                 and a 'name' field for display.
             entity_type: Type of entities being stored (e.g., 'spells',
-                'monsters', 'equipment')
+                'creatures', 'equipment')
 
         Returns:
             Number of entities successfully stored/updated in the cache.

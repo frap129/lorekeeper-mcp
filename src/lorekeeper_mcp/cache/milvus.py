@@ -42,14 +42,6 @@ COLLECTION_SCHEMAS: dict[str, dict[str, Any]] = {
             {"name": "size", "type": "VARCHAR", "max_length": 32},
         ],
     },
-    "monsters": {
-        "indexed_fields": [
-            {"name": "document", "type": "VARCHAR", "max_length": 128},
-            {"name": "challenge_rating", "type": "VARCHAR", "max_length": 16},
-            {"name": "type", "type": "VARCHAR", "max_length": 64},
-            {"name": "size", "type": "VARCHAR", "max_length": 32},
-        ],
-    },
     "equipment": {
         "indexed_fields": [
             {"name": "document", "type": "VARCHAR", "max_length": 128},

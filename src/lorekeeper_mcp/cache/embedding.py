@@ -113,7 +113,7 @@ class EmbeddingService:
 
         if entity_type == "spells":
             self._extract_spell_text(entity, text_parts)
-        elif entity_type in ("creatures", "monsters"):
+        elif entity_type == "creatures":
             self._extract_creature_text(entity, text_parts)
         elif entity_type in ("equipment", "weapons", "armor", "magicitems", "items"):
             self._extract_equipment_text(entity, text_parts)
