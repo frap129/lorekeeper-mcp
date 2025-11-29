@@ -8,13 +8,13 @@ Defines the core MCP tools that provide D&D 5e content search capabilities: `sea
 The system SHALL provide a `search_spell` tool that supports hybrid search combining semantic search with structured filtering.
 
 **Implementation:**
-- Optional `semantic_query: str | None` parameter for natural language similarity search
-- When `semantic_query` is provided, use `cache.semantic_search()` for semantic ranking
+- Optional `search: str | None` parameter for natural language similarity search
+- When `search` is provided, use `cache.semantic_search()` for semantic ranking
 - Combine semantic search with existing filters (level, school, concentration, ritual, etc.)
-- When `semantic_query` is None, use structured filtering only
+- When `search` is None, use structured filtering only
 
 #### Scenario: Hybrid spell search with semantic query
-**Given** a user searches with `semantic_query="damage over time", level=3, school="Evocation"`
+**Given** a user searches with `search="damage over time", level=3, school="Evocation"`
 **When** the `search_spell` tool is invoked
 **Then** the system performs semantic search with query "damage over time"
 **And** filters to level 3 Evocation spells
@@ -22,7 +22,7 @@ The system SHALL provide a `search_spell` tool that supports hybrid search combi
 **And** respects the `limit` parameter
 
 #### Scenario: Spell search combining semantic and document filter
-**Given** a user searches with `semantic_query="healing", documents=["srd-5e"]`
+**Given** a user searches with `search="healing", documents=["srd-5e"]`
 **When** the `search_spell` tool is invoked
 **Then** the system performs semantic search on SRD spells only
 **And** combines document filter with semantic ranking
@@ -33,12 +33,12 @@ The system SHALL provide a `search_spell` tool that supports hybrid search combi
 The system SHALL provide a `search_creature` tool that supports hybrid search combining semantic search with structured filtering.
 
 **Implementation:**
-- Optional `semantic_query: str | None` parameter for semantic creature discovery
+- Optional `search: str | None` parameter for semantic creature discovery
 - Combine semantic search with existing filters (type, cr, size, etc.)
 - Maintain backward compatibility for callers not using semantic search
 
 #### Scenario: Semantic creature search by concept
-**Given** a user searches with `semantic_query="undead that drain life", type="undead"`
+**Given** a user searches with `search="undead that drain life", type="undead"`
 **When** the `search_creature` tool is invoked
 **Then** the system performs semantic search filtered to undead type
 **And** returns creatures like "Vampire", "Wraith", "Specter" ranked by relevance
@@ -46,7 +46,7 @@ The system SHALL provide a `search_creature` tool that supports hybrid search co
 
 #### Scenario: Creature search without semantic query
 **Given** a user searches with `type="dragon", cr="10", limit=5`
-**When** the `search_creature` tool is invoked without semantic_query
+**When** the `search_creature` tool is invoked without search parameter
 **Then** behavior uses structured filtering only
 **And** no embedding generation occurs
 **And** database-level filtering only
@@ -56,12 +56,12 @@ The system SHALL provide a `search_creature` tool that supports hybrid search co
 The system SHALL provide a `search_character_option` tool that supports hybrid search.
 
 **Implementation:**
-- Optional `semantic_query: str | None` parameter
+- Optional `search: str | None` parameter
 - Enable semantic discovery of character options by concept
 - Maintain backward compatibility for existing callers
 
 #### Scenario: Semantic character option search
-**Given** a user searches with `semantic_query="divine warrior", type="class"`
+**Given** a user searches with `search="divine warrior", type="class"`
 **When** the `search_character_option` tool is invoked
 **Then** semantic search ranks "Paladin" and "Cleric" higher than "Rogue"
 **And** results are filtered to classes only
@@ -72,12 +72,12 @@ The system SHALL provide a `search_character_option` tool that supports hybrid s
 The system SHALL provide a `search_equipment` tool that supports hybrid search.
 
 **Implementation:**
-- Optional `semantic_query: str | None` parameter
+- Optional `search: str | None` parameter
 - Enable semantic discovery of equipment by description/properties
 - Maintain backward compatibility for existing callers
 
 #### Scenario: Semantic equipment search
-**Given** a user searches with `semantic_query="protects against projectiles", type="armor"`
+**Given** a user searches with `search="protects against projectiles", type="armor"`
 **When** the `search_equipment` tool is invoked
 **Then** semantic search finds armor with protective properties
 **And** "Shield" and items with deflection abilities rank higher
@@ -88,12 +88,12 @@ The system SHALL provide a `search_equipment` tool that supports hybrid search.
 The system SHALL provide a `search_rule` tool that supports hybrid search.
 
 **Implementation:**
-- Optional `semantic_query: str | None` parameter
+- Optional `search: str | None` parameter
 - Enable semantic discovery of rules by description
 - Maintain backward compatibility for existing callers
 
 #### Scenario: Semantic rule search
-**Given** a user searches with `semantic_query="what happens when I fall", rule_type="rule"`
+**Given** a user searches with `search="what happens when I fall", rule_type="rule"`
 **When** the `search_rule` tool is invoked
 **Then** semantic search finds falling damage rules
 **And** returns rules about falling, jumping, and environmental hazards
@@ -212,42 +212,35 @@ The system SHALL register all tools with the FastMCP server for MCP protocol exp
 ---
 
 ### Requirement: Consistent Tool Interface Standards
-The system SHALL ensure all 5 MCP tools have consistent enhanced search behavior using existing parameters.
+The system SHALL ensure all 5 MCP tools have consistent search behavior using the unified `search` parameter.
 
 **Parameters:**
-- All tools maintain exactly the same parameters as before: `name`, `limit`, plus tool-specific filters
-- The existing `name` parameter is enhanced transparently with case-insensitive, wildcard, and automatic slug fallback matching
-- Zero new parameters added to any tools
+- All tools use `search` parameter for semantic/natural language queries
+- The `name` parameter is removed from all tools
+- The `semantic_query` parameter is renamed to `search`
+- All tool-specific filters (level, type, cr, etc.) remain unchanged
 
 **Implementation:**
 - All filtering performed at database level (no client-side filtering)
-- Eliminate 11x over-fetching bug completely
 - Consistent SQL parameter binding for security
-- Uniform error handling and validation unchanged
+- Uniform error handling and validation
 
 #### Scenario: Identical parameter availability
 **Given** examining all 5 MCP tool interfaces
 **When** checking parameter definitions
-**Then** all tools have exactly the same parameters as before enhancement
+**Then** all tools have a `search: str | None` parameter
+**And** no tools have a `name` parameter
+**And** no tools have a `semantic_query` parameter
 **And** all tools maintain their tool-specific parameters unchanged
-**And** parameter types and defaults remain identical
 **And** FastMCP parameter validation works as before
 
-#### Scenario: Consistent enhanced filtering behavior
+#### Scenario: Consistent search behavior
 **Given** using the same search parameters across different tools
-**When** performing searches with `name="fire*"`
-**Then** all tools return consistent wildcard-based results for their domains
-**And** all tools use database-level filtering only
-**And** all tools respect limit parameters exactly (not limit * 11)
-**And** performance characteristics are similar and optimized across tools
-
-#### Scenario: Unchanged error handling consistency
-**Given** invalid parameters provided to any tool
-**When** the tool is invoked
-**Then** all tools show identical error messages as before
-**And** parameter validation behavior is exactly the same
-**And** FastMCP handles errors consistently without changes
-**And** user experience is predictable and unchanged
+**When** performing searches with `search="fire"`
+**Then** all tools return semantically relevant results for "fire"
+**And** all tools use vector search when `search` is provided
+**And** all tools respect limit parameters exactly
+**And** performance characteristics are similar across tools
 
 ### Requirement: Document-Aware Tool Filtering
 The system SHALL support optional document-based filtering for MCP tools that fetch entities from the cache.
@@ -529,11 +522,11 @@ When reading tool function docstrings, developers should see accurate parameters
 
 ### Requirement: Semantic Query Parameter for Search Tools
 
-All search tools SHALL support an optional `semantic_query` parameter that enables natural language similarity search using the Milvus Lite vector backend.
+All search tools SHALL support an optional `search` parameter that enables natural language similarity search using the Milvus Lite vector backend.
 
 #### Scenario: Spell search with semantic query
 **Given** the cache contains spells with embeddings
-**When** `search_spell(semantic_query="protect from fire", level=3)` is invoked
+**When** `search_spell(search="protect from fire", level=3)` is invoked
 **Then** the system performs semantic search with query "protect from fire"
 **And** filters results to level 3 spells
 **And** returns spells ranked by semantic similarity to the query
@@ -541,37 +534,36 @@ All search tools SHALL support an optional `semantic_query` parameter that enabl
 
 #### Scenario: Creature search with semantic query
 **Given** the cache contains creatures with embeddings
-**When** `search_creature(semantic_query="fire breathing beast", type="dragon")` is invoked
+**When** `search_creature(search="fire breathing beast", type="dragon")` is invoked
 **Then** the system performs semantic search filtered to dragon type
 **And** returns dragons ranked by semantic similarity
 **And** results capture conceptual meaning beyond keyword matching
 
 #### Scenario: Equipment search with semantic query
 **Given** the cache contains equipment with embeddings
-**When** `search_equipment(semantic_query="weapon that returns when thrown", type="weapon")` is invoked
+**When** `search_equipment(search="weapon that returns when thrown", type="weapon")` is invoked
 **Then** the system performs semantic search filtered to weapons
 **And** returns weapons like "Dwarven Thrower" ranked by relevance
 **And** structured filters are applied before semantic ranking
 
 #### Scenario: Character option search with semantic query
 **Given** the cache contains character options with embeddings
-**When** `search_character_option(semantic_query="masters of arcane magic", type="class")` is invoked
+**When** `search_character_option(search="masters of arcane magic", type="class")` is invoked
 **Then** the system performs semantic search filtered to classes
 **And** "Wizard" and "Sorcerer" rank higher than "Fighter"
 
 #### Scenario: Rule search with semantic query
 **Given** the cache contains rules with embeddings
-**When** `search_rule(semantic_query="attacking while hidden", rule_type="rule")` is invoked
+**When** `search_rule(search="attacking while hidden", rule_type="rule")` is invoked
 **Then** the system performs semantic search on rules
 **And** returns rules about stealth, surprise, and attacking from hidden position
 
-#### Scenario: Search without semantic query (backward compatible)
-**Given** any search tool is invoked without semantic_query parameter
+#### Scenario: Search without search parameter (backward compatible)
+**Given** any search tool is invoked without search parameter
 **When** the tool executes
 **Then** the system performs structured filtering only
 **And** no embedding generation or vector search occurs
-**And** behavior is identical to pre-Milvus implementation
-**And** existing tool callers continue working without modification
+**And** existing tool callers using only structured filters continue working
 
 ### Requirement: Semantic Search in Unified Search Tool
 
