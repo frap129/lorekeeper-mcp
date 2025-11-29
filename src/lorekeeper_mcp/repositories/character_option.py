@@ -87,16 +87,16 @@ class CharacterOptionRepository(Repository[dict[str, Any]]):
         Args:
             **filters: Must include 'option_type' (class, race, background,
                 feat, or condition). Other filters depend on type.
-                - semantic_query: Natural language search query (uses vector search)
+                - search: Natural language search query (uses vector search)
 
         Returns:
             List of matching character options
         """
         option_type = filters.pop("option_type", None)
-        semantic_query = filters.pop("semantic_query", None)
+        search = filters.pop("search", None)
 
-        if semantic_query:
-            return await self._semantic_search(semantic_query, option_type=option_type, **filters)
+        if search:
+            return await self._semantic_search(search, option_type=option_type, **filters)
 
         if option_type == "class":
             return await self._search_classes(**filters)

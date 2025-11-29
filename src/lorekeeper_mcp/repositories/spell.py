@@ -88,7 +88,7 @@ class SpellRepository(Repository[Spell]):
 
         Args:
             **filters: Optional filters:
-                - semantic_query: Natural language search query (uses vector search)
+                - search: Natural language search query (uses vector search)
                 - level, school, concentration, ritual: Structured filters
                 - class_key: Filter by class (e.g., "wizard", "cleric")
                 - document: Filter by source document
@@ -100,13 +100,11 @@ class SpellRepository(Repository[Spell]):
         # Extract special parameters
         limit = filters.pop("limit", None)
         class_key = filters.pop("class_key", None)
-        semantic_query = filters.pop("semantic_query", None)
+        search = filters.pop("search", None)
 
         # Handle semantic search if query provided
-        if semantic_query:
-            return await self._semantic_search(
-                semantic_query, limit=limit, class_key=class_key, **filters
-            )
+        if search:
+            return await self._semantic_search(search, limit=limit, class_key=class_key, **filters)
 
         # Regular structured search (existing behavior)
         cached = await self.cache.get_entities("spells", **filters)

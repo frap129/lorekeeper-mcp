@@ -104,16 +104,16 @@ class RuleRepository(Repository[dict[str, Any]]):
             **filters: Must include 'rule_type' (rule, condition, damage-type,
                 weapon-property, skill, ability-score, magic-school, language,
                 proficiency, or alignment).
-                - semantic_query: Natural language search query (uses vector search)
+                - search: Natural language search query (uses vector search)
 
         Returns:
             List of matching rules
         """
         rule_type = filters.pop("rule_type", None)
-        semantic_query = filters.pop("semantic_query", None)
+        search = filters.pop("search", None)
 
-        if semantic_query:
-            return await self._semantic_search(semantic_query, rule_type=rule_type, **filters)
+        if search:
+            return await self._semantic_search(search, rule_type=rule_type, **filters)
 
         if rule_type == "rule":
             return await self._search_rules(**filters)

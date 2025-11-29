@@ -151,7 +151,7 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
 
         Args:
             **filters: Optional filters:
-                - semantic_query: Natural language search query (uses vector search)
+                - search: Natural language search query (uses vector search)
                 - item_type: 'weapon', 'armor', or 'magic-item'
                 - document: Filter by source document
                 - limit: Maximum results to return
@@ -160,10 +160,10 @@ class EquipmentRepository(Repository[Weapon | Armor | MagicItem]):
             List of Weapon, Armor, or MagicItem objects matching the filters
         """
         item_type = filters.pop("item_type", None)
-        semantic_query = filters.pop("semantic_query", None)
+        search = filters.pop("search", None)
 
-        if semantic_query:
-            return await self._semantic_search(semantic_query, item_type=item_type, **filters)
+        if search:
+            return await self._semantic_search(search, item_type=item_type, **filters)
 
         if item_type == "armor":
             return await self._search_armor(**filters)  # type: ignore[return-value]

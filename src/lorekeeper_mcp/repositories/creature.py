@@ -90,7 +90,7 @@ class CreatureRepository(Repository[Creature]):
 
         Args:
             **filters: Optional filters:
-                - semantic_query: Natural language search query (uses vector search)
+                - search: Natural language search query (uses vector search)
                 - challenge_rating, type, size: Structured filters
                 - document: Filter by source document
                 - limit: Maximum results to return
@@ -100,11 +100,11 @@ class CreatureRepository(Repository[Creature]):
         """
         # Extract special parameters
         limit = filters.pop("limit", None)
-        semantic_query = filters.pop("semantic_query", None)
+        search = filters.pop("search", None)
 
         # Handle semantic search if query provided
-        if semantic_query:
-            return await self._semantic_search(semantic_query, limit=limit, **filters)
+        if search:
+            return await self._semantic_search(search, limit=limit, **filters)
 
         # Separate cache-compatible filters from API-only filters
         # Cache allows: challenge_rating, name, size, slug, source_api, type, document
