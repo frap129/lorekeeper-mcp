@@ -61,16 +61,16 @@
 - [x] 7.4 Update any tests that reference these functions
 
 ## 8. Remove "monsters" Table Alias in Entity Cache
-- [ ] 8.1 Remove "monsters" → "creatures" alias handling from cache query functions
-- [ ] 8.2 Remove deprecation warning logging for "monsters" table queries
-- [ ] 8.3 Update any tests that use "monsters" table name to use "creatures"
+- [x] 8.1 Remove "monsters" → "creatures" alias handling from cache query functions
+- [x] 8.2 Remove deprecation warning logging for "monsters" table queries
+- [x] 8.3 Update any tests that use "monsters" table name to use "creatures"
 
 ## 9. Update Specs
-- [ ] 9.1 Update `canonical-models` spec to remove Monster backward compatibility scenario
-- [ ] 9.2 Update `entity-cache` spec to remove "monsters" table alias scenario
-- [ ] 9.3 Update `entity-cache` spec to remove SQLite references
-- [ ] 9.4 Update `mcp-tools` spec to reflect new tool names and remove deprecated toggle parameters
-- [ ] 9.5 Update `database-setup` spec to remove SQLite
+- [x] 9.1 Update `canonical-models` spec to remove Monster backward compatibility scenario
+- [x] 9.2 Update `entity-cache` spec to remove "monsters" table alias scenario
+- [x] 9.3 Update `entity-cache` spec to remove SQLite references
+- [x] 9.4 Update `mcp-tools` spec to reflect new tool names and remove deprecated toggle parameters
+- [x] 9.5 Update `database-setup` spec to remove SQLite
 
 ## 10. Update Documentation
 - [ ] 10.1 Update docstrings in all tool files

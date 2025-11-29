@@ -1,7 +1,7 @@
 # entity-cache Specification
 
 ## Purpose
-Defines the entity-based caching layer that stores D&D entities in type-specific SQLite tables with slug as primary key. Supports filtered queries, bulk operations, document metadata storage, infinite TTL for valid data, schema migrations, and import statistics tracking. Provides the persistence layer for all API and OrcBrew data.
+Defines the entity-based caching layer that stores D&D entities in type-specific Milvus collections with slug as primary key. Supports semantic/vector search, filtered queries, bulk operations, document metadata storage, infinite TTL for valid data, and import statistics tracking. Provides the persistence layer for all API and OrcBrew data using Milvus Lite as the embedded vector database.
 ## Requirements
 ### Requirement: Store entities in type-specific tables
 
@@ -53,8 +53,8 @@ The cache MUST NOT expire valid entity data. Entities remain cached indefinitely
 
 #### Scenario: Update entity preserves creation time
 
-**Given** a monster cached 10 days ago
-**When** the same monster is cached again with updated data
+**Given** a creature cached 10 days ago
+**When** the same creature is cached again with updated data
 **Then** `created_at` timestamp remains unchanged
 **And** `updated_at` timestamp reflects the new cache time
 **And** the data blob contains the updated information
@@ -85,10 +85,10 @@ The cache MUST track and report statistics on cache usage, entity counts, and he
 
 #### Scenario: Get entity count per type
 
-**Given** 100 spells, 50 monsters, and 30 weapons cached
+**Given** 100 spells, 50 creatures, and 30 weapons cached
 **When** calling `get_entity_count("spells")`
 **Then** the function returns 100
-**And** `get_entity_count("monsters")` returns 50
+**And** `get_entity_count("creatures")` returns 50
 **And** `get_entity_count("weapons")` returns 30
 
 #### Scenario: Get comprehensive cache statistics
@@ -98,28 +98,8 @@ The cache MUST track and report statistics on cache usage, entity counts, and he
 **Then** a dictionary is returned containing:
 - Total entity counts per type
 - Database file size in bytes
-- Table counts
-- Schema version
-
-### Requirement: Schema migration support
-
-The cache MUST provide migration utilities to transition from the old URL-based cache to the new entity-based schema.
-
-#### Scenario: Initialize new entity cache tables
-
-**Given** an empty or non-existent database
-**When** calling `init_entity_cache()`
-**Then** all entity tables are created with correct schemas
-**And** all indexes are created on filtered fields
-**And** WAL mode is enabled for concurrent access
-
-#### Scenario: Drop old cache table safely
-
-**Given** a database with the old `api_cache` table
-**When** calling `migrate_cache_schema()`
-**Then** the old `api_cache` table is dropped
-**And** new entity tables are created
-**And** no data corruption occurs
+- Collection counts
+- Embedding dimension and index type
 
 ### Requirement: Batch Import Support
 The cache SHALL efficiently handle large batch imports of entities with transaction support.
@@ -215,19 +195,14 @@ The cache SHALL validate imported entities before storing them, accepting both c
 ---
 
 ### Requirement: Import Performance Optimization
-The cache SHALL optimize bulk imports using SQLite best practices.
+The cache SHALL optimize bulk imports using Milvus best practices.
 
-#### Scenario: Use WAL mode for concurrent access
-**Given** the database is initialized
-**When** checking the journal mode
-**Then** the database uses "WAL" (Write-Ahead Logging) mode
-**And** allows concurrent reads during writes
-
-#### Scenario: Batch inserts use prepared statements
+#### Scenario: Batch inserts for efficiency
 **Given** importing 1000 entities
 **When** the cache executes the insert
-**Then** a single prepared statement is reused for all inserts
-**And** executemany() is used instead of individual execute() calls
+**Then** entities are batched into groups for insertion
+**And** a single transaction covers all inserts in a batch
+**And** embedding generation is parallelized where possible
 
 ---
 
@@ -513,14 +488,7 @@ The cache MUST configure Milvus indexes for optimal semantic search performance.
 
 ### Requirement: Cache Protocol Semantic Search Extension
 
-The CacheProtocol MUST be extended to optionally support semantic search while maintaining backward compatibility.
-
-#### Scenario: Protocol backward compatibility
-**Given** an existing cache implementation (SQLiteCache)
-**When** the protocol is checked
-**Then** `get_entities` and `store_entities` remain required methods
-**And** `semantic_search` is an optional method
-**And** SQLiteCache raises NotImplementedError for `semantic_search`
+The CacheProtocol defines the interface for cache implementations with full semantic search support.
 
 #### Scenario: MilvusCache implements full protocol
 **Given** a MilvusCache instance
@@ -574,24 +542,19 @@ The cache MUST use a dedicated EmbeddingService for all embedding operations wit
 
 ### Requirement: Cache Factory for Backend Selection
 
-The cache layer MUST provide a factory function to create the appropriate cache backend based on configuration.
+The cache layer provides a factory function to create MilvusCache instances.
 
 #### Scenario: Create Milvus cache via factory
-**Given** configuration `LOREKEEPER_CACHE_BACKEND=milvus`
+**Given** calling `create_cache()` with optional db_path parameter
+**When** the factory creates a cache instance
+**Then** a MilvusCache instance is returned
+**And** the cache is configured with settings from environment or defaults
+
+#### Scenario: Default Milvus configuration
+**Given** no environment variables are set
 **When** calling `create_cache()`
 **Then** a MilvusCache instance is returned
-**And** the cache is configured with settings from environment
-
-#### Scenario: Create SQLite cache via factory (legacy)
-**Given** configuration `LOREKEEPER_CACHE_BACKEND=sqlite`
-**When** calling `create_cache()`
-**Then** a SQLiteCache instance is returned
-**And** semantic_search raises NotImplementedError
-
-#### Scenario: Default to Milvus backend
-**Given** no `LOREKEEPER_CACHE_BACKEND` environment variable
-**When** calling `create_cache()`
-**Then** a MilvusCache instance is returned by default
+**And** uses db_path `~/.lorekeeper/milvus.db` by default
 **And** semantic search capabilities are available
 
 ### Requirement: Error Handling and Graceful Degradation

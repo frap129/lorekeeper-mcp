@@ -1,21 +1,21 @@
 # mcp-tools Specification
 
 ## Purpose
-Defines the five core MCP tools that provide D&D 5e content lookup capabilities: `lookup_spell`, `lookup_creature`, `lookup_equipment`, `lookup_character_option`, and `lookup_rule`. Also includes the `list_documents` and `search_dnd_content` tools. These tools are the primary interface for AI assistants to access cached game content through the Model Context Protocol with enhanced search features (case-insensitive matching, wildcards, slug fallback) and document-based filtering.
+Defines the core MCP tools that provide D&D 5e content search capabilities: `search_spell`, `search_creature`, `search_equipment`, `search_character_option`, `search_rule`, `search_all`, and `list_documents`. These tools are the primary interface for AI assistants to access cached game content through the Model Context Protocol with hybrid search (semantic + structured filtering) and document-based filtering.
 ## Requirements
-### Requirement: Spell Lookup Tool
+### Requirement: Spell Search Tool
 
-The system SHALL update the `lookup_spell` tool to support optional semantic search while maintaining all existing enhanced filtering capabilities.
+The system SHALL provide a `search_spell` tool that supports hybrid search combining semantic search with structured filtering.
 
-**MODIFIED Implementation:**
-- Add optional `semantic_query: str | None` parameter
-- When `semantic_query` is provided, use `cache.semantic_search()` instead of `cache.get_entities()`
+**Implementation:**
+- Optional `semantic_query: str | None` parameter for natural language similarity search
+- When `semantic_query` is provided, use `cache.semantic_search()` for semantic ranking
 - Combine semantic search with existing filters (level, school, concentration, ritual, etc.)
-- When `semantic_query` is None, behavior is identical to current implementation
+- When `semantic_query` is None, use structured filtering only
 
-#### Scenario: Enhanced spell search with semantic query
+#### Scenario: Hybrid spell search with semantic query
 **Given** a user searches with `semantic_query="damage over time", level=3, school="Evocation"`
-**When** the `lookup_spell` tool is invoked
+**When** the `search_spell` tool is invoked
 **Then** the system performs semantic search with query "damage over time"
 **And** filters to level 3 Evocation spells
 **And** returns spells ranked by semantic similarity within filtered set
@@ -23,79 +23,78 @@ The system SHALL update the `lookup_spell` tool to support optional semantic sea
 
 #### Scenario: Spell search combining semantic and document filter
 **Given** a user searches with `semantic_query="healing", documents=["srd-5e"]`
-**When** the `lookup_spell` tool is invoked
+**When** the `search_spell` tool is invoked
 **Then** the system performs semantic search on SRD spells only
 **And** combines document filter with semantic ranking
 **And** all existing document filtering continues to work
 
-### Requirement: Creature Lookup Tool
+### Requirement: Creature Search Tool
 
-The system SHALL update the `lookup_creature` tool to support optional semantic search while maintaining all existing enhanced filtering capabilities.
+The system SHALL provide a `search_creature` tool that supports hybrid search combining semantic search with structured filtering.
 
-**MODIFIED Implementation:**
-- Add optional `semantic_query: str | None` parameter
-- When `semantic_query` is provided, use semantic search for creature discovery
+**Implementation:**
+- Optional `semantic_query: str | None` parameter for semantic creature discovery
 - Combine semantic search with existing filters (type, cr, size, etc.)
 - Maintain backward compatibility for callers not using semantic search
 
 #### Scenario: Semantic creature search by concept
 **Given** a user searches with `semantic_query="undead that drain life", type="undead"`
-**When** the `lookup_creature` tool is invoked
+**When** the `search_creature` tool is invoked
 **Then** the system performs semantic search filtered to undead type
 **And** returns creatures like "Vampire", "Wraith", "Specter" ranked by relevance
 **And** structured filters reduce search space before vector search
 
 #### Scenario: Creature search without semantic query
 **Given** a user searches with `type="dragon", cr="10", limit=5`
-**When** the `lookup_creature` tool is invoked without semantic_query
-**Then** behavior is identical to current implementation
+**When** the `search_creature` tool is invoked without semantic_query
+**Then** behavior uses structured filtering only
 **And** no embedding generation occurs
 **And** database-level filtering only
 
-### Requirement: Character Option Lookup Tool
+### Requirement: Character Option Search Tool
 
-The system SHALL update the `lookup_character_option` tool to support optional semantic search.
+The system SHALL provide a `search_character_option` tool that supports hybrid search.
 
-**MODIFIED Implementation:**
-- Add optional `semantic_query: str | None` parameter
+**Implementation:**
+- Optional `semantic_query: str | None` parameter
 - Enable semantic discovery of character options by concept
 - Maintain backward compatibility for existing callers
 
 #### Scenario: Semantic character option search
-**Given** a user searches with `semantic_query="divine warrior", option_type="class"`
-**When** the `lookup_character_option` tool is invoked
+**Given** a user searches with `semantic_query="divine warrior", type="class"`
+**When** the `search_character_option` tool is invoked
 **Then** semantic search ranks "Paladin" and "Cleric" higher than "Rogue"
 **And** results are filtered to classes only
 **And** results capture conceptual match beyond keywords
 
-### Requirement: Equipment Lookup Tool
+### Requirement: Equipment Search Tool
 
-The system SHALL update the `lookup_equipment` tool to support optional semantic search.
+The system SHALL provide a `search_equipment` tool that supports hybrid search.
 
-**MODIFIED Implementation:**
-- Add optional `semantic_query: str | None` parameter
+**Implementation:**
+- Optional `semantic_query: str | None` parameter
 - Enable semantic discovery of equipment by description/properties
 - Maintain backward compatibility for existing callers
 
 #### Scenario: Semantic equipment search
-**Given** a user searches with `semantic_query="protects against projectiles", item_type="armor"`
-**When** the `lookup_equipment` tool is invoked
+**Given** a user searches with `semantic_query="protects against projectiles", type="armor"`
+**When** the `search_equipment` tool is invoked
 **Then** semantic search finds armor with protective properties
 **And** "Shield" and items with deflection abilities rank higher
-**And** structured item_type filter is applied before semantic ranking
+**And** structured type filter is applied before semantic ranking
 
-### Requirement: Rule Lookup Tool
+### Requirement: Rule Search Tool
 
-The system SHALL update the `lookup_rule` tool to support optional semantic search.
+The system SHALL provide a `search_rule` tool that supports hybrid search.
 
-**MODIFIED Implementation:**
-- Add optional `semantic_query: str | None` parameter
+**Implementation:**
+- Optional `semantic_query: str | None` parameter
 - Enable semantic discovery of rules by description
 - Maintain backward compatibility for existing callers
 
 #### Scenario: Semantic rule search
 **Given** a user searches with `semantic_query="what happens when I fall", rule_type="rule"`
-**When** the `lookup_rule` tool is invoked
+**When** the `search_rule` tool is invoked
 **Then** semantic search finds falling damage rules
 **And** returns rules about falling, jumping, and environmental hazards
 **And** structured rule_type filter is applied
@@ -254,13 +253,13 @@ The system SHALL ensure all 5 MCP tools have consistent enhanced search behavior
 The system SHALL support optional document-based filtering for MCP tools that fetch entities from the cache.
 
 #### Scenario: Filter spells by Open5e document key
-- **WHEN** a caller invokes `lookup_spell` with a document filter (for example, `document_key="srd-5e"` or another Open5e document key)
+- **WHEN** a caller invokes `search_spell` with a document filter (for example, `document_key="srd-5e"` or another Open5e document key)
 - **THEN** the tool limits results to entities whose normalized document metadata matches the specified document key
 - **AND** combines this constraint with existing filters such as name, level, and school
 - **AND** respects the existing `limit` parameter without over-fetching or client-side filtering
 
 #### Scenario: Filter creatures to SRD-only content
-- **WHEN** a caller invokes `lookup_creature` with a document filter indicating SRD-only content
+- **WHEN** a caller invokes `search_creature` with a document filter indicating SRD-only content
 - **THEN** the tool returns only creatures whose document metadata corresponds to SRD documents (from Open5e)
 - **AND** continues to apply other filters (e.g., challenge rating, type) at the database level
 - **AND** returns an empty list (not an error) if no entities match the specified document filter
@@ -314,113 +313,113 @@ The system SHALL provide an MCP tool to list all available documents in the cach
 - **AND** no errors are raised
 
 ### Requirement: Document Filtering in Search Tool
-The search tool SHALL support filtering results by document keys.
+The `search_all` tool SHALL support filtering results by document keys.
 
 #### Scenario: Search with single document filter
-- **WHEN** the user invokes `search_dnd_content(query="fireball", documents=["srd-5e"])`
+- **WHEN** the user invokes `search_all(query="fireball", documents=["srd-5e"])`
 - **THEN** only results from the "srd-5e" document are returned
 - **AND** results from other documents are excluded
-- **AND** search still respects fuzzy and semantic matching parameters
+- **AND** semantic search is always enabled
 
 #### Scenario: Search with multiple document filters
-- **WHEN** the user invokes `search_dnd_content(query="dragon", documents=["srd-5e", "tce", "phb"])`
+- **WHEN** the user invokes `search_all(query="dragon", documents=["srd-5e", "tce", "phb"])`
 - **THEN** results from all three documents are returned
 - **AND** results from other documents are excluded
 - **AND** results are merged and deduplicated
 
 #### Scenario: Search without document filter
-- **WHEN** the user invokes `search_dnd_content(query="healing")` without documents
+- **WHEN** the user invokes `search_all(query="healing")` without documents
 - **THEN** results from all documents are returned
 - **AND** behavior is identical to current implementation (backward compatible)
 
 #### Scenario: Search with non-existent document
-- **WHEN** the user invokes `search_dnd_content(query="spell", documents=["non-existent"])`
+- **WHEN** the user invokes `search_all(query="spell", documents=["non-existent"])`
 - **THEN** an empty result list is returned
 - **AND** no errors are raised
 - **AND** a message indicates no results match the document filter
 
 ---
 
-### Requirement: Document Filtering in Spell Lookup Tool
-The spell lookup tool SHALL support filtering by document keys.
+### Requirement: Document Filtering in Spell Search Tool
+The spell search tool SHALL support filtering by document keys.
 
-#### Scenario: Lookup spell with document filter
-- **WHEN** the user invokes `lookup_spell(name="fireball", documents=["srd-5e"])`
+#### Scenario: Search spell with document filter
+- **WHEN** the user invokes `search_spell(name="fireball", documents=["srd-5e"])`
 - **THEN** only "Fireball" from "srd-5e" is returned
 - **AND** if "Fireball" exists in other documents, those versions are excluded
 
-#### Scenario: Lookup spells by level with document filter
-- **WHEN** the user invokes `lookup_spell(level=3, documents=["srd-5e", "tce"])`
+#### Scenario: Search spells by level with document filter
+- **WHEN** the user invokes `search_spell(level=3, documents=["srd-5e", "tce"])`
 - **THEN** all level 3 spells from both documents are returned
 - **AND** spells from other documents are excluded
 
-#### Scenario: Lookup without document filter
-- **WHEN** the user invokes `lookup_spell(name="fireball")` without documents
+#### Scenario: Search without document filter
+- **WHEN** the user invokes `search_spell(name="fireball")` without documents
 - **THEN** all versions of "Fireball" from all documents are returned
 - **AND** behavior is identical to current implementation (backward compatible)
 
 ---
 
-### Requirement: Document Filtering in Creature Lookup Tool
-The creature lookup tool SHALL support filtering by document keys.
+### Requirement: Document Filtering in Creature Search Tool
+The creature search tool SHALL support filtering by document keys.
 
-#### Scenario: Lookup creature with document filter
-- **WHEN** the user invokes `lookup_creature(name="dragon", documents=["srd-5e"])`
+#### Scenario: Search creature with document filter
+- **WHEN** the user invokes `search_creature(name="dragon", documents=["srd-5e"])`
 - **THEN** only dragons from "srd-5e" are returned
 - **AND** creatures from other documents are excluded
 
-#### Scenario: Lookup creatures by type with document filter
-- **WHEN** the user invokes `lookup_creature(type="dragon", challenge_rating=10, documents=["tce"])`
+#### Scenario: Search creatures by type with document filter
+- **WHEN** the user invokes `search_creature(type="dragon", cr=10, documents=["tce"])`
 - **THEN** only dragons from "tce" with CR 10 are returned
 - **AND** all filter parameters work together (type AND cr AND document)
 
 ---
 
-### Requirement: Document Filtering in Equipment Lookup Tool
-The equipment lookup tool SHALL support filtering by document keys.
+### Requirement: Document Filtering in Equipment Search Tool
+The equipment search tool SHALL support filtering by document keys.
 
-#### Scenario: Lookup weapon with document filter
-- **WHEN** the user invokes `lookup_equipment(item_type="weapon", name="longsword", documents=["srd-5e"])`
+#### Scenario: Search weapon with document filter
+- **WHEN** the user invokes `search_equipment(type="weapon", name="longsword", documents=["srd-5e"])`
 - **THEN** only "Longsword" from "srd-5e" is returned
 - **AND** equipment from other documents is excluded
 
-#### Scenario: Lookup all weapons with document filter
-- **WHEN** the user invokes `lookup_equipment(item_type="weapon", documents=["srd-5e", "phb"])`
+#### Scenario: Search all weapons with document filter
+- **WHEN** the user invokes `search_equipment(type="weapon", documents=["srd-5e", "phb"])`
 - **THEN** all weapons from both documents are returned
 - **AND** weapons from other documents are excluded
 
 ---
 
-### Requirement: Document Filtering in Character Option Lookup Tool
-The character option lookup tool SHALL support filtering by document keys.
+### Requirement: Document Filtering in Character Option Search Tool
+The character option search tool SHALL support filtering by document keys.
 
-#### Scenario: Lookup class with document filter
-- **WHEN** the user invokes `lookup_character_option(option_type="class", name="wizard", documents=["srd-5e"])`
+#### Scenario: Search class with document filter
+- **WHEN** the user invokes `search_character_option(type="class", name="wizard", documents=["srd-5e"])`
 - **THEN** only the "Wizard" class from "srd-5e" is returned
 - **AND** classes from other documents are excluded
 
-#### Scenario: Lookup all backgrounds with document filter
-- **WHEN** the user invokes `lookup_character_option(option_type="background", documents=["phb"])`
+#### Scenario: Search all backgrounds with document filter
+- **WHEN** the user invokes `search_character_option(type="background", documents=["phb"])`
 - **THEN** all backgrounds from "phb" are returned
 - **AND** backgrounds from other documents are excluded
 
 ---
 
-### Requirement: Document Filtering in Rule Lookup Tool
-The rule lookup tool SHALL support filtering by document keys.
+### Requirement: Document Filtering in Rule Search Tool
+The rule search tool SHALL support filtering by document keys.
 
-#### Scenario: Lookup rule with document filter
-- **WHEN** the user invokes `lookup_rule(rule_type="rule", name="combat", documents=["srd-5e"])`
+#### Scenario: Search rule with document filter
+- **WHEN** the user invokes `search_rule(rule_type="rule", name="combat", documents=["srd-5e"])`
 - **THEN** only combat rules from "srd-5e" are returned
 - **AND** rules from other sources are excluded
 
 ---
 
 ### Requirement: Consistent Document Filter Parameter
-All lookup and search tools SHALL use consistent parameter naming and behavior for document filtering.
+All search tools SHALL use consistent parameter naming and behavior for document filtering.
 
 #### Scenario: Consistent parameter naming
-- **GIVEN** all lookup tools (spell, creature, equipment, character_option, rule) and search tool
+- **GIVEN** all search tools (spell, creature, equipment, character_option, rule) and search_all tool
 - **WHEN** any tool is invoked with document filtering
 - **THEN** the parameter is named `documents` (not `document` or `document_keys`)
 - **AND** the parameter accepts a list of strings
@@ -441,13 +440,13 @@ All lookup and search tools SHALL use consistent parameter naming and behavior f
 Tool responses SHALL include document information for transparency.
 
 #### Scenario: Include document in spell response
-- **WHEN** `lookup_spell(name="fireball")` returns results
+- **WHEN** `search_spell(name="fireball")` returns results
 - **THEN** each spell in the response includes a `document` field
 - **AND** the document field shows which document the spell came from
 - **AND** this enables users to verify document filtering worked correctly
 
 #### Scenario: Include document in search response
-- **WHEN** `search_dnd_content(query="dragon")` returns results
+- **WHEN** `search_all(query="dragon")` returns results
 - **THEN** each result includes document metadata
 - **AND** users can see which document each result originated from
 
@@ -528,46 +527,46 @@ When reading tool function docstrings, developers should see accurate parameters
 - Examples in docstrings show usage without repository parameter
 - Comments about repository usage clarify it's internal only
 
-### Requirement: Semantic Query Parameter for Lookup Tools
+### Requirement: Semantic Query Parameter for Search Tools
 
-All lookup tools SHALL support an optional `semantic_query` parameter that enables natural language similarity search using the Milvus Lite vector backend.
+All search tools SHALL support an optional `semantic_query` parameter that enables natural language similarity search using the Milvus Lite vector backend.
 
-#### Scenario: Spell lookup with semantic query
+#### Scenario: Spell search with semantic query
 **Given** the cache contains spells with embeddings
-**When** `lookup_spell(semantic_query="protect from fire", level=3)` is invoked
+**When** `search_spell(semantic_query="protect from fire", level=3)` is invoked
 **Then** the system performs semantic search with query "protect from fire"
 **And** filters results to level 3 spells
 **And** returns spells ranked by semantic similarity to the query
 **And** "Fire Shield" ranks higher than "Ice Storm" for this query
 
-#### Scenario: Creature lookup with semantic query
+#### Scenario: Creature search with semantic query
 **Given** the cache contains creatures with embeddings
-**When** `lookup_creature(semantic_query="fire breathing beast", type="dragon")` is invoked
+**When** `search_creature(semantic_query="fire breathing beast", type="dragon")` is invoked
 **Then** the system performs semantic search filtered to dragon type
 **And** returns dragons ranked by semantic similarity
 **And** results capture conceptual meaning beyond keyword matching
 
-#### Scenario: Equipment lookup with semantic query
+#### Scenario: Equipment search with semantic query
 **Given** the cache contains equipment with embeddings
-**When** `lookup_equipment(semantic_query="weapon that returns when thrown", item_type="weapon")` is invoked
+**When** `search_equipment(semantic_query="weapon that returns when thrown", type="weapon")` is invoked
 **Then** the system performs semantic search filtered to weapons
 **And** returns weapons like "Dwarven Thrower" ranked by relevance
 **And** structured filters are applied before semantic ranking
 
-#### Scenario: Character option lookup with semantic query
+#### Scenario: Character option search with semantic query
 **Given** the cache contains character options with embeddings
-**When** `lookup_character_option(semantic_query="masters of arcane magic", option_type="class")` is invoked
+**When** `search_character_option(semantic_query="masters of arcane magic", type="class")` is invoked
 **Then** the system performs semantic search filtered to classes
 **And** "Wizard" and "Sorcerer" rank higher than "Fighter"
 
-#### Scenario: Rule lookup with semantic query
+#### Scenario: Rule search with semantic query
 **Given** the cache contains rules with embeddings
-**When** `lookup_rule(semantic_query="attacking while hidden", rule_type="rule")` is invoked
+**When** `search_rule(semantic_query="attacking while hidden", rule_type="rule")` is invoked
 **Then** the system performs semantic search on rules
 **And** returns rules about stealth, surprise, and attacking from hidden position
 
-#### Scenario: Lookup without semantic query (backward compatible)
-**Given** any lookup tool is invoked without semantic_query parameter
+#### Scenario: Search without semantic query (backward compatible)
+**Given** any search tool is invoked without semantic_query parameter
 **When** the tool executes
 **Then** the system performs structured filtering only
 **And** no embedding generation or vector search occurs
@@ -576,35 +575,21 @@ All lookup tools SHALL support an optional `semantic_query` parameter that enabl
 
 ### Requirement: Semantic Search in Unified Search Tool
 
-The `search_dnd_content` tool SHALL use semantic search by default when the Milvus Lite backend is active.
+The `search_all` tool SHALL use semantic search by default when querying the cache.
 
 #### Scenario: Default semantic search
 **Given** Milvus Lite is the active cache backend
-**When** `search_dnd_content(query="spells that heal wounds")` is invoked
+**When** `search_all(query="spells that heal wounds")` is invoked
 **Then** the system performs semantic search across all entity types
 **And** returns results ranked by semantic similarity to the query
 **And** healing spells rank higher than damage spells
 
 #### Scenario: Semantic search with entity type filter
 **Given** Milvus Lite is the active cache backend
-**When** `search_dnd_content(query="fire damage", content_types=["Spell"])` is invoked
+**When** `search_all(query="fire damage", content_types=["Spell"])` is invoked
 **Then** semantic search is performed on spells only
 **And** results are ranked by semantic similarity within spells
 **And** document and content type filters are applied
-
-#### Scenario: Disable semantic search
-**Given** Milvus Lite is the active cache backend
-**When** `search_dnd_content(query="fireball", semantic=False)` is invoked
-**Then** the system performs structured/keyword search only
-**And** no vector similarity calculation occurs
-**And** results are based on exact/partial name matching
-
-#### Scenario: Fallback when Milvus unavailable
-**Given** SQLite is the active cache backend (Milvus not available)
-**When** `search_dnd_content(query="healing")` is invoked
-**Then** the system falls back to structured search
-**And** logs a warning that semantic search is unavailable
-**And** returns results based on keyword matching
 
 ### Requirement: Semantic Search Error Handling in Tools
 

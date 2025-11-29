@@ -74,12 +74,6 @@ The system SHALL use `Creature` as the canonical model name for monsters/creatur
 - **AND** `type` is extracted as string (from `type.name`)
 - **AND** `challenge_rating` is string and `challenge_rating_decimal` is float
 
-#### Scenario: Backward compatibility with Monster alias
-- **GIVEN** existing code using `from lorekeeper_mcp.models import Monster`
-- **WHEN** the import is executed
-- **THEN** `Monster` resolves to `Creature` class
-- **AND** a deprecation warning is logged
-
 #### Scenario: Create creature from OrcBrew data
 - **GIVEN** an OrcBrew creature with `challenge` field (not `challenge_rating`)
 - **WHEN** validated through the `Creature` model
