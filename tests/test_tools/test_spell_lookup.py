@@ -485,3 +485,105 @@ async def test_lookup_spell_with_documents(repository_context):
     repository_context.search.assert_awaited_once()
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["document"] == ["srd-5e"]
+
+
+@pytest.mark.asyncio
+async def test_lookup_spell_with_semantic_query(repository_context):
+    """Test spell lookup with semantic_query parameter."""
+    spell_obj = Spell(
+        name="Fireball",
+        slug="fireball",
+        level=3,
+        school="evocation",
+        casting_time="1 action",
+        range="150 feet",
+        components="V,S,M",
+        material="a tiny ball of bat guano and sulfur",
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A bright streak flashes...",
+        document_url="https://example.com/fireball",
+        higher_level="When you cast this spell...",
+        damage_type=["fire"],
+        document=None,
+    )
+
+    repository_context.search.return_value = [spell_obj]
+
+    result = await lookup_spell(semantic_query="fire damage explosion")
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Fireball"
+
+    # Verify repository.search was called with semantic_query parameter
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["semantic_query"] == "fire damage explosion"
+
+
+@pytest.mark.asyncio
+async def test_lookup_spell_semantic_query_with_filters(repository_context):
+    """Test spell lookup combining semantic_query with traditional filters."""
+    spell_obj = Spell(
+        name="Fireball",
+        slug="fireball",
+        level=3,
+        school="evocation",
+        casting_time="1 action",
+        range="150 feet",
+        components="V,S,M",
+        material="a tiny ball of bat guano and sulfur",
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A bright streak flashes...",
+        document_url="https://example.com/fireball",
+        higher_level="When you cast this spell...",
+        damage_type=["fire"],
+        document=None,
+    )
+
+    repository_context.search.return_value = [spell_obj]
+
+    result = await lookup_spell(semantic_query="fire explosion", level=3, school="evocation")
+
+    assert len(result) == 1
+
+    # Verify all parameters were passed to repository
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["semantic_query"] == "fire explosion"
+    assert call_kwargs["level"] == 3
+    assert call_kwargs["school"] == "evocation"
+
+
+@pytest.mark.asyncio
+async def test_lookup_spell_semantic_query_none_not_passed(repository_context):
+    """Test that semantic_query=None is not passed to repository."""
+    spell_obj = Spell(
+        name="Fireball",
+        slug="fireball",
+        level=3,
+        school="evocation",
+        casting_time="1 action",
+        range="150 feet",
+        components="V,S,M",
+        material="a tiny ball of bat guano and sulfur",
+        duration="Instantaneous",
+        concentration=False,
+        ritual=False,
+        desc="A bright streak flashes...",
+        document_url="https://example.com/fireball",
+        higher_level="When you cast this spell...",
+        damage_type=None,
+        document=None,
+    )
+
+    repository_context.search.return_value = [spell_obj]
+
+    # Call without semantic_query (default is None)
+    await lookup_spell(name="Fireball")
+
+    call_kwargs = repository_context.search.call_args[1]
+    # semantic_query should not be in the params when None
+    assert "semantic_query" not in call_kwargs

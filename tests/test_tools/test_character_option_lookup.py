@@ -156,3 +156,49 @@ def repository_context(mock_character_option_repository):
     # Clean up after test
     if "repository" in character_option_lookup._repository_context:
         del character_option_lookup._repository_context["repository"]
+
+
+@pytest.mark.asyncio
+async def test_lookup_character_option_with_semantic_query(repository_context):
+    """Test character option lookup with semantic_query parameter."""
+    repository_context.search.return_value = [{"name": "Fighter", "hit_dice": "1d10"}]
+
+    result = await lookup_character_option(type="class", semantic_query="martial combat warrior")
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Fighter"
+
+    # Verify repository.search was called with semantic_query parameter
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["semantic_query"] == "martial combat warrior"
+
+
+@pytest.mark.asyncio
+async def test_lookup_character_option_semantic_query_with_filters(repository_context):
+    """Test character option lookup combining semantic_query with traditional filters."""
+    repository_context.search.return_value = [{"name": "Acolyte"}]
+
+    result = await lookup_character_option(
+        type="background", semantic_query="religious servant", documents=["srd-5e"]
+    )
+
+    assert len(result) == 1
+
+    # Verify all parameters were passed to repository
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["semantic_query"] == "religious servant"
+    assert call_kwargs["document"] == ["srd-5e"]
+
+
+@pytest.mark.asyncio
+async def test_lookup_character_option_semantic_query_none_not_passed(repository_context):
+    """Test that semantic_query=None is not passed to repository."""
+    repository_context.search.return_value = [{"name": "Fighter"}]
+
+    # Call without semantic_query (default is None)
+    await lookup_character_option(type="class")
+
+    call_kwargs = repository_context.search.call_args[1]
+    # semantic_query should not be in the params when None
+    assert "semantic_query" not in call_kwargs

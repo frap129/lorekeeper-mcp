@@ -2,21 +2,26 @@
 
 This module provides a search tool that exposes the Open5e unified search
 endpoint with fuzzy and semantic matching capabilities for cross-entity searches.
+Semantic search is enabled by default for conceptual matching.
 
 Architecture:
     - Uses Open5eV2Client.unified_search() for fuzzy and semantic search
     - Supports searching across multiple content types
     - Handles limit distribution when searching multiple types
+    - Semantic search enabled by default (use semantic=False for structured-only)
 
 Examples:
-    Basic search:
+    Basic search (semantic enabled by default):
         results = await search_dnd_content(query="fireball")
 
     Fuzzy search for typos:
         results = await search_dnd_content(query="firbal", enable_fuzzy=True)
 
     Semantic search for related content:
-        results = await search_dnd_content(query="healing magic", enable_semantic=True)
+        results = await search_dnd_content(query="healing magic")  # semantic=True by default
+
+    Structured-only search (disable semantic):
+        results = await search_dnd_content(query="fireball", semantic=False)
 
     Filter by content type:
         spells = await search_dnd_content(query="fire", content_types=["Spell"])
@@ -42,6 +47,7 @@ async def search_dnd_content(
     documents: list[str] | None = None,
     enable_fuzzy: bool = True,
     enable_semantic: bool = True,
+    semantic: bool | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -59,8 +65,11 @@ async def search_dnd_content(
         # Typo-tolerant search
         search_dnd_content(query="firbal")  # Finds "Fireball" despite typo
 
-        # Concept-based search
+        # Concept-based search (semantic search enabled by default)
         search_dnd_content(query="healing magic")  # Finds healing spells
+
+        # Structured-only search (disable semantic search)
+        search_dnd_content(query="fireball", semantic=False)  # Exact matches only
 
         # Type-filtered search
         search_dnd_content(query="fire", content_types=["Spell"])  # Only spells
@@ -78,7 +87,11 @@ async def search_dnd_content(
             results by document field. Examples: ["srd-5e"], ["srd-5e", "tce"].
         enable_fuzzy: Enable fuzzy matching for typo tolerance (default True)
         enable_semantic: Enable semantic/vector search for conceptual
-            matching (default True)
+            matching (default True). Deprecated: use `semantic` parameter instead.
+        semantic: Enable semantic/vector search for conceptual matching.
+            When True (default), uses vector similarity to find content matching
+            the conceptual meaning. When False, uses structured-only search for
+            exact matches. If provided, overrides `enable_semantic`.
         limit: Maximum number of results to return (default 20)
 
     Returns:
@@ -94,6 +107,9 @@ async def search_dnd_content(
 
     client = _get_open5e_client()
 
+    # Use semantic parameter if provided, otherwise fall back to enable_semantic
+    use_semantic = semantic if semantic is not None else enable_semantic
+
     if content_types:
         all_results: list[dict[str, Any]] = []
         per_type_limit = limit // len(content_types)
@@ -102,7 +118,7 @@ async def search_dnd_content(
             results = await client.unified_search(
                 query=query,
                 fuzzy=enable_fuzzy,
-                vector=enable_semantic,
+                vector=use_semantic,
                 object_model=content_type,
                 limit=per_type_limit,
             )
@@ -120,7 +136,7 @@ async def search_dnd_content(
     results = await client.unified_search(
         query=query,
         fuzzy=enable_fuzzy,
-        vector=enable_semantic,
+        vector=use_semantic,
         limit=limit,
     )
 

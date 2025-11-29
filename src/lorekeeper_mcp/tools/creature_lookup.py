@@ -70,6 +70,7 @@ async def lookup_creature(
     armor_class_min: int | None = None,
     hit_points_min: int | None = None,
     documents: list[str] | None = None,  # Replaces document and document_keys
+    semantic_query: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -112,6 +113,25 @@ async def lookup_creature(
                 documents=["phb", "dmg"], cr_min=5
             )
 
+        Semantic search (natural language queries):
+            fire_creatures = await lookup_creature(
+                semantic_query="fire breathing flying beast"
+            )
+            undead_minions = await lookup_creature(
+                semantic_query="shambling corpse horde"
+            )
+            intelligent_foes = await lookup_creature(
+                semantic_query="cunning spellcaster manipulator"
+            )
+
+        Hybrid search (semantic + filters):
+            fire_dragons = await lookup_creature(
+                semantic_query="fire breathing", type="dragon", cr_min=10
+            )
+            weak_undead = await lookup_creature(
+                semantic_query="shambling minion", type="undead", cr_max=2
+            )
+
         With test context injection (testing):
             from lorekeeper_mcp.tools.creature_lookup import _repository_context
             custom_repo = MonsterRepository(cache=my_cache)
@@ -142,6 +162,11 @@ async def lookup_creature(
               document names/identifiers from list_documents() tool. Examples:
               ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
               Use list_documents() to see available documents.
+          semantic_query: Natural language search query for semantic/vector search.
+              When provided, uses vector similarity to find creatures matching the
+              conceptual meaning rather than exact text matches. Can be combined
+              with other filters for hybrid search. Examples: "fire breathing dragon",
+              "undead horde minion", "intelligent spellcaster"
           limit: Maximum number of results to return. Default 20, useful for pagination
               or limiting large result sets. Example: 5
 
@@ -186,6 +211,8 @@ async def lookup_creature(
         params["hit_points_min"] = hit_points_min
     if documents is not None:
         params["document"] = documents
+    if semantic_query is not None:
+        params["semantic_query"] = semantic_query
 
     creatures = await repository.search(limit=limit, **params)
 

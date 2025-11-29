@@ -255,3 +255,53 @@ async def test_lookup_rule_with_documents(repository_context) -> None:
     # Verify document parameter is passed (documents maps to document)
     assert "document" in call_kwargs
     assert call_kwargs["document"] == ["srd-5e"]
+
+
+@pytest.mark.asyncio
+async def test_lookup_rule_with_semantic_query(repository_context):
+    """Test rule lookup with semantic_query parameter."""
+    repository_context.search.return_value = [
+        {"name": "Grappled", "desc": "A grappled creature's speed becomes 0..."}
+    ]
+
+    result = await lookup_rule(rule_type="condition", semantic_query="movement restricted hold")
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Grappled"
+
+    # Verify repository.search was called with semantic_query parameter
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["semantic_query"] == "movement restricted hold"
+
+
+@pytest.mark.asyncio
+async def test_lookup_rule_semantic_query_with_filters(repository_context):
+    """Test rule lookup combining semantic_query with traditional filters."""
+    repository_context.search.return_value = [{"name": "Fire", "desc": "Fire damage burns..."}]
+
+    result = await lookup_rule(
+        rule_type="damage-type",
+        semantic_query="burning flame heat",
+        documents=["srd-5e"],
+    )
+
+    assert len(result) == 1
+
+    # Verify all parameters were passed to repository
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["semantic_query"] == "burning flame heat"
+    assert call_kwargs["document"] == ["srd-5e"]
+
+
+@pytest.mark.asyncio
+async def test_lookup_rule_semantic_query_none_not_passed(repository_context):
+    """Test that semantic_query=None is not passed to repository."""
+    repository_context.search.return_value = [{"name": "Combat", "desc": "Combat rules..."}]
+
+    # Call without semantic_query (default is None)
+    await lookup_rule(rule_type="rule")
+
+    call_kwargs = repository_context.search.call_args[1]
+    # semantic_query should not be in the params when None
+    assert "semantic_query" not in call_kwargs

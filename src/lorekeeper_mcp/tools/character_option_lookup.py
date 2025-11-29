@@ -64,6 +64,7 @@ async def lookup_character_option(
     type: OptionType,  # noqa: A002
     name: str | None = None,
     documents: list[str] | None = None,  # Replaces document_keys
+    semantic_query: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -92,6 +93,22 @@ async def lookup_character_option(
             _repository_context["repository"] = custom_repo
             classes = await lookup_character_option(type="class")
 
+        Semantic search (natural language queries):
+            warriors = await lookup_character_option(
+                type="class", semantic_query="martial combat warrior"
+            )
+            sneaky_classes = await lookup_character_option(
+                type="class", semantic_query="stealthy shadow assassin"
+            )
+            magical_races = await lookup_character_option(
+                type="race", semantic_query="innate magical abilities"
+            )
+
+        Hybrid search (semantic + filters):
+            srd_fighters = await lookup_character_option(
+                type="class", semantic_query="melee fighter", documents=["srd-5e"]
+            )
+
     Args:
         type: **REQUIRED.** Character option type. Must be one of:
             - "class": Player classes (Barbarian, Bard, Cleric, Druid, Fighter, Monk,
@@ -109,6 +126,11 @@ async def lookup_character_option(
             document names/identifiers from list_documents() tool. Examples:
             ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
             Use list_documents() to see available documents.
+        semantic_query: Natural language search query for semantic/vector search.
+            When provided, uses vector similarity to find character options matching
+            the conceptual meaning rather than exact text matches. Can be combined
+            with other filters for hybrid search. Examples: "martial combat warrior",
+            "stealthy rogue", "divine magic healer"
         limit: Maximum number of results to return. Default 20, useful for limiting
             output or pagination. Examples: 1, 5, 50
 
@@ -164,6 +186,8 @@ async def lookup_character_option(
     }
     if documents is not None:
         params["document"] = documents
+    if semantic_query is not None:
+        params["semantic_query"] = semantic_query
 
     results: list[dict[str, Any]] = await repository.search(**params)
     if name is not None and results:

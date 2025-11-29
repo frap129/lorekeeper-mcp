@@ -71,6 +71,7 @@ async def lookup_spell(
     casting_time: str | None = None,
     damage_type: str | None = None,
     documents: list[str] | None = None,
+    semantic_query: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -126,6 +127,19 @@ async def lookup_spell(
                 class_key="wizard", level_min=3, level_max=5, limit=10
             )
 
+        Semantic search (natural language queries):
+            fire_spells = await lookup_spell(semantic_query="fire damage explosion")
+            healing_spells = await lookup_spell(semantic_query="restore health allies")
+            protection = await lookup_spell(semantic_query="defensive barrier ward")
+
+        Hybrid search (semantic + filters):
+            fire_evocation = await lookup_spell(
+                semantic_query="fire explosion", school="evocation"
+            )
+            low_level_healing = await lookup_spell(
+                semantic_query="heal wounds", level_max=3
+            )
+
         With test context injection (testing):
             from lorekeeper_mcp.tools.spell_lookup import _repository_context
             custom_repo = SpellRepository(cache=my_cache)
@@ -165,6 +179,11 @@ async def lookup_spell(
             document names/identifiers from list_documents() tool. Examples:
             ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
             Use list_documents() to see available documents.
+        semantic_query: Natural language search query for semantic/vector search.
+            When provided, uses vector similarity to find spells matching the
+            conceptual meaning rather than exact text matches. Can be combined
+            with other filters for hybrid search. Examples: "fire damage explosion",
+            "healing allies", "protection from evil creatures"
         limit: Maximum number of results to return. Default 20. Useful for pagination
             or limiting large result sets. Examples: 5 for small sets, 20 for standard,
             100 for comprehensive results
@@ -215,6 +234,8 @@ async def lookup_spell(
         params["damage_type"] = damage_type
     if documents is not None:
         params["document"] = documents
+    if semantic_query is not None:
+        params["semantic_query"] = semantic_query
 
     spells = await repository.search(limit=limit, **params)
 

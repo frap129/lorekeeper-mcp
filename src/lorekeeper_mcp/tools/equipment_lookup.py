@@ -65,6 +65,7 @@ async def lookup_equipment(
     is_light: bool | None = None,
     is_magic: bool | None = None,
     documents: list[str] | None = None,  # Replaces document and document_keys
+    semantic_query: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -118,6 +119,25 @@ async def lookup_equipment(
                     type="all", name="chain"
                 )
 
+            Semantic search (natural language queries):
+                melee_weapons = await lookup_equipment(
+                    type="weapon", semantic_query="slashing blade for close combat"
+                )
+                protective_gear = await lookup_equipment(
+                    type="armor", semantic_query="heavy protective plate"
+                )
+                magical_storage = await lookup_equipment(
+                    type="magic-item", semantic_query="bag that holds items"
+                )
+
+            Hybrid search (semantic + filters):
+                finesse_slashing = await lookup_equipment(
+                    type="weapon", semantic_query="elegant blade", is_finesse=True
+                )
+                rare_magical = await lookup_equipment(
+                    type="magic-item", semantic_query="fire wand", rarity="rare"
+                )
+
         Args:
             type: Equipment type to search. Default "all" searches all types. Options:
                 - "weapon": Melee weapons (longsword, dagger, etc.) and ranged weapons (bow, crossbow)
@@ -154,6 +174,11 @@ async def lookup_equipment(
                  document names/identifiers from list_documents() tool. Examples:
                  ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
                  Use list_documents() to see available documents.
+             semantic_query: Natural language search query for semantic/vector search.
+                 When provided, uses vector similarity to find equipment matching the
+                 conceptual meaning rather than exact text matches. Can be combined
+                 with other filters for hybrid search. Examples: "slashing weapon for
+                 melee combat", "protective heavy armor", "magical wand for spells"
              limit: Maximum number of results to return. Default 20. For type="all" with many
                  matches, limit applies to total results. Examples: 5, 20, 100
 
@@ -218,6 +243,8 @@ async def lookup_equipment(
             weapon_filters["is_magic"] = is_magic
         if documents is not None:
             weapon_filters["document"] = documents
+        if semantic_query is not None:
+            weapon_filters["semantic_query"] = semantic_query
 
         weapons = await repository.search(limit=limit, **weapon_filters)
 
@@ -234,6 +261,8 @@ async def lookup_equipment(
             armor_filters["cost_max"] = cost_max
         if documents is not None:
             armor_filters["document"] = documents
+        if semantic_query is not None:
+            armor_filters["semantic_query"] = semantic_query
 
         armors = await repository.search(limit=limit, **armor_filters)
 
@@ -253,6 +282,8 @@ async def lookup_equipment(
                 magic_item_filters["requires_attunement"] = False
         if documents is not None:
             magic_item_filters["document"] = documents
+        if semantic_query is not None:
+            magic_item_filters["semantic_query"] = semantic_query
 
         magic_items = await repository.search(limit=limit, **magic_item_filters)
 

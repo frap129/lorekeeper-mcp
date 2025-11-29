@@ -624,3 +624,51 @@ async def test_lookup_equipment_with_documents() -> None:
         assert results[0]["name"] == "Longsword"
     finally:
         _repository_context.clear()
+
+
+@pytest.mark.asyncio
+async def test_lookup_equipment_with_semantic_query(repository_context, sample_longsword):
+    """Test equipment lookup with semantic_query parameter."""
+    repository_context.search.return_value = [sample_longsword]
+
+    result = await lookup_equipment(type="weapon", semantic_query="slashing blade for combat")
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Longsword"
+
+    # Verify repository.search was called with semantic_query parameter
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["semantic_query"] == "slashing blade for combat"
+
+
+@pytest.mark.asyncio
+async def test_lookup_equipment_semantic_query_with_filters(repository_context, sample_dagger):
+    """Test equipment lookup combining semantic_query with traditional filters."""
+    repository_context.search.return_value = [sample_dagger]
+
+    result = await lookup_equipment(
+        type="weapon", semantic_query="small throwing knife", is_simple=True
+    )
+
+    assert len(result) == 1
+
+    # Verify all parameters were passed to repository
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["semantic_query"] == "small throwing knife"
+    assert call_kwargs["is_simple"] is True
+
+
+@pytest.mark.asyncio
+async def test_lookup_equipment_semantic_query_none_not_passed(
+    repository_context, sample_longsword
+):
+    """Test that semantic_query=None is not passed to repository."""
+    repository_context.search.return_value = [sample_longsword]
+
+    # Call without semantic_query (default is None)
+    await lookup_equipment(type="weapon", name="Longsword")
+
+    call_kwargs = repository_context.search.call_args[1]
+    # semantic_query should not be in the params when None
+    assert "semantic_query" not in call_kwargs

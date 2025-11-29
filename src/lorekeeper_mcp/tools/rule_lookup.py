@@ -69,6 +69,7 @@ async def lookup_rule(
     name: str | None = None,
     section: str | None = None,
     documents: list[str] | None = None,
+    semantic_query: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -89,6 +90,14 @@ async def lookup_rule(
          - lookup_rule(rule_type="magic-school", name="evocation") - Find evocation school info
          - lookup_rule(rule_type="rule", documents=["srd-5e"]) - Find rules from SRD only
          - lookup_rule(rule_type="condition", name="grappled", documents=["srd-5e", "tce"]) - Filter conditions by documents
+
+        Semantic search (natural language queries):
+         - lookup_rule(rule_type="condition", semantic_query="movement restricted") - Find conditions affecting movement
+         - lookup_rule(rule_type="damage-type", semantic_query="burning heat") - Find fire-related damage
+         - lookup_rule(rule_type="skill", semantic_query="sneaking hiding") - Find stealth-related skills
+
+        Hybrid search (semantic + filters):
+         - lookup_rule(rule_type="condition", semantic_query="cannot see", documents=["srd-5e"]) - Find blindness/vision conditions
 
     Args:
         rule_type: **REQUIRED.** Type of game reference to lookup. Must be one of:
@@ -119,6 +128,11 @@ async def lookup_rule(
             document names/identifiers from list_documents() tool. Examples:
             ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
             Use list_documents() to see available documents.
+        semantic_query: Natural language search query for semantic/vector search.
+            When provided, uses vector similarity to find rules matching the
+            conceptual meaning rather than exact text matches. Can be combined
+            with other filters for hybrid search. Examples: "movement restricted",
+            "fire burning damage", "stealth hiding sneaking"
         limit: Maximum number of results to return. Default 20 for performance.
             Examples: 1, 10, 50
 
@@ -202,4 +216,6 @@ async def lookup_rule(
         params["section"] = section
     if documents is not None:
         params["document"] = documents
+    if semantic_query is not None:
+        params["semantic_query"] = semantic_query
     return await repository.search(**params)

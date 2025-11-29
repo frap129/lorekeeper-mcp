@@ -340,3 +340,45 @@ async def test_search_dnd_content_documents_with_content_types(mock_client_facto
     assert len(result) == 2
     for item in result:
         assert item.get("document") == "srd-5e"
+
+
+@pytest.mark.asyncio
+async def test_search_dnd_content_semantic_default_true(mock_client_factory):
+    """Test that semantic search is enabled by default."""
+    mock_results = [{"object_name": "Fireball", "object_model": "Spell", "match_type": "vector"}]
+    mock_client_factory.unified_search.return_value = mock_results
+
+    # Call without specifying semantic parameter
+    await search_dnd_content(query="fire explosion")
+
+    # Verify vector/semantic search was enabled by default
+    call_kwargs = mock_client_factory.unified_search.call_args[1]
+    assert call_kwargs["vector"] is True
+
+
+@pytest.mark.asyncio
+async def test_search_dnd_content_semantic_false_disables_vector_search(mock_client_factory):
+    """Test that semantic=False disables vector/semantic search."""
+    mock_results = [{"object_name": "Fireball", "object_model": "Spell", "match_type": "exact"}]
+    mock_client_factory.unified_search.return_value = mock_results
+
+    # Call with semantic=False for structured-only search
+    await search_dnd_content(query="fireball", semantic=False)
+
+    # Verify vector search was disabled
+    call_kwargs = mock_client_factory.unified_search.call_args[1]
+    assert call_kwargs["vector"] is False
+
+
+@pytest.mark.asyncio
+async def test_search_dnd_content_semantic_true_enables_vector_search(mock_client_factory):
+    """Test that semantic=True explicitly enables vector/semantic search."""
+    mock_results = [{"object_name": "Cure Wounds", "object_model": "Spell", "match_type": "vector"}]
+    mock_client_factory.unified_search.return_value = mock_results
+
+    # Call with explicit semantic=True
+    await search_dnd_content(query="healing magic", semantic=True)
+
+    # Verify vector search was enabled
+    call_kwargs = mock_client_factory.unified_search.call_args[1]
+    assert call_kwargs["vector"] is True

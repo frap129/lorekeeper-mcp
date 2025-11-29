@@ -541,3 +541,125 @@ async def test_lookup_creature_with_documents(repository_context):
     # Verify results are returned
     assert len(results) == 1
     assert results[0]["document"] == "srd-5e"
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_with_semantic_query(repository_context):
+    """Test creature lookup with semantic_query parameter."""
+    creature_obj = Creature(
+        name="Ancient Red Dragon",
+        slug="ancient-red-dragon",
+        size="Gargantuan",
+        type="dragon",
+        alignment="chaotic evil",
+        armor_class=22,
+        hit_points=546,
+        hit_dice="28d20+280",
+        strength=30,
+        dexterity=10,
+        constitution=29,
+        intelligence=18,
+        wisdom=15,
+        charisma=23,
+        challenge_rating="24",
+        challenge_rating_decimal=24.0,
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/ancient-red-dragon",
+        document=None,
+    )
+
+    repository_context.search.return_value = [creature_obj]
+
+    result = await lookup_creature(semantic_query="fire breathing flying beast")
+
+    assert len(result) == 1
+    assert result[0]["name"] == "Ancient Red Dragon"
+
+    # Verify repository.search was called with semantic_query parameter
+    repository_context.search.assert_awaited_once()
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["semantic_query"] == "fire breathing flying beast"
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_semantic_query_with_filters(repository_context):
+    """Test creature lookup combining semantic_query with traditional filters."""
+    creature_obj = Creature(
+        name="Ancient Red Dragon",
+        slug="ancient-red-dragon",
+        size="Gargantuan",
+        type="dragon",
+        alignment="chaotic evil",
+        armor_class=22,
+        hit_points=546,
+        hit_dice="28d20+280",
+        strength=30,
+        dexterity=10,
+        constitution=29,
+        intelligence=18,
+        wisdom=15,
+        charisma=23,
+        challenge_rating="24",
+        challenge_rating_decimal=24.0,
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/ancient-red-dragon",
+        document=None,
+    )
+
+    repository_context.search.return_value = [creature_obj]
+
+    result = await lookup_creature(semantic_query="fire breathing", type="dragon", cr_min=20)
+
+    assert len(result) == 1
+
+    # Verify all parameters were passed to repository
+    call_kwargs = repository_context.search.call_args[1]
+    assert call_kwargs["semantic_query"] == "fire breathing"
+    assert call_kwargs["type"] == "dragon"
+    assert call_kwargs["cr_min"] == 20
+
+
+@pytest.mark.asyncio
+async def test_lookup_creature_semantic_query_none_not_passed(repository_context):
+    """Test that semantic_query=None is not passed to repository."""
+    creature_obj = Creature(
+        name="Goblin",
+        slug="goblin",
+        size="Small",
+        type="humanoid",
+        alignment="neutral evil",
+        armor_class=15,
+        hit_points=7,
+        hit_dice="2d6",
+        challenge_rating="1/4",
+        challenge_rating_decimal=0.25,
+        strength=8,
+        dexterity=14,
+        constitution=10,
+        intelligence=10,
+        wisdom=8,
+        charisma=8,
+        actions=None,
+        legendary_actions=None,
+        special_abilities=None,
+        desc=None,
+        speed=None,
+        document_url="https://example.com/goblin",
+    )
+
+    repository_context.search.return_value = [creature_obj]
+
+    # Call without semantic_query (default is None)
+    await lookup_creature(name="Goblin")
+
+    call_kwargs = repository_context.search.call_args[1]
+    # semantic_query should not be in the params when None
+    assert "semantic_query" not in call_kwargs
