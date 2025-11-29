@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from lorekeeper_mcp.cache.db import get_cached_entity, init_db, query_cached_entities
+from lorekeeper_mcp.cache import MilvusCache
 from lorekeeper_mcp.cli import cli
 from lorekeeper_mcp.config import settings
 
@@ -17,16 +17,16 @@ def test_import_sample_file_end_to_end(tmp_path: Path, monkeypatch, caplog) -> N
 
     Verifies:
     - Successful import execution
-    - Database initialization and entity storage
+    - Cache initialization and entity storage
     - Specific spell fields (name, level, school)
     - Specific creature fields (name, type, challenge_rating)
     """
-    # Setup test database
-    test_db = tmp_path / "test.db"
+    # Setup test Milvus database
+    test_db = tmp_path / "test_milvus.db"
 
-    # Patch settings to use the test database
-
-    monkeypatch.setattr(settings, "db_path", str(test_db))
+    # Patch settings to use the test Milvus database
+    monkeypatch.setattr(settings, "cache_backend", "milvus")
+    monkeypatch.setattr(settings, "milvus_db_path", test_db)
 
     # Get sample file path
     fixtures_dir = Path(__file__).parent.parent / "fixtures"
@@ -38,47 +38,55 @@ def test_import_sample_file_end_to_end(tmp_path: Path, monkeypatch, caplog) -> N
     runner = CliRunner()
     result = runner.invoke(
         cli,
-        ["--db-path", str(test_db), "import", str(sample_file)],
+        ["import", str(sample_file)],
     )
 
     assert result.exit_code == 0, f"Import failed: {result.output or result.exception}"
 
-    # Verify database was populated by querying entities
-    # Use asyncio.run for the queries since we're in a sync context
-    spells = asyncio.run(query_cached_entities("spells", db_path=str(test_db)))
+    # Verify database was populated by querying entities using MilvusCache directly
+    cache = MilvusCache(str(test_db))
+
+    spells = asyncio.run(cache.get_entities("spells"))
     assert len(spells) == 2, f"Expected 2 spells, got {len(spells)}"
 
     # Verify specific spell fields
-    magic_missile = asyncio.run(get_cached_entity("spells", "magic-missile", db_path=str(test_db)))
-    assert magic_missile is not None, "Magic Missile spell not found"
+    magic_missiles = asyncio.run(cache.get_entities("spells", name="Magic Missile"))
+    assert len(magic_missiles) == 1, "Magic Missile spell not found"
+    magic_missile = magic_missiles[0]
     assert magic_missile["name"] == "Magic Missile"
     assert magic_missile["level"] == 1
     assert magic_missile["school"] == "Evocation"
 
-    fireball = asyncio.run(get_cached_entity("spells", "fireball", db_path=str(test_db)))
-    assert fireball is not None, "Fireball spell not found"
+    fireballs = asyncio.run(cache.get_entities("spells", name="Fireball"))
+    assert len(fireballs) == 1, "Fireball spell not found"
+    fireball = fireballs[0]
     assert fireball["name"] == "Fireball"
     assert fireball["level"] == 3
     assert fireball["school"] == "Evocation"
 
     # Verify creatures were imported (note: monsters → creatures)
-    creatures = asyncio.run(query_cached_entities("creatures", db_path=str(test_db)))
+    creatures = asyncio.run(cache.get_entities("creatures"))
     assert len(creatures) == 2, f"Expected 2 creatures, got {len(creatures)}"
 
     # Verify specific creature fields
-    goblin = asyncio.run(get_cached_entity("creatures", "goblin", db_path=str(test_db)))
-    assert goblin is not None, "Goblin creature not found"
+    goblins = asyncio.run(cache.get_entities("creatures", name="Goblin"))
+    assert len(goblins) == 1, "Goblin creature not found"
+    goblin = goblins[0]
     assert goblin["name"] == "Goblin"
     assert goblin["type"] == "humanoid"
     # challenge_rating is now validated through OrcBrewCreature model which converts
     # numeric challenge to string format (e.g., 0.25 -> "1/4")
     assert goblin["challenge_rating"] == "1/4"
 
-    dragon = asyncio.run(get_cached_entity("creatures", "dragon-red-adult", db_path=str(test_db)))
-    assert dragon is not None, "Adult Red Dragon creature not found"
+    dragons = asyncio.run(cache.get_entities("creatures", name="Adult Red Dragon"))
+    assert len(dragons) == 1, "Adult Red Dragon creature not found"
+    dragon = dragons[0]
     assert dragon["name"] == "Adult Red Dragon"
     assert dragon["type"] == "dragon"
     assert dragon["challenge_rating"] == "17"
+
+    # Clean up
+    cache.close()
 
 
 def test_import_dry_run(caplog) -> None:
@@ -136,22 +144,25 @@ def test_import_megapak_file(tmp_path: Path, monkeypatch) -> None:
     if not megapak_file.exists():
         pytest.skip("MegaPak file not found")
 
-    # Setup test database
-    test_db = tmp_path / "megapak_test.db"
-    monkeypatch.setattr(settings, "db_path", str(test_db))
-    asyncio.run(init_db())
+    # Setup test Milvus database
+    test_db = tmp_path / "megapak_milvus.db"
+    monkeypatch.setattr(settings, "cache_backend", "milvus")
+    monkeypatch.setattr(settings, "milvus_db_path", test_db)
 
     # Run import
     runner = CliRunner()
-    result = runner.invoke(cli, ["--db-path", str(test_db), "-v", "import", str(megapak_file)])
+    result = runner.invoke(cli, ["-v", "import", str(megapak_file)])
 
     assert result.exit_code == 0, f"Import failed: {result.output or result.exception}"
     assert "Import complete!" in result.output
 
-    # Verify counts
-    spells = asyncio.run(query_cached_entities("spells", db_path=str(test_db)))
-    creatures = asyncio.run(query_cached_entities("creatures", db_path=str(test_db)))
+    # Verify counts using MilvusCache
+    cache = MilvusCache(str(test_db))
+    spells = asyncio.run(cache.get_entities("spells"))
+    creatures = asyncio.run(cache.get_entities("creatures"))
 
     # MegaPak should have hundreds of entities
     assert len(spells) > 100, f"Expected > 100 spells, got {len(spells)}"
     assert len(creatures) > 50, f"Expected > 50 creatures, got {len(creatures)}"
+
+    cache.close()

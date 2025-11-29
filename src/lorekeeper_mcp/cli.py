@@ -9,8 +9,7 @@ from typing import Any
 import click
 
 from lorekeeper_mcp import __version__
-from lorekeeper_mcp.cache.db import bulk_cache_entities
-from lorekeeper_mcp.cache.schema import init_entity_cache
+from lorekeeper_mcp.cache import get_cache_from_config
 from lorekeeper_mcp.config import settings
 from lorekeeper_mcp.parsers.entity_mapper import map_entity_type, normalize_entity
 from lorekeeper_mcp.parsers.orcbrew import OrcBrewParser
@@ -71,13 +70,15 @@ def import_cmd(ctx: click.Context, file: Path, dry_run: bool, force: bool) -> No
     Parses the EDN-formatted file and imports entities into the local cache.
     Supports spells, creatures, classes, equipment, and more.
 
+    Uses the configured cache backend (Milvus by default, or SQLite if configured).
+
     Example:
         lorekeeper import MegaPak_-_WotC_Books.orcbrew
     """
-    db_path_str = str(ctx.obj.get("db_path") or settings.db_path)
     verbose = ctx.obj.get("verbose", False)
 
     logger.info(f"Starting import of '{file.name}'...")
+    logger.info(f"Using cache backend: {settings.cache_backend}")
 
     # Parse file
     try:
@@ -95,7 +96,7 @@ def import_cmd(ctx: click.Context, file: Path, dry_run: bool, force: bool) -> No
         return
 
     # Import entities by type
-    asyncio.run(_import_entities(entities_by_type, db_path_str, verbose))
+    asyncio.run(_import_entities(entities_by_type, verbose))
 
     logger.info("Import complete!")
 
@@ -112,12 +113,10 @@ def _print_import_summary(entities_by_type: dict[str, list[dict[str, Any]]]) -> 
 
 async def _import_entities(
     entities_by_type: dict[str, list[dict[str, Any]]],
-    db_path: str,
     verbose: bool,
 ) -> None:
-    """Import entities to database."""
-    # Initialize database if needed
-    await init_entity_cache(db_path)
+    """Import entities to the configured cache backend."""
+    cache = get_cache_from_config()
 
     total_imported = 0
     total_skipped = 0
@@ -141,19 +140,19 @@ async def _import_entities(
         for entity in entities:
             try:
                 normalized = normalize_entity(entity, orcbrew_type)
+                # Add source_api field for tracking
+                normalized["source_api"] = "orcbrew"
                 normalized_entities.append(normalized)
             except ValueError as e:
                 if verbose:
                     logger.warning(f"Skipping entity: {e}")
                 skipped_count += 1
 
-        # Bulk insert
+        # Store in cache using the configured backend
         try:
-            imported_count = await bulk_cache_entities(
+            imported_count = await cache.store_entities(
                 normalized_entities,
                 lorekeeper_type,
-                db_path=db_path,
-                source_api="orcbrew",
             )
             logger.info(f"✓ Imported {imported_count} {lorekeeper_type}")
             if skipped_count > 0:
