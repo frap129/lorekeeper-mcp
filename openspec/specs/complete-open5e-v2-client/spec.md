@@ -24,6 +24,12 @@ The `get_spells` method in `Open5eV2Client` SHALL implement client-side filterin
 
 **Rationale**: The Open5e v2 API does not support filtering spells by school parameter on the server side. However, the LoreKeeper tool interface advertises this capability, so client-side filtering must be implemented to maintain expected functionality.
 
+#### Scenario: Filter spells by school client-side
+- **WHEN** a user requests spells with school="Evocation"
+- **THEN** the client fetches all matching spells from the API without school filter
+- **AND** filters results client-side to only include spells with matching school
+- **AND** school filtering is case-insensitive
+
 **Acceptance Criteria:**
 - Method makes API request without `school` parameter
 - Client filters results to only include spells with matching school
@@ -50,6 +56,11 @@ When a user searches for weapons using the `lookup_equipment` tool, the Open5e v
 The `Weapon` model SHALL accurately reflect the actual structure and field types returned by the Open5e API v2 weapons endpoint.
 
 **Rationale**: The model must match the actual API response structure to prevent Pydantic validation errors when parsing weapon data.
+
+#### Scenario: Parse weapon response from API
+- **WHEN** a weapon response is received from the Open5e v2 API
+- **THEN** the Weapon model successfully validates the response
+- **AND** all fields present in the API response are captured
 
 **Acceptance Criteria:**
 - Model includes only fields present in API responses (name, damage_dice, damage_type, weight, cost)

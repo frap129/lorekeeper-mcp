@@ -488,7 +488,7 @@ The cache MUST configure Milvus indexes for optimal semantic search performance.
 
 ### Requirement: Cache Protocol Semantic Search Extension
 
-The CacheProtocol defines the interface for cache implementations with full semantic search support.
+The CacheProtocol SHALL define the interface for cache implementations with full semantic search support.
 
 #### Scenario: MilvusCache implements full protocol
 **Given** a MilvusCache instance
@@ -542,7 +542,7 @@ The cache MUST use a dedicated EmbeddingService for all embedding operations wit
 
 ### Requirement: Cache Factory for Backend Selection
 
-The cache layer provides a factory function to create MilvusCache instances.
+The cache layer SHALL provide a factory function to create MilvusCache instances.
 
 #### Scenario: Create Milvus cache via factory
 **Given** calling `create_cache()` with optional db_path parameter
