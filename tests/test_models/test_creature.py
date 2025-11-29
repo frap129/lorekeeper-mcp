@@ -1,11 +1,9 @@
 """Tests for canonical Creature model."""
 
-import warnings
-
 import pytest
 from pydantic import ValidationError
 
-from lorekeeper_mcp.models import Creature, Monster
+from lorekeeper_mcp.models import Creature
 
 
 class TestCreature:
@@ -110,22 +108,14 @@ class TestCreature:
         assert creature.challenge_rating == "17"
         assert creature.challenge_rating_decimal == 17.0
 
-    def test_monster_alias_with_deprecation_warning(self) -> None:
-        """Test that Monster alias works but emits deprecation warning."""
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            monster = Monster(
-                name="Goblin",
-                slug="goblin",
-                size="Small",
-                type="humanoid",
-                alignment="neutral evil",
-                armor_class=15,
-                hit_points=7,
-                hit_dice="2d6",
-                challenge_rating="1/4",
-            )
-            assert monster.name == "Goblin"
-            assert len(w) == 1
-            assert "deprecated" in str(w[0].message).lower()
-            assert "Creature" in str(w[0].message)
+
+def test_monster_import_removed() -> None:
+    """Test that Monster class no longer exists."""
+    from lorekeeper_mcp.models import Creature
+
+    # Creature should exist
+    assert Creature is not None
+
+    # Monster should NOT be importable from models
+    with pytest.raises(ImportError):
+        from lorekeeper_mcp.models import Monster  # noqa: F401
