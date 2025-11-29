@@ -1,4 +1,4 @@
-"""Character option lookup tool using the repository pattern for caching.
+"""Character option search tool using the repository pattern for caching.
 
 This module provides character creation and advancement options (classes, races,
 backgrounds, feats) with automatic database caching through the repository pattern.
@@ -12,20 +12,20 @@ Architecture:
 
 Examples:
     Default usage (automatically creates repository):
-        classes = await lookup_character_option(type="class")
-        elves = await lookup_character_option(type="race", name="elf")
+        classes = await search_character_option(type="class")
+        elves = await search_character_option(type="race", name="elf")
 
     With context-based injection (testing):
-        from lorekeeper_mcp.tools.character_option_lookup import _repository_context
+        from lorekeeper_mcp.tools.search_character_option import _repository_context
         from lorekeeper_mcp.repositories.character_option import CharacterOptionRepository
 
         repository = CharacterOptionRepository(cache=my_cache)
         _repository_context["repository"] = repository
-        feats = await lookup_character_option(type="feat")
+        feats = await search_character_option(type="feat")
 
     Character building queries:
-        all_classes = await lookup_character_option(type="class")
-        backgrounds = await lookup_character_option(type="background", name="soldier")"""
+        all_classes = await search_character_option(type="class")
+        backgrounds = await search_character_option(type="background", name="soldier")"""
 
 from typing import Any, Literal, cast
 
@@ -51,16 +51,7 @@ def _get_repository() -> CharacterOptionRepository:
     return RepositoryFactory.create_character_option_repository()
 
 
-def clear_character_option_cache() -> None:
-    """Clear the character option cache (deprecated).
-
-    This function is deprecated and kept for backward compatibility.
-    Cache management is now handled by the repository pattern with
-    database-backed persistence.
-    """
-
-
-async def lookup_character_option(
+async def search_character_option(
     type: OptionType,  # noqa: A002
     name: str | None = None,
     documents: list[str] | None = None,  # Replaces document_keys
@@ -82,30 +73,30 @@ async def lookup_character_option(
 
     Examples:
         Default usage (automatic repository creation):
-            classes = await lookup_character_option(type="class")
-            elves = await lookup_character_option(type="race", name="elf")
-            backgrounds = await lookup_character_option(type="background", name="soldier")
-            feats = await lookup_character_option(type="feat", name="great")
+            classes = await search_character_option(type="class")
+            elves = await search_character_option(type="race", name="elf")
+            backgrounds = await search_character_option(type="background", name="soldier")
+            feats = await search_character_option(type="feat", name="great")
 
         With test context injection (testing):
-            from lorekeeper_mcp.tools.character_option_lookup import _repository_context
+            from lorekeeper_mcp.tools.search_character_option import _repository_context
             custom_repo = CharacterOptionRepository(cache=my_cache)
             _repository_context["repository"] = custom_repo
-            classes = await lookup_character_option(type="class")
+            classes = await search_character_option(type="class")
 
         Semantic search (natural language queries):
-            warriors = await lookup_character_option(
+            warriors = await search_character_option(
                 type="class", semantic_query="martial combat warrior"
             )
-            sneaky_classes = await lookup_character_option(
+            sneaky_classes = await search_character_option(
                 type="class", semantic_query="stealthy shadow assassin"
             )
-            magical_races = await lookup_character_option(
+            magical_races = await search_character_option(
                 type="race", semantic_query="innate magical abilities"
             )
 
         Hybrid search (semantic + filters):
-            srd_fighters = await lookup_character_option(
+            srd_fighters = await search_character_option(
                 type="class", semantic_query="melee fighter", documents=["srd-5e"]
             )
 

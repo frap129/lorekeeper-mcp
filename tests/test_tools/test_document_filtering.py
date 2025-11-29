@@ -12,18 +12,18 @@ from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.cache.milvus import MilvusCache
 from lorekeeper_mcp.repositories.creature import CreatureRepository
 from lorekeeper_mcp.repositories.spell import SpellRepository
-from lorekeeper_mcp.tools.creature_lookup import (
+from lorekeeper_mcp.tools.list_documents import list_documents
+from lorekeeper_mcp.tools.search_creature import (
     _repository_context as creature_context,
 )
-from lorekeeper_mcp.tools.creature_lookup import (
-    lookup_creature,
+from lorekeeper_mcp.tools.search_creature import (
+    search_creature,
 )
-from lorekeeper_mcp.tools.list_documents import list_documents
-from lorekeeper_mcp.tools.spell_lookup import (
+from lorekeeper_mcp.tools.search_spell import (
     _repository_context as spell_context,
 )
-from lorekeeper_mcp.tools.spell_lookup import (
-    lookup_spell,
+from lorekeeper_mcp.tools.search_spell import (
+    search_spell,
 )
 
 
@@ -138,17 +138,17 @@ async def test_list_documents_integration(populated_cache: MilvusCache) -> None:
 
 
 @pytest.mark.asyncio
-async def test_spell_lookup_with_document_filter_integration(
+async def test_spell_search_with_document_filter_integration(
     populated_cache: MilvusCache,
 ) -> None:
-    """Test spell lookup with document filtering end-to-end."""
+    """Test spell search with document filtering end-to-end."""
     # Setup repository with test cache
     repo = SpellRepository(client=Open5eV2Client(), cache=populated_cache)
     spell_context["repository"] = repo
 
     try:
         # First, get spells without filter
-        all_spells = await lookup_spell(limit=50)
+        all_spells = await search_spell(limit=50)
 
         if len(all_spells) == 0:
             pytest.skip("No spells in cache")
@@ -165,7 +165,7 @@ async def test_spell_lookup_with_document_filter_integration(
 
         # Filter by first document
         doc_to_filter = next(iter(documents_set))
-        filtered_spells = await lookup_spell(documents=[doc_to_filter], limit=50)
+        filtered_spells = await search_spell(documents=[doc_to_filter], limit=50)
 
         # All filtered results should match the document
         for spell in filtered_spells:
@@ -212,7 +212,7 @@ async def test_cross_tool_document_consistency(populated_cache: MilvusCache) -> 
                 # Only test spells if this document has spells in cache
                 # Otherwise cache-aside pattern would fetch from API
                 if entity_types.get("spells", 0) > 0:
-                    spells = await lookup_spell(documents=[doc_key], limit=5)
+                    spells = await search_spell(documents=[doc_key], limit=5)
                     assert isinstance(spells, list)
                     # Verify all returned spells match the document filter
                     for spell in spells:
@@ -221,7 +221,7 @@ async def test_cross_tool_document_consistency(populated_cache: MilvusCache) -> 
 
                 # Only test creatures if this document has them in cache
                 if entity_types.get("creatures", 0) > 0:
-                    creatures = await lookup_creature(documents=[doc_key], limit=5)
+                    creatures = await search_creature(documents=[doc_key], limit=5)
                     assert isinstance(creatures, list)
                     # Verify all returned creatures match the document filter
                     for creature in creatures:
@@ -287,17 +287,17 @@ async def test_end_to_end_document_filtering(tmp_path: Path) -> None:
 
     try:
         # Test 1: Filter by SRD document
-        srd_results = await lookup_spell(documents=["System Reference Document 5.1"])
+        srd_results = await search_spell(documents=["System Reference Document 5.1"])
         assert len(srd_results) == 1
         assert srd_results[0]["slug"] == "fireball"
 
         # Test 2: Filter by homebrew document
-        homebrew_results = await lookup_spell(documents=["Homebrew Grimoire"])
+        homebrew_results = await search_spell(documents=["Homebrew Grimoire"])
         assert len(homebrew_results) == 1
         assert homebrew_results[0]["slug"] == "custom-blast"
 
         # Test 3: Combine document filter with other filters
-        level3_srd = await lookup_spell(level=3, documents=["System Reference Document 5.1"])
+        level3_srd = await search_spell(level=3, documents=["System Reference Document 5.1"])
         assert len(level3_srd) == 1
         assert level3_srd[0]["slug"] == "fireball"
 
@@ -331,7 +331,7 @@ async def test_document_in_tool_responses(tmp_path: Path) -> None:
     spell_context["repository"] = repo
 
     try:
-        results = await lookup_spell(name="Test Spell")
+        results = await search_spell(name="Test Spell")
 
         assert len(results) == 1
         result = results[0]

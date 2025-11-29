@@ -1,4 +1,4 @@
-"""Tests for character option lookup tool."""
+"""Tests for character option search tool."""
 
 import inspect
 from unittest.mock import AsyncMock, MagicMock
@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
-from lorekeeper_mcp.tools import character_option_lookup
-from lorekeeper_mcp.tools.character_option_lookup import lookup_character_option
+from lorekeeper_mcp.tools import search_character_option as search_character_option_module
+from lorekeeper_mcp.tools.search_character_option import search_character_option
 
 
 @pytest.fixture
@@ -20,11 +20,11 @@ def mock_character_option_repository() -> MagicMock:
 
 
 @pytest.mark.asyncio
-async def test_lookup_class_with_repository(repository_context):
+async def test_search_class_with_repository(repository_context):
     """Test looking up a class using repository context."""
     repository_context.search.return_value = [{"name": "Paladin", "hit_dice": "1d10"}]
 
-    result = await lookup_character_option(type="class", name="Paladin")
+    result = await search_character_option(type="class", name="Paladin")
 
     assert len(result) == 1
     assert result[0]["name"] == "Paladin"
@@ -35,11 +35,11 @@ async def test_lookup_class_with_repository(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_race_with_repository(repository_context):
+async def test_search_race_with_repository(repository_context):
     """Test looking up a race using repository context."""
     repository_context.search.return_value = [{"name": "Elf", "speed": 30}]
 
-    result = await lookup_character_option(type="race", name="Elf")
+    result = await search_character_option(type="race", name="Elf")
 
     assert len(result) == 1
     assert result[0]["name"] == "Elf"
@@ -48,11 +48,11 @@ async def test_lookup_race_with_repository(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_background_with_repository(repository_context):
+async def test_search_background_with_repository(repository_context):
     """Test looking up a background using repository context."""
     repository_context.search.return_value = [{"name": "Acolyte"}]
 
-    result = await lookup_character_option(type="background", name="Acolyte")
+    result = await search_character_option(type="background", name="Acolyte")
 
     assert len(result) == 1
     assert result[0]["name"] == "Acolyte"
@@ -61,11 +61,11 @@ async def test_lookup_background_with_repository(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_feat_with_repository(repository_context):
+async def test_search_feat_with_repository(repository_context):
     """Test looking up a feat using repository context."""
     repository_context.search.return_value = [{"name": "Sharpshooter"}]
 
-    result = await lookup_character_option(type="feat", name="Sharpshooter")
+    result = await search_character_option(type="feat", name="Sharpshooter")
 
     assert len(result) == 1
     assert result[0]["name"] == "Sharpshooter"
@@ -74,20 +74,20 @@ async def test_lookup_feat_with_repository(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_invalid_type():
+async def test_search_invalid_type():
     """Test invalid type parameter raises ValueError."""
 
     with pytest.raises(ValueError, match="Invalid type"):
-        await lookup_character_option(type="invalid-type")  # type: ignore[arg-type]
+        await search_character_option(type="invalid-type")  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio
-async def test_lookup_character_option_with_limit(repository_context):
+async def test_search_character_option_with_limit(repository_context):
     """Test that limit parameter is passed to repository."""
     options = [{"name": f"Option {i}", "id": i} for i in range(5)]
     repository_context.search.return_value = options
 
-    result = await lookup_character_option(type="class", limit=5)
+    result = await search_character_option(type="class", limit=5)
 
     assert len(result) == 5
     call_kwargs = repository_context.search.call_args[1]
@@ -95,50 +95,50 @@ async def test_lookup_character_option_with_limit(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_character_option_empty_results(repository_context):
-    """Test character option lookup with no results."""
+async def test_search_character_option_empty_results(repository_context):
+    """Test character option search with no results."""
     repository_context.search.return_value = []
 
-    result = await lookup_character_option(type="class", name="NonexistentClass")
+    result = await search_character_option(type="class", name="NonexistentClass")
 
     assert result == []
 
 
 @pytest.mark.asyncio
-async def test_lookup_character_option_api_error(repository_context):
-    """Test character option lookup handles API errors gracefully."""
+async def test_search_character_option_api_error(repository_context):
+    """Test character option search handles API errors gracefully."""
     repository_context.search.side_effect = ApiError("API unavailable")
 
     with pytest.raises(ApiError, match="API unavailable"):
-        await lookup_character_option(type="class")
+        await search_character_option(type="class")
 
 
 @pytest.mark.asyncio
-async def test_lookup_character_option_network_error(repository_context):
-    """Test character option lookup handles network errors."""
+async def test_search_character_option_network_error(repository_context):
+    """Test character option search handles network errors."""
     repository_context.search.side_effect = NetworkError("Connection timeout")
 
     with pytest.raises(NetworkError, match="Connection timeout"):
-        await lookup_character_option(type="class")
+        await search_character_option(type="class")
 
 
 @pytest.mark.asyncio
-async def test_lookup_character_option_no_repository_parameter():
-    """Test that lookup_character_option no longer accepts repository parameter."""
+async def test_search_character_option_no_repository_parameter():
+    """Test that search_character_option no longer accepts repository parameter."""
     # This test verifies the function does NOT accept repository parameter
     # and instead uses context-based injection like other tools
-    sig = inspect.signature(lookup_character_option)
+    sig = inspect.signature(search_character_option)
     assert "repository" not in sig.parameters
 
 
 @pytest.mark.asyncio
-async def test_lookup_character_option_with_documents(
+async def test_search_character_option_with_documents(
     repository_context,
 ) -> None:
-    """Test lookup_character_option with documents filter."""
+    """Test search_character_option with documents filter."""
     repository_context.search.return_value = [{"name": "Barbarian", "document": "srd-5e"}]
 
-    result = await lookup_character_option(type="class", documents=["srd-5e"])
+    result = await search_character_option(type="class", documents=["srd-5e"])
 
     assert len(result) == 1
     assert result[0]["name"] == "Barbarian"
@@ -151,19 +151,21 @@ async def test_lookup_character_option_with_documents(
 @pytest.fixture
 def repository_context(mock_character_option_repository):
     """Fixture to inject mock repository via context for tests."""
-    character_option_lookup._repository_context["repository"] = mock_character_option_repository
+    search_character_option_module._repository_context["repository"] = (
+        mock_character_option_repository
+    )
     yield mock_character_option_repository
     # Clean up after test
-    if "repository" in character_option_lookup._repository_context:
-        del character_option_lookup._repository_context["repository"]
+    if "repository" in search_character_option_module._repository_context:
+        del search_character_option_module._repository_context["repository"]
 
 
 @pytest.mark.asyncio
-async def test_lookup_character_option_with_semantic_query(repository_context):
-    """Test character option lookup with semantic_query parameter."""
+async def test_search_character_option_with_semantic_query(repository_context):
+    """Test character option search with semantic_query parameter."""
     repository_context.search.return_value = [{"name": "Fighter", "hit_dice": "1d10"}]
 
-    result = await lookup_character_option(type="class", semantic_query="martial combat warrior")
+    result = await search_character_option(type="class", semantic_query="martial combat warrior")
 
     assert len(result) == 1
     assert result[0]["name"] == "Fighter"
@@ -175,11 +177,11 @@ async def test_lookup_character_option_with_semantic_query(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_character_option_semantic_query_with_filters(repository_context):
-    """Test character option lookup combining semantic_query with traditional filters."""
+async def test_search_character_option_semantic_query_with_filters(repository_context):
+    """Test character option search combining semantic_query with traditional filters."""
     repository_context.search.return_value = [{"name": "Acolyte"}]
 
-    result = await lookup_character_option(
+    result = await search_character_option(
         type="background", semantic_query="religious servant", documents=["srd-5e"]
     )
 
@@ -192,12 +194,12 @@ async def test_lookup_character_option_semantic_query_with_filters(repository_co
 
 
 @pytest.mark.asyncio
-async def test_lookup_character_option_semantic_query_none_not_passed(repository_context):
+async def test_search_character_option_semantic_query_none_not_passed(repository_context):
     """Test that semantic_query=None is not passed to repository."""
     repository_context.search.return_value = [{"name": "Fighter"}]
 
     # Call without semantic_query (default is None)
-    await lookup_character_option(type="class")
+    await search_character_option(type="class")
 
     call_kwargs = repository_context.search.call_args[1]
     # semantic_query should not be in the params when None

@@ -1,11 +1,11 @@
-"""Tests for search_dnd_content tool."""
+"""Tests for search_all tool."""
 
 import sys
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lorekeeper_mcp.tools.search_dnd_content import search_dnd_content
+from lorekeeper_mcp.tools.search_all import search_all
 
 
 @pytest.fixture
@@ -24,22 +24,22 @@ def mock_client_factory(mock_open5e_v2_client_for_search, monkeypatch):
         return mock_open5e_v2_client_for_search
 
     # Get the actual module, not the function from __init__.py
-    search_module = sys.modules.get("lorekeeper_mcp.tools.search_dnd_content")
+    search_module = sys.modules.get("lorekeeper_mcp.tools.search_all")
     if search_module is None:
-        search_module = sys.modules["lorekeeper_mcp.tools.search_dnd_content"]
+        search_module = sys.modules["lorekeeper_mcp.tools.search_all"]
 
     # Patch the module-level function
     monkeypatch.setattr(search_module, "_get_open5e_client", mock_factory)
     return mock_open5e_v2_client_for_search
 
     # Patch at module level using string path
-    monkeypatch.setattr("lorekeeper_mcp.tools.search_dnd_content._get_open5e_client", mock_factory)
+    monkeypatch.setattr("lorekeeper_mcp.tools.search_all._get_open5e_client", mock_factory)
     return mock_open5e_v2_client_for_search
 
 
 @pytest.mark.asyncio
-async def test_search_dnd_content_tool(mock_client_factory):
-    """Test search_dnd_content tool basic functionality."""
+async def test_search_all_tool(mock_client_factory):
+    """Test search_all tool basic functionality."""
 
     # Mock search results
     mock_results = [
@@ -52,7 +52,7 @@ async def test_search_dnd_content_tool(mock_client_factory):
     ]
     mock_client_factory.unified_search.return_value = mock_results
 
-    result = await search_dnd_content(query="fireball")
+    result = await search_all(query="fireball")
 
     assert len(result) == 1
     assert result[0]["object_name"] == "Fireball"
@@ -61,8 +61,8 @@ async def test_search_dnd_content_tool(mock_client_factory):
 
 
 @pytest.mark.asyncio
-async def test_search_dnd_content_fuzzy_always_enabled(mock_client_factory):
-    """Test search_dnd_content tool has fuzzy matching always enabled."""
+async def test_search_all_fuzzy_always_enabled(mock_client_factory):
+    """Test search_all tool has fuzzy matching always enabled."""
 
     mock_results = [
         {
@@ -74,7 +74,7 @@ async def test_search_dnd_content_fuzzy_always_enabled(mock_client_factory):
     ]
     mock_client_factory.unified_search.return_value = mock_results
 
-    result = await search_dnd_content(query="firbal")
+    result = await search_all(query="firbal")
 
     assert len(result) == 1
     call_kwargs = mock_client_factory.unified_search.call_args[1]
@@ -82,8 +82,8 @@ async def test_search_dnd_content_fuzzy_always_enabled(mock_client_factory):
 
 
 @pytest.mark.asyncio
-async def test_search_dnd_content_semantic_always_enabled(mock_client_factory):
-    """Test search_dnd_content tool has semantic search always enabled."""
+async def test_search_all_semantic_always_enabled(mock_client_factory):
+    """Test search_all tool has semantic search always enabled."""
 
     mock_results = [
         {
@@ -95,7 +95,7 @@ async def test_search_dnd_content_semantic_always_enabled(mock_client_factory):
     ]
     mock_client_factory.unified_search.return_value = mock_results
 
-    result = await search_dnd_content(query="healing magic")
+    result = await search_all(query="healing magic")
 
     assert len(result) == 1
     call_kwargs = mock_client_factory.unified_search.call_args[1]
@@ -126,7 +126,7 @@ async def test_cross_entity_search(mock_client_factory):
     ]
     mock_client_factory.unified_search.return_value = mock_results
 
-    result = await search_dnd_content(query="dragon")
+    result = await search_all(query="dragon")
 
     assert len(result) == 3
     # Verify we got different entity types
@@ -163,7 +163,7 @@ async def test_content_type_filtering(mock_client_factory):
         creature_results,
     ]
 
-    result = await search_dnd_content(query="fire", content_types=["Spell", "Creature"])
+    result = await search_all(query="fire", content_types=["Spell", "Creature"])
 
     # Should have results from both searches
     assert len(result) == 2
@@ -205,7 +205,7 @@ async def test_content_type_filtering_respects_limit(mock_client_factory):
         creature_results,
     ]
 
-    await search_dnd_content(query="fire", content_types=["Spell", "Creature"], limit=10)
+    await search_all(query="fire", content_types=["Spell", "Creature"], limit=10)
 
     # With limit=10 and 2 content types, each gets 5
     # Verify the distribution in the calls
@@ -227,7 +227,7 @@ async def test_search_with_limit(mock_client_factory):
     ]
     mock_client_factory.unified_search.return_value = mock_results
 
-    result = await search_dnd_content(query="spell", limit=3)
+    result = await search_all(query="spell", limit=3)
 
     call_kwargs = mock_client_factory.unified_search.call_args[1]
     assert call_kwargs["limit"] == 3
@@ -249,15 +249,15 @@ async def test_search_combines_results_within_limit(mock_client_factory):
         creature_results,
     ]
 
-    result = await search_dnd_content(query="test", content_types=["Spell", "Creature"], limit=10)
+    result = await search_all(query="test", content_types=["Spell", "Creature"], limit=10)
 
     # Should not exceed limit even if searches return more results
     assert len(result) <= 10
 
 
 @pytest.mark.asyncio
-async def test_search_dnd_content_with_documents(mock_client_factory):
-    """Test search_dnd_content with documents post-filtering."""
+async def test_search_all_with_documents(mock_client_factory):
+    """Test search_all with documents post-filtering."""
     # Mock search results with different documents
     mock_results = [
         {
@@ -282,7 +282,7 @@ async def test_search_dnd_content_with_documents(mock_client_factory):
     mock_client_factory.unified_search.return_value = mock_results
 
     # Filter to only srd-5e
-    result = await search_dnd_content(query="fire", documents=["srd-5e"], limit=10)
+    result = await search_all(query="fire", documents=["srd-5e"], limit=10)
 
     # Should only have results from srd-5e document
     assert len(result) == 2
@@ -291,10 +291,10 @@ async def test_search_dnd_content_with_documents(mock_client_factory):
 
 
 @pytest.mark.asyncio
-async def test_search_dnd_content_empty_documents(mock_client_factory):
-    """Test search_dnd_content short-circuits on empty documents list."""
+async def test_search_all_empty_documents(mock_client_factory):
+    """Test search_all short-circuits on empty documents list."""
     # Should return empty list without calling unified_search
-    result = await search_dnd_content(query="fire", documents=[], limit=10)
+    result = await search_all(query="fire", documents=[], limit=10)
 
     assert result == []
     # Should not have called the API
@@ -302,7 +302,7 @@ async def test_search_dnd_content_empty_documents(mock_client_factory):
 
 
 @pytest.mark.asyncio
-async def test_search_dnd_content_documents_with_content_types(mock_client_factory):
+async def test_search_all_documents_with_content_types(mock_client_factory):
     """Test documents post-filtering with content_types specified."""
     # First call for "Spell"
     spell_results = [
@@ -332,7 +332,7 @@ async def test_search_dnd_content_documents_with_content_types(mock_client_facto
         creature_results,
     ]
 
-    result = await search_dnd_content(
+    result = await search_all(
         query="fire", content_types=["Spell", "Creature"], documents=["srd-5e"], limit=10
     )
 
@@ -343,13 +343,13 @@ async def test_search_dnd_content_documents_with_content_types(mock_client_facto
 
 
 @pytest.mark.asyncio
-async def test_search_dnd_content_both_fuzzy_and_vector_always_enabled(mock_client_factory):
+async def test_search_all_both_fuzzy_and_vector_always_enabled(mock_client_factory):
     """Test that both fuzzy and semantic search are always enabled by default."""
     mock_results = [{"object_name": "Fireball", "object_model": "Spell", "match_type": "vector"}]
     mock_client_factory.unified_search.return_value = mock_results
 
     # Call without specifying any parameters
-    await search_dnd_content(query="fire explosion")
+    await search_all(query="fire explosion")
 
     # Verify both fuzzy and vector/semantic search were enabled
     call_kwargs = mock_client_factory.unified_search.call_args[1]

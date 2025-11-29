@@ -16,11 +16,11 @@ from lorekeeper_mcp.api_clients.open5e_v2 import Open5eV2Client
 from lorekeeper_mcp.cache.milvus import MilvusCache
 from lorekeeper_mcp.repositories.factory import RepositoryFactory
 from lorekeeper_mcp.server import mcp
-from lorekeeper_mcp.tools.character_option_lookup import lookup_character_option
-from lorekeeper_mcp.tools.creature_lookup import lookup_creature
-from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
-from lorekeeper_mcp.tools.rule_lookup import lookup_rule
-from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+from lorekeeper_mcp.tools.search_character_option import search_character_option
+from lorekeeper_mcp.tools.search_creature import search_creature
+from lorekeeper_mcp.tools.search_equipment import search_equipment
+from lorekeeper_mcp.tools.search_rule import search_rule
+from lorekeeper_mcp.tools.search_spell import search_spell
 
 # ============================================================================
 # Tool Registration and Validation Tests
@@ -34,11 +34,11 @@ def test_all_tools_registered():
     tool_names = set(tools.keys())
 
     expected_tools = {
-        "lookup_spell",
-        "lookup_creature",
-        "lookup_character_option",
-        "lookup_equipment",
-        "lookup_rule",
+        "search_spell",
+        "search_creature",
+        "search_character_option",
+        "search_equipment",
+        "search_rule",
     }
 
     assert expected_tools.issubset(tool_names), f"Missing tools: {expected_tools - tool_names}"
@@ -49,42 +49,42 @@ def test_tool_schemas_valid():
     """Verify tool schemas are properly defined."""
     tools = mcp._tool_manager._tools
 
-    # Check lookup_spell schema
-    spell_tool = tools.get("lookup_spell")
+    # Check search_spell schema
+    spell_tool = tools.get("search_spell")
     assert spell_tool is not None
     assert "name" in spell_tool.parameters["properties"]
     assert "level" in spell_tool.parameters["properties"]
     assert "limit" in spell_tool.parameters["properties"]
 
-    # Check lookup_creature schema
-    creature_tool = tools.get("lookup_creature")
+    # Check search_creature schema
+    creature_tool = tools.get("search_creature")
     assert creature_tool is not None
     assert "cr" in creature_tool.parameters["properties"]
 
-    # Check lookup_character_option schema
-    char_tool = tools.get("lookup_character_option")
+    # Check search_character_option schema
+    char_tool = tools.get("search_character_option")
     assert char_tool is not None
     assert "type" in char_tool.parameters["required"]
 
-    # Check lookup_equipment schema
-    equip_tool = tools.get("lookup_equipment")
+    # Check search_equipment schema
+    equip_tool = tools.get("search_equipment")
     assert equip_tool is not None
 
-    # Check lookup_rule schema
-    rule_tool = tools.get("lookup_rule")
+    # Check search_rule schema
+    rule_tool = tools.get("search_rule")
     assert rule_tool is not None
     assert "rule_type" in rule_tool.parameters["required"]
 
 
 # ============================================================================
-# Spell Lookup Integration Tests
+# Spell Search Integration Tests
 # ============================================================================
 
 
 @pytest.mark.integration
 @respx.mock
-async def test_spell_lookup_basic(test_db):
-    """Test basic spell lookup with real repository."""
+async def test_spell_search_basic(test_db):
+    """Test basic spell search with real repository."""
     # Mock the API response
     spell_response = {
         "results": [
@@ -111,7 +111,7 @@ async def test_spell_lookup_basic(test_db):
     )
 
     # Use default repository (not mocked)
-    result = await lookup_spell(name="fireball")
+    result = await search_spell(name="fireball")
     # Verify result structure
     assert isinstance(result, list)
     if len(result) > 0:
@@ -121,8 +121,8 @@ async def test_spell_lookup_basic(test_db):
 
 @pytest.mark.integration
 @respx.mock
-async def test_spell_lookup_by_level(test_db):
-    """Test spell lookup filtered by level."""
+async def test_spell_search_by_level(test_db):
+    """Test spell search filtered by level."""
     spell_response = {
         "results": [
             {
@@ -148,19 +148,19 @@ async def test_spell_lookup_by_level(test_db):
     )
 
     # Test that tool can be called with level filter
-    result = await lookup_spell(level=1)
+    result = await search_spell(level=1)
     assert isinstance(result, list)
 
 
 # ============================================================================
-# Creature Lookup Integration Tests
+# Creature Search Integration Tests
 # ============================================================================
 
 
 @pytest.mark.integration
 @respx.mock
-async def test_creature_lookup_basic(test_db):
-    """Test basic creature lookup with real repository."""
+async def test_creature_search_basic(test_db):
+    """Test basic creature search with real repository."""
     monster_response = {
         "results": [
             {
@@ -190,8 +190,8 @@ async def test_creature_lookup_basic(test_db):
         return_value=httpx.Response(200, json=monster_response)
     )
 
-    # Test basic creature lookup
-    result = await lookup_creature(name="dragon")
+    # Test basic creature search
+    result = await search_creature(name="dragon")
     assert isinstance(result, list)
     if len(result) > 0:
         assert "name" in result[0]
@@ -200,8 +200,8 @@ async def test_creature_lookup_basic(test_db):
 
 @pytest.mark.integration
 @respx.mock
-async def test_creature_lookup_by_cr(test_db):
-    """Test creature lookup filtered by challenge rating."""
+async def test_creature_search_by_cr(test_db):
+    """Test creature search filtered by challenge rating."""
     monster_response = {
         "results": [
             {
@@ -232,12 +232,12 @@ async def test_creature_lookup_by_cr(test_db):
     )
 
     # Test that tool can be called with CR filter
-    result = await lookup_creature(cr=21.0)
+    result = await search_creature(cr=21.0)
     assert isinstance(result, list)
 
 
 # ============================================================================
-# Equipment Lookup Integration Tests
+# Equipment Search Integration Tests
 # ============================================================================
 
 
@@ -247,9 +247,9 @@ async def test_creature_lookup_by_cr(test_db):
     "Will be updated when equipment repository is refactored for Open5e API."
 )
 @respx.mock
-async def test_equipment_lookup_weapons(test_db):
-    """Test equipment lookup for weapons."""
-    result = await lookup_equipment(name="longsword", type="weapon")
+async def test_equipment_search_weapons(test_db):
+    """Test equipment search for weapons."""
+    result = await search_equipment(name="longsword", type="weapon")
     assert isinstance(result, list)
 
 
@@ -259,14 +259,14 @@ async def test_equipment_lookup_weapons(test_db):
     "Will be updated when equipment repository is refactored for Open5e API."
 )
 @respx.mock
-async def test_equipment_lookup_armor(test_db):
-    """Test equipment lookup for armor."""
-    result = await lookup_equipment(name="plate", type="armor")
+async def test_equipment_search_armor(test_db):
+    """Test equipment search for armor."""
+    result = await search_equipment(name="plate", type="armor")
     assert isinstance(result, list)
 
 
 # ============================================================================
-# Character Option Lookup Integration Tests
+# Character Option Search Integration Tests
 # ============================================================================
 
 
@@ -276,9 +276,9 @@ async def test_equipment_lookup_armor(test_db):
     "Will be updated when character option repository is refactored for Open5e API."
 )
 @respx.mock
-async def test_character_option_lookup_class(test_db):
-    """Test character option lookup for classes."""
-    result = await lookup_character_option(type="class", name="barbarian")
+async def test_character_option_search_class(test_db):
+    """Test character option search for classes."""
+    result = await search_character_option(type="class", name="barbarian")
     assert isinstance(result, list)
 
 
@@ -288,9 +288,9 @@ async def test_character_option_lookup_class(test_db):
     "Will be updated when character option repository is refactored for Open5e API."
 )
 @respx.mock
-async def test_character_option_lookup_race(test_db):
-    """Test character option lookup for races."""
-    result = await lookup_character_option(type="race", name="dwarf")
+async def test_character_option_search_race(test_db):
+    """Test character option search for races."""
+    result = await search_character_option(type="race", name="dwarf")
     assert isinstance(result, list)
 
 
@@ -300,9 +300,9 @@ async def test_character_option_lookup_race(test_db):
     "Will be updated when rule repository is refactored for Open5e API."
 )
 @respx.mock
-async def test_rule_lookup_ability_scores_with_cache(test_db):
-    """Test ability score lookup with cache support."""
-    result1 = await lookup_rule(rule_type="ability-score", name="Strength")
+async def test_rule_search_ability_scores_with_cache(test_db):
+    """Test ability score search with cache support."""
+    result1 = await search_rule(rule_type="ability-score", name="Strength")
     assert len(result1) == 1
     assert result1[0]["name"] == "Strength"
 
@@ -310,7 +310,7 @@ async def test_rule_lookup_ability_scores_with_cache(test_db):
 # ============================================================================
 # Database Cache Tests
 # ============================================================================
-# Rule Lookup Integration Tests
+# Rule Search Integration Tests
 # ============================================================================
 
 
@@ -320,9 +320,9 @@ async def test_rule_lookup_ability_scores_with_cache(test_db):
     "Will be updated when rule repository is refactored for Open5e API."
 )
 @respx.mock
-async def test_rule_lookup_condition(test_db):
-    """Test rule lookup for conditions."""
-    result = await lookup_rule(rule_type="condition", name="blinded")
+async def test_rule_search_condition(test_db):
+    """Test rule search for conditions."""
+    result = await search_rule(rule_type="condition", name="blinded")
     assert isinstance(result, list)
 
 
@@ -332,9 +332,9 @@ async def test_rule_lookup_condition(test_db):
     "Will be updated when rule repository is refactored for Open5e API."
 )
 @respx.mock
-async def test_rule_lookup_damage_type(test_db):
-    """Test rule lookup for damage types."""
-    result = await lookup_rule(rule_type="damage-type", name="fire")
+async def test_rule_search_damage_type(test_db):
+    """Test rule search for damage types."""
+    result = await search_rule(rule_type="damage-type", name="fire")
     assert isinstance(result, list)
 
 
@@ -344,9 +344,9 @@ async def test_rule_lookup_damage_type(test_db):
     "Will be updated when rule repository is refactored for Open5e API."
 )
 @respx.mock
-async def test_rule_lookup_skill(test_db):
-    """Test rule lookup for skills."""
-    result = await lookup_rule(rule_type="skill", name="acrobatics")
+async def test_rule_search_skill(test_db):
+    """Test rule search for skills."""
+    result = await search_rule(rule_type="skill", name="acrobatics")
     assert isinstance(result, list)
 
 

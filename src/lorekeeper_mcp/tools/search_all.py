@@ -38,7 +38,7 @@ def _get_open5e_client() -> Open5eV2Client:
     return Open5eV2Client()
 
 
-async def search_dnd_content(
+async def search_all(
     query: str,
     content_types: list[str] | None = None,
     documents: list[str] | None = None,

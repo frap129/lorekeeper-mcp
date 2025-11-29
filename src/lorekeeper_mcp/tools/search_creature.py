@@ -1,9 +1,7 @@
-"""Creature lookup tool using the repository pattern for caching.
+"""Creature search tool with hybrid semantic and structured filtering.
 
-This module provides creature lookup functionality with automatic database
-caching through the repository pattern. The repository abstracts away cache management,
-allowing you to focus on creature searching. Cache misses automatically fetch from
-multiple D&D 5e sources and store results for future queries.
+This module provides creature lookup functionality using both semantic/vector search
+and structured filtering through the repository pattern.
 
 Architecture:
     - Uses CreatureRepository for cache-aside pattern with multi-source support
@@ -14,20 +12,20 @@ Architecture:
 
 Examples:
     Default usage (automatically creates repository):
-        creatures = await lookup_creature(cr=5)
-        dragons = await lookup_creature(type="dragon")
+        creatures = await search_creature(cr=5)
+        dragons = await search_creature(type="dragon")
 
     With context-based injection (testing):
-        from lorekeeper_mcp.tools.creature_lookup import _repository_context
+        from lorekeeper_mcp.tools.search_creature import _repository_context
         from lorekeeper_mcp.repositories.creature import CreatureRepository
 
         repository = CreatureRepository(cache=my_cache)
         _repository_context["repository"] = repository
-        creatures = await lookup_creature(cr_min=1, cr_max=3)
+        creatures = await search_creature(cr_min=1, cr_max=3)
 
     Challenge rating queries:
-        low_level = await lookup_creature(cr_max=2)
-        bosses = await lookup_creature(cr_min=10)"""
+        low_level = await search_creature(cr_max=2)
+        bosses = await search_creature(cr_min=10)"""
 
 from typing import Any, cast
 
@@ -51,16 +49,7 @@ def _get_repository() -> CreatureRepository:
     return RepositoryFactory.create_creature_repository()
 
 
-def clear_creature_cache() -> None:
-    """Clear the creature cache (deprecated).
-
-    This function is deprecated and kept for backward compatibility.
-    Cache management is now handled by the repository pattern with
-    database-backed persistence.
-    """
-
-
-async def lookup_creature(
+async def search_creature(
     name: str | None = None,
     cr: float | None = None,
     cr_min: float | None = None,
@@ -69,7 +58,7 @@ async def lookup_creature(
     size: str | None = None,
     armor_class_min: int | None = None,
     hit_points_min: int | None = None,
-    documents: list[str] | None = None,  # Replaces document and document_keys
+    documents: list[str] | None = None,
     semantic_query: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
@@ -82,61 +71,61 @@ async def lookup_creature(
 
     Examples:
         Basic creature lookup:
-            creatures = await lookup_creature(name="dragon")
-            creatures = await lookup_creature(cr=5)
-            medium_creatures = await lookup_creature(size="Medium")
+            creatures = await search_creature(name="dragon")
+            creatures = await search_creature(cr=5)
+            medium_creatures = await search_creature(size="Medium")
 
         Using challenge rating ranges:
-            low_cr_creatures = await lookup_creature(cr_max=2)
-            mid_level_threats = await lookup_creature(cr_min=3, cr_max=5)
-            deadly_bosses = await lookup_creature(cr_min=10)
+            low_cr_creatures = await search_creature(cr_max=2)
+            mid_level_threats = await search_creature(cr_min=3, cr_max=5)
+            deadly_bosses = await search_creature(cr_min=10)
 
         Filtering by type and size:
-            undead_creatures = await lookup_creature(type="undead")
-            humanoids = await lookup_creature(type="humanoid", cr_max=2)
-            large_creatures = await lookup_creature(size="Large", limit=10)
+            undead_creatures = await search_creature(type="undead")
+            humanoids = await search_creature(type="humanoid", cr_max=2)
+            large_creatures = await search_creature(size="Large", limit=10)
 
-        Using armor class and hit points filters (NEW in Phase 3):
-            well_armored_creatures = await lookup_creature(armor_class_min=15)
-            heavily_armored = await lookup_creature(armor_class_min=18)
-            tanky_creatures = await lookup_creature(hit_points_min=100)
-            deadly_tanky = await lookup_creature(
+        Using armor class and hit points filters:
+            well_armored_creatures = await search_creature(armor_class_min=15)
+            heavily_armored = await search_creature(armor_class_min=18)
+            tanky_creatures = await search_creature(hit_points_min=100)
+            deadly_tanky = await search_creature(
                 armor_class_min=16, hit_points_min=75, cr_min=5
             )
 
-        With document filtering (NEW in Phase 3):
-            srd_only = await lookup_creature(documents=["srd-5e"])
-            tasha_creatures = await lookup_creature(
+        With document filtering:
+            srd_only = await search_creature(documents=["srd-5e"])
+            tasha_creatures = await search_creature(
                 documents=["srd-5e", "tce"]
             )
-            phb_and_dmg = await lookup_creature(
+            phb_and_dmg = await search_creature(
                 documents=["phb", "dmg"], cr_min=5
             )
 
         Semantic search (natural language queries):
-            fire_creatures = await lookup_creature(
+            fire_creatures = await search_creature(
                 semantic_query="fire breathing flying beast"
             )
-            undead_minions = await lookup_creature(
+            undead_minions = await search_creature(
                 semantic_query="shambling corpse horde"
             )
-            intelligent_foes = await lookup_creature(
+            intelligent_foes = await search_creature(
                 semantic_query="cunning spellcaster manipulator"
             )
 
         Hybrid search (semantic + filters):
-            fire_dragons = await lookup_creature(
+            fire_dragons = await search_creature(
                 semantic_query="fire breathing", type="dragon", cr_min=10
             )
-            weak_undead = await lookup_creature(
+            weak_undead = await search_creature(
                 semantic_query="shambling minion", type="undead", cr_max=2
             )
 
         With test context injection (testing):
-            from lorekeeper_mcp.tools.creature_lookup import _repository_context
+            from lorekeeper_mcp.tools.search_creature import _repository_context
             custom_repo = CreatureRepository(cache=my_cache)
             _repository_context["repository"] = custom_repo
-            creatures = await lookup_creature(size="Tiny")
+            creatures = await search_creature(size="Tiny")
 
       Args:
           name: Creature name or partial name search. Matches creatures containing this substring.

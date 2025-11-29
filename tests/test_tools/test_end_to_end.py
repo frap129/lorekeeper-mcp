@@ -7,22 +7,32 @@ import pytest
 
 from lorekeeper_mcp.models import Creature, Spell
 from lorekeeper_mcp.tools import (
-    character_option_lookup,
-    creature_lookup,
-    equipment_lookup,
-    lookup_character_option,
-    lookup_creature,
-    lookup_equipment,
-    lookup_rule,
-    lookup_spell,
-    rule_lookup,
-    spell_lookup,
+    search_character_option,
+    search_creature,
+    search_equipment,
+    search_rule,
+    search_spell,
+)
+from lorekeeper_mcp.tools import (
+    search_character_option as search_character_option_module,
+)
+from lorekeeper_mcp.tools import (
+    search_creature as search_creature_module,
+)
+from lorekeeper_mcp.tools import (
+    search_equipment as search_equipment_module,
+)
+from lorekeeper_mcp.tools import (
+    search_rule as search_rule_module,
+)
+from lorekeeper_mcp.tools import (
+    search_spell as search_spell_module,
 )
 
 
 @pytest.mark.asyncio
-async def test_full_spell_lookup_workflow():
-    """Test complete spell lookup workflow."""
+async def test_full_spell_search_workflow():
+    """Test complete spell search workflow."""
     # Create a mock spell repository that returns Spell objects
     spell_obj = Spell(
         name="Fireball",
@@ -45,14 +55,14 @@ async def test_full_spell_lookup_workflow():
     mock_spell_repository = MagicMock()
     mock_spell_repository.search = AsyncMock(return_value=[spell_obj])
 
-    # Use context-based injection for spell lookup
-    spell_lookup._repository_context["repository"] = mock_spell_repository
+    # Use context-based injection for spell search
+    search_spell_module._repository_context["repository"] = mock_spell_repository
     try:
-        result = await lookup_spell(name="Fireball", level=3, limit=5)
+        result = await search_spell(name="Fireball", level=3, limit=5)
     finally:
         # Clean up context
-        if "repository" in spell_lookup._repository_context:
-            del spell_lookup._repository_context["repository"]
+        if "repository" in search_spell_module._repository_context:
+            del search_spell_module._repository_context["repository"]
 
     assert isinstance(result, list)
     assert len(result) == 1
@@ -64,8 +74,8 @@ async def test_full_spell_lookup_workflow():
 
 
 @pytest.mark.asyncio
-async def test_full_creature_lookup_workflow():
-    """Test complete creature lookup workflow."""
+async def test_full_creature_search_workflow():
+    """Test complete creature search workflow."""
     # Create a mock creature repository that returns Creature objects
     creature_obj = Creature(
         name="Ancient Red Dragon",
@@ -94,14 +104,14 @@ async def test_full_creature_lookup_workflow():
     mock_creature_repository = MagicMock()
     mock_creature_repository.search = AsyncMock(return_value=[creature_obj])
 
-    # Use context-based injection for creature lookup
-    creature_lookup._repository_context["repository"] = mock_creature_repository
+    # Use context-based injection for creature search
+    search_creature_module._repository_context["repository"] = mock_creature_repository
     try:
-        result = await lookup_creature(name="Ancient Red Dragon", cr=24)
+        result = await search_creature(name="Ancient Red Dragon", cr=24)
     finally:
         # Clean up context
-        if "repository" in creature_lookup._repository_context:
-            del creature_lookup._repository_context["repository"]
+        if "repository" in search_creature_module._repository_context:
+            del search_creature_module._repository_context["repository"]
 
     assert isinstance(result, list)
     assert len(result) == 1
@@ -118,23 +128,23 @@ async def test_all_tools_callable():
     """Verify all tools can be imported and called."""
 
     # All should be async callables
-    assert callable(lookup_spell)
-    assert callable(lookup_creature)
-    assert callable(lookup_character_option)
-    assert callable(lookup_equipment)
-    assert callable(lookup_rule)
+    assert callable(search_spell)
+    assert callable(search_creature)
+    assert callable(search_character_option)
+    assert callable(search_equipment)
+    assert callable(search_rule)
 
     # Verify they're async
-    assert inspect.iscoroutinefunction(lookup_spell)
-    assert inspect.iscoroutinefunction(lookup_creature)
-    assert inspect.iscoroutinefunction(lookup_character_option)
-    assert inspect.iscoroutinefunction(lookup_equipment)
-    assert inspect.iscoroutinefunction(lookup_rule)
+    assert inspect.iscoroutinefunction(search_spell)
+    assert inspect.iscoroutinefunction(search_creature)
+    assert inspect.iscoroutinefunction(search_character_option)
+    assert inspect.iscoroutinefunction(search_equipment)
+    assert inspect.iscoroutinefunction(search_rule)
 
 
 @pytest.mark.asyncio
-async def test_character_option_lookup_workflow():
-    """Test character option lookup workflow."""
+async def test_character_option_search_workflow():
+    """Test character option search workflow."""
 
     # Create a mock character option repository
     # The repository returns dicts directly from search method
@@ -144,10 +154,12 @@ async def test_character_option_lookup_workflow():
     )
 
     # Use repository context pattern
-    character_option_lookup._repository_context["repository"] = mock_character_option_repository
+    search_character_option_module._repository_context["repository"] = (
+        mock_character_option_repository
+    )
 
     try:
-        result = await lookup_character_option(
+        result = await search_character_option(
             type="class",
             name="Wizard",
         )
@@ -158,13 +170,13 @@ async def test_character_option_lookup_workflow():
         assert option["name"] == "Wizard"
     finally:
         # Clean up context
-        if "repository" in character_option_lookup._repository_context:
-            del character_option_lookup._repository_context["repository"]
+        if "repository" in search_character_option_module._repository_context:
+            del search_character_option_module._repository_context["repository"]
 
 
 @pytest.mark.asyncio
-async def test_equipment_lookup_workflow():
-    """Test equipment lookup workflow."""
+async def test_equipment_search_workflow():
+    """Test equipment search workflow."""
     # Create mock equipment objects with model_dump method
     mock_weapon = MagicMock()
     mock_weapon.name = "Longsword"
@@ -178,16 +190,16 @@ async def test_equipment_lookup_workflow():
     mock_equipment_repository.search = AsyncMock(return_value=[mock_weapon])
 
     # Set up context injection
-    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+    search_equipment_module._repository_context["repository"] = mock_equipment_repository
 
-    result = await lookup_equipment(
+    result = await search_equipment(
         type="weapon",
         name="Longsword",
     )
 
     # Clean up context
-    if "repository" in equipment_lookup._repository_context:
-        del equipment_lookup._repository_context["repository"]
+    if "repository" in search_equipment_module._repository_context:
+        del search_equipment_module._repository_context["repository"]
 
     assert isinstance(result, list)
     assert len(result) == 1
@@ -197,8 +209,8 @@ async def test_equipment_lookup_workflow():
 
 
 @pytest.mark.asyncio
-async def test_rule_lookup_workflow():
-    """Test rule lookup workflow."""
+async def test_rule_search_workflow():
+    """Test rule search workflow."""
 
     mock_repository = MagicMock()
     mock_repository.search = AsyncMock(
@@ -206,13 +218,13 @@ async def test_rule_lookup_workflow():
     )
 
     # Set up context injection
-    rule_lookup._repository_context["repository"] = mock_repository
+    search_rule_module._repository_context["repository"] = mock_repository
 
-    result = await lookup_rule(rule_type="condition", name="Grappled")
+    result = await search_rule(rule_type="condition", name="Grappled")
 
     # Clean up context
-    if "repository" in rule_lookup._repository_context:
-        del rule_lookup._repository_context["repository"]
+    if "repository" in search_rule_module._repository_context:
+        del search_rule_module._repository_context["repository"]
 
     assert isinstance(result, list)
     assert len(result) == 1

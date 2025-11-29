@@ -1,4 +1,4 @@
-"""Tests for spell lookup tool."""
+"""Tests for spell search tool."""
 
 import inspect
 from unittest.mock import AsyncMock, MagicMock
@@ -7,8 +7,8 @@ import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
 from lorekeeper_mcp.models import Spell
-from lorekeeper_mcp.tools import spell_lookup
-from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+from lorekeeper_mcp.tools import search_spell as search_spell_module
+from lorekeeper_mcp.tools.search_spell import search_spell
 
 
 @pytest.fixture
@@ -23,15 +23,15 @@ def mock_spell_repository() -> MagicMock:
 @pytest.fixture
 def repository_context(mock_spell_repository):
     """Fixture to inject mock repository via context for tests."""
-    spell_lookup._repository_context["repository"] = mock_spell_repository
+    search_spell_module._repository_context["repository"] = mock_spell_repository
     yield mock_spell_repository
     # Clean up after test
-    if "repository" in spell_lookup._repository_context:
-        del spell_lookup._repository_context["repository"]
+    if "repository" in search_spell_module._repository_context:
+        del search_spell_module._repository_context["repository"]
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_by_name(repository_context):
+async def test_search_spell_by_name(repository_context):
     """Test looking up spell by exact name."""
     spell_obj = Spell(
         name="Fireball",
@@ -54,7 +54,7 @@ async def test_lookup_spell_by_name(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    result = await lookup_spell(name="Fireball")
+    result = await search_spell(name="Fireball")
 
     assert len(result) == 1
     assert result[0]["name"] == "Fireball"
@@ -64,7 +64,7 @@ async def test_lookup_spell_by_name(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_with_filters(repository_context):
+async def test_search_spell_with_filters(repository_context):
     """Test spell lookup with multiple filters."""
     spell_obj = Spell(
         name="Fireball",
@@ -87,7 +87,7 @@ async def test_lookup_spell_with_filters(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    await lookup_spell(
+    await search_spell(
         level=3,
         school="evocation",
         concentration=False,
@@ -101,31 +101,31 @@ async def test_lookup_spell_with_filters(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_empty_results(repository_context):
+async def test_search_spell_empty_results(repository_context):
     """Test spell lookup with no results."""
     repository_context.search.return_value = []
 
-    result = await lookup_spell(name="NonexistentSpell")
+    result = await search_spell(name="NonexistentSpell")
 
     assert result == []
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_api_error(repository_context):
+async def test_search_spell_api_error(repository_context):
     """Test spell lookup handles API errors gracefully."""
     repository_context.search.side_effect = ApiError("API unavailable")
 
     with pytest.raises(ApiError, match="API unavailable"):
-        await lookup_spell(name="Fireball")
+        await search_spell(name="Fireball")
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_network_error(repository_context):
+async def test_search_spell_network_error(repository_context):
     """Test spell lookup handles network errors."""
     repository_context.search.side_effect = NetworkError("Connection timeout")
 
     with pytest.raises(NetworkError, match="Connection timeout"):
-        await lookup_spell(name="Fireball")
+        await search_spell(name="Fireball")
 
 
 @pytest.mark.asyncio
@@ -154,7 +154,7 @@ async def test_spell_search_by_name_server_side(repository_context):
     repository_context.search.return_value = [spell_fireball]
 
     # Call with name filter - should pass to repository
-    result = await lookup_spell(name="fireball")
+    result = await search_spell(name="fireball")
 
     # Should return Fireball
     assert len(result) == 1
@@ -167,8 +167,8 @@ async def test_spell_search_by_name_server_side(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_limit_applied(repository_context):
-    """Test that lookup_spell applies limit to results."""
+async def test_search_spell_limit_applied(repository_context):
+    """Test that search_spell applies limit to results."""
     spells = [
         Spell(
             name=f"Spell {i}",
@@ -193,23 +193,23 @@ async def test_lookup_spell_limit_applied(repository_context):
 
     repository_context.search.return_value = spells
 
-    result = await lookup_spell(limit=5)
+    result = await search_spell(limit=5)
 
     # Should only return 5 spells even though repository returned 29
     assert len(result) == 5
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_default_repository():
-    """Test that lookup_spell creates default repository when not provided."""
+async def test_search_spell_default_repository():
+    """Test that search_spell creates default repository when not provided."""
     # This test verifies the function no longer accepts repository parameter
     # and instead uses context-based injection
-    sig = inspect.signature(lookup_spell)
+    sig = inspect.signature(search_spell)
     assert "repository" not in sig.parameters
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_by_class_key(repository_context):
+async def test_search_spell_by_class_key(repository_context):
     """Test filtering spells by character class."""
     wizard_spell = Spell(
         name="Fireball",
@@ -234,7 +234,7 @@ async def test_lookup_spell_by_class_key(repository_context):
     # Repository filters by class (server-side) and returns only wizard spells
     repository_context.search.return_value = [wizard_spell]
 
-    results = await lookup_spell(class_key="wizard", limit=10)
+    results = await search_spell(class_key="wizard", limit=10)
 
     # Should return wizard spells
     assert len(results) == 1
@@ -246,7 +246,7 @@ async def test_lookup_spell_by_class_key(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_with_level_min(repository_context):
+async def test_search_spell_with_level_min(repository_context):
     """Test filtering spells by minimum level."""
     spell_obj = Spell(
         name="Fireball",
@@ -269,7 +269,7 @@ async def test_lookup_spell_with_level_min(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    result = await lookup_spell(level_min=3)
+    result = await search_spell(level_min=3)
 
     assert len(result) == 1
     assert result[0]["level"] == 3
@@ -279,7 +279,7 @@ async def test_lookup_spell_with_level_min(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_with_level_max(repository_context):
+async def test_search_spell_with_level_max(repository_context):
     """Test filtering spells by maximum level."""
     spell_obj = Spell(
         name="Magic Missile",
@@ -302,7 +302,7 @@ async def test_lookup_spell_with_level_max(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    result = await lookup_spell(level_max=3)
+    result = await search_spell(level_max=3)
 
     assert len(result) == 1
     assert result[0]["level"] == 1
@@ -312,7 +312,7 @@ async def test_lookup_spell_with_level_max(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_with_level_range(repository_context):
+async def test_search_spell_with_level_range(repository_context):
     """Test filtering spells by level range using both min and max."""
     spell_obj = Spell(
         name="Fireball",
@@ -335,7 +335,7 @@ async def test_lookup_spell_with_level_range(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    result = await lookup_spell(level_min=1, level_max=5)
+    result = await search_spell(level_min=1, level_max=5)
 
     assert len(result) == 1
     assert result[0]["level"] == 3
@@ -346,7 +346,7 @@ async def test_lookup_spell_with_level_range(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_with_damage_type(repository_context):
+async def test_search_spell_with_damage_type(repository_context):
     """Test filtering spells by damage type."""
     fire_spell = Spell(
         name="Fireball",
@@ -369,7 +369,7 @@ async def test_lookup_spell_with_damage_type(repository_context):
 
     repository_context.search.return_value = [fire_spell]
 
-    result = await lookup_spell(damage_type="fire")
+    result = await search_spell(damage_type="fire")
 
     assert len(result) == 1
     assert result[0]["name"] == "Fireball"
@@ -379,8 +379,8 @@ async def test_lookup_spell_with_damage_type(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_backward_compatibility(repository_context):
-    """Test that lookup_spell is backward compatible without new parameters."""
+async def test_search_spell_backward_compatibility(repository_context):
+    """Test that search_spell is backward compatible without new parameters."""
     spell_obj = Spell(
         name="Fireball",
         slug="fireball",
@@ -403,7 +403,7 @@ async def test_lookup_spell_backward_compatibility(repository_context):
     repository_context.search.return_value = [spell_obj]
 
     # Call without new parameters - should work as before
-    result = await lookup_spell(name="Fireball")
+    result = await search_spell(name="Fireball")
 
     assert len(result) == 1
     assert result[0]["name"] == "Fireball"
@@ -416,7 +416,7 @@ async def test_lookup_spell_backward_compatibility(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_with_document_filter(repository_context):
+async def test_search_spell_with_document_filter(repository_context):
     """Test looking up spells filtered by document name."""
     spell_obj = Spell(
         name="Fireball",
@@ -439,7 +439,7 @@ async def test_lookup_spell_with_document_filter(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    results = await lookup_spell(documents=["System Reference Document 5.1"], level=3)
+    results = await search_spell(documents=["System Reference Document 5.1"], level=3)
 
     # Verify repository was called with document filter
     repository_context.search.assert_awaited_once()
@@ -453,8 +453,8 @@ async def test_lookup_spell_with_document_filter(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_with_documents(repository_context):
-    """Test lookup_spell with documents filter."""
+async def test_search_spell_with_documents(repository_context):
+    """Test search_spell with documents filter."""
     spell_obj = Spell(
         name="Fireball",
         slug="fireball",
@@ -476,7 +476,7 @@ async def test_lookup_spell_with_documents(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    results = await lookup_spell(name="fireball", documents=["srd-5e"])
+    results = await search_spell(name="fireball", documents=["srd-5e"])
 
     assert len(results) == 1
     assert results[0]["document"] == "srd-5e"
@@ -488,7 +488,7 @@ async def test_lookup_spell_with_documents(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_with_semantic_query(repository_context):
+async def test_search_spell_with_semantic_query(repository_context):
     """Test spell lookup with semantic_query parameter."""
     spell_obj = Spell(
         name="Fireball",
@@ -511,7 +511,7 @@ async def test_lookup_spell_with_semantic_query(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    result = await lookup_spell(semantic_query="fire damage explosion")
+    result = await search_spell(semantic_query="fire damage explosion")
 
     assert len(result) == 1
     assert result[0]["name"] == "Fireball"
@@ -523,7 +523,7 @@ async def test_lookup_spell_with_semantic_query(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_semantic_query_with_filters(repository_context):
+async def test_search_spell_semantic_query_with_filters(repository_context):
     """Test spell lookup combining semantic_query with traditional filters."""
     spell_obj = Spell(
         name="Fireball",
@@ -546,7 +546,7 @@ async def test_lookup_spell_semantic_query_with_filters(repository_context):
 
     repository_context.search.return_value = [spell_obj]
 
-    result = await lookup_spell(semantic_query="fire explosion", level=3, school="evocation")
+    result = await search_spell(semantic_query="fire explosion", level=3, school="evocation")
 
     assert len(result) == 1
 
@@ -558,7 +558,7 @@ async def test_lookup_spell_semantic_query_with_filters(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_spell_semantic_query_none_not_passed(repository_context):
+async def test_search_spell_semantic_query_none_not_passed(repository_context):
     """Test that semantic_query=None is not passed to repository."""
     spell_obj = Spell(
         name="Fireball",
@@ -582,7 +582,7 @@ async def test_lookup_spell_semantic_query_none_not_passed(repository_context):
     repository_context.search.return_value = [spell_obj]
 
     # Call without semantic_query (default is None)
-    await lookup_spell(name="Fireball")
+    await search_spell(name="Fireball")
 
     call_kwargs = repository_context.search.call_args[1]
     # semantic_query should not be in the params when None

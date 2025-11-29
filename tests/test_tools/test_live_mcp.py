@@ -23,15 +23,15 @@ import time
 
 import pytest
 
-from lorekeeper_mcp.tools.character_option_lookup import lookup_character_option
-from lorekeeper_mcp.tools.creature_lookup import lookup_creature
-from lorekeeper_mcp.tools.equipment_lookup import lookup_equipment
-from lorekeeper_mcp.tools.rule_lookup import lookup_rule
-from lorekeeper_mcp.tools.spell_lookup import lookup_spell
+from lorekeeper_mcp.tools.search_character_option import search_character_option
+from lorekeeper_mcp.tools.search_creature import search_creature
+from lorekeeper_mcp.tools.search_equipment import search_equipment
+from lorekeeper_mcp.tools.search_rule import search_rule
+from lorekeeper_mcp.tools.search_spell import search_spell
 
 
 class TestLiveSpellLookup:
-    """Live tests for lookup_spell tool."""
+    """Live tests for search_spell tool."""
 
     @pytest.mark.live
     @pytest.mark.asyncio
@@ -39,7 +39,7 @@ class TestLiveSpellLookup:
         """Verify well-known spell can be found by name."""
 
         await rate_limiter("open5e")
-        results = await lookup_spell(name="Magic Missile")
+        results = await search_spell(name="Magic Missile")
 
         assert len(results) > 0, "Should find at least one 'Magic Missile' spell"
         first_result = results[0]
@@ -54,7 +54,7 @@ class TestLiveSpellLookup:
         """Verify non-existent spell returns empty results."""
 
         await rate_limiter("open5e")
-        results = await lookup_spell(name="NonexistentSpell12345XYZ")
+        results = await search_spell(name="NonexistentSpell12345XYZ")
 
         assert len(results) == 0, "Non-existent spell should return empty list"
 
@@ -64,7 +64,7 @@ class TestLiveSpellLookup:
         """Verify spell response contains expected schema fields."""
 
         await rate_limiter("open5e")
-        results = await lookup_spell(name="Fireball")
+        results = await search_spell(name="Fireball")
 
         assert len(results) > 0, "Should find Fireball spell"
         spell = results[0]
@@ -85,7 +85,7 @@ class TestLiveSpellLookup:
         """Verify level filtering returns only spells of specified level."""
 
         await rate_limiter("open5e")
-        results = await lookup_spell(level=0, limit=10)
+        results = await search_spell(level=0, limit=10)
 
         assert len(results) >= 5, "Should find at least 5 cantrips"
         for spell in results:
@@ -99,7 +99,7 @@ class TestLiveSpellLookup:
         """Verify school filtering returns only spells of specified school."""
 
         await rate_limiter("open5e")
-        results = await lookup_spell(school="evocation", limit=10)
+        results = await search_spell(school="evocation", limit=10)
 
         assert len(results) >= 1, "Should find at least 1 evocation spell"
         for spell in results:
@@ -113,7 +113,7 @@ class TestLiveSpellLookup:
 
         await rate_limiter("open5e")
         # Find wizard spells that require concentration
-        results = await lookup_spell(class_key="wizard", concentration=True, limit=10)
+        results = await search_spell(class_key="wizard", concentration=True, limit=10)
 
         assert len(results) >= 5, "Should find at least 5 wizard concentration spells"
         # Note: API might not return concentration field in all cases
@@ -125,7 +125,7 @@ class TestLiveSpellLookup:
         """Verify limit parameter restricts result count."""
 
         await rate_limiter("open5e")
-        results = await lookup_spell(limit=5)
+        results = await search_spell(limit=5)
 
         assert len(results) <= 5, f"Requested limit=5 but got {len(results)} results"
         assert len(results) > 0, "Should return some results"
@@ -138,12 +138,12 @@ class TestLiveSpellLookup:
         await rate_limiter("open5e")
 
         # First call - cache miss (no filters, just limit)
-        first_results = await lookup_spell(limit=20)
+        first_results = await search_spell(limit=20)
 
         assert len(first_results) > 0, "Should find spells"
 
         # Second call - cache hit (identical call should reuse cached API results)
-        second_results = await lookup_spell(limit=20)
+        second_results = await search_spell(limit=20)
 
         assert second_results == first_results, "Cached results should match"
         # Second call might not always be faster due to network variance,
@@ -160,15 +160,15 @@ class TestLiveSpellLookup:
         await rate_limiter("open5e")
 
         # Make multiple calls with same parameters
-        call1 = await lookup_spell(limit=10)
+        call1 = await search_spell(limit=10)
         assert len(call1) > 0, "Should get results"
 
         # Second call should return same results (cache is working)
-        call2 = await lookup_spell(limit=10)
+        call2 = await search_spell(limit=10)
         assert call2 == call1, "Repeated queries should return identical results from cache"
 
         # Third call for consistency
-        call3 = await lookup_spell(limit=10)
+        call3 = await search_spell(limit=10)
         assert call3 == call1, "All identical queries should return same cached results"
 
     @pytest.mark.live
@@ -180,9 +180,9 @@ class TestLiveSpellLookup:
 
         # Execute two different queries with different API parameters
         # These result in different cache entries
-        results_level0 = await lookup_spell(level=0, limit=10)
+        results_level0 = await search_spell(level=0, limit=10)
         await rate_limiter("open5e")
-        results_level1 = await lookup_spell(level=1, limit=10)
+        results_level1 = await search_spell(level=1, limit=10)
 
         assert (
             results_level0 != results_level1
@@ -190,11 +190,11 @@ class TestLiveSpellLookup:
 
         # Verify both are cached independently
         start_0 = time.time()
-        cached_level0 = await lookup_spell(level=0, limit=10)
+        cached_level0 = await search_spell(level=0, limit=10)
         duration_0 = time.time() - start_0
 
         start_1 = time.time()
-        cached_level1 = await lookup_spell(level=1, limit=10)
+        cached_level1 = await search_spell(level=1, limit=10)
         duration_1 = time.time() - start_1
 
         assert cached_level0 == results_level0, "Level 0 cache should work"
@@ -211,7 +211,7 @@ class TestLiveSpellLookup:
         await rate_limiter("open5e")
 
         # Try invalid school - should return empty or handle gracefully
-        results = await lookup_spell(school="InvalidSchoolXYZ123")
+        results = await search_spell(school="InvalidSchoolXYZ123")
 
         # Should not crash - either empty results or filtered out
         assert isinstance(results, list), "Should return list even with invalid school"
@@ -225,7 +225,7 @@ class TestLiveSpellLookup:
 
         # Negative limit should be handled gracefully
         try:
-            results = await lookup_spell(limit=-5)
+            results = await search_spell(limit=-5)
             # If it doesn't raise, should return empty or default
             assert isinstance(results, list), "Should return list"
         except (ValueError, AssertionError):
@@ -240,14 +240,14 @@ class TestLiveSpellLookup:
         await rate_limiter("open5e")
 
         # Query that should match nothing
-        results = await lookup_spell(name="ZZZNonexistent", level=9, school="abjuration")
+        results = await search_spell(name="ZZZNonexistent", level=9, school="abjuration")
 
         assert isinstance(results, list), "Should return list"
         assert len(results) == 0, "Should return empty list for no matches"
 
 
 class TestLiveCreatureLookup:
-    """Live tests for lookup_creature tool."""
+    """Live tests for search_creature tool."""
 
     @pytest.mark.live
     @pytest.mark.asyncio
@@ -255,7 +255,7 @@ class TestLiveCreatureLookup:
         """Verify creatures can be found by name search."""
 
         await rate_limiter("open5e")
-        results = await lookup_creature(name="Goblin", limit=50)
+        results = await search_creature(name="Goblin", limit=50)
 
         assert len(results) > 0, "Should find creatures matching 'Goblin'"
         # Verify at least one result contains "goblin" in name
@@ -268,7 +268,7 @@ class TestLiveCreatureLookup:
         """Verify non-existent creature returns empty results."""
 
         await rate_limiter("open5e")
-        results = await lookup_creature(name="NonexistentCreature12345XYZ")
+        results = await search_creature(name="NonexistentCreature12345XYZ")
 
         assert len(results) == 0, "Non-existent creature should return empty list"
 
@@ -278,7 +278,7 @@ class TestLiveCreatureLookup:
         """Verify creature response contains expected schema fields."""
 
         await rate_limiter("open5e")
-        results = await lookup_creature(name="Goblin")
+        results = await search_creature(name="Goblin")
 
         assert len(results) > 0, "Should find Goblin"
         creature = results[0]
@@ -296,7 +296,7 @@ class TestLiveCreatureLookup:
         """Verify CR filtering returns creatures of specified challenge rating."""
 
         await rate_limiter("open5e")
-        results = await lookup_creature(cr=1, limit=10)
+        results = await search_creature(cr=1, limit=10)
 
         assert len(results) >= 3, "Should find at least 3 CR 1 creatures"
         for creature in results:
@@ -310,7 +310,7 @@ class TestLiveCreatureLookup:
         """Verify type filtering returns creatures of specified type."""
 
         await rate_limiter("open5e")
-        results = await lookup_creature(type="Beast", limit=10)
+        results = await search_creature(type="Beast", limit=10)
 
         assert len(results) >= 5, "Should find at least 5 beasts"
         for creature in results:
@@ -323,7 +323,7 @@ class TestLiveCreatureLookup:
         """Verify size filtering returns creatures of specified size."""
 
         await rate_limiter("open5e")
-        results = await lookup_creature(size="Large", limit=10)
+        results = await search_creature(size="Large", limit=10)
 
         assert len(results) >= 3, "Should find at least 3 Large creatures"
         for creature in results:
@@ -338,9 +338,9 @@ class TestLiveCreatureLookup:
         await rate_limiter("open5e")
 
         # First call
-        first = await lookup_creature(name="Dragon")
+        first = await search_creature(name="Dragon")
         # Second call (cached)
-        second = await lookup_creature(name="Dragon")
+        second = await search_creature(name="Dragon")
 
         assert second == first, "Cached results should match"
 
@@ -350,7 +350,7 @@ class TestLiveCreatureLookup:
         """Verify handling of invalid creature type."""
 
         await rate_limiter("open5e")
-        results = await lookup_creature(type="InvalidType123")
+        results = await search_creature(type="InvalidType123")
 
         # Should not crash
         assert isinstance(results, list), "Should return list"
@@ -361,14 +361,14 @@ class TestLiveCreatureLookup:
         """Verify handling of no matches."""
 
         await rate_limiter("open5e")
-        results = await lookup_creature(name="ZZZNonexistent", cr=30)
+        results = await search_creature(name="ZZZNonexistent", cr=30)
 
         assert isinstance(results, list), "Should return list"
         assert len(results) == 0, "Should return empty list"
 
 
 class TestLiveEquipmentLookup:
-    """Live tests for lookup_equipment tool."""
+    """Live tests for search_equipment tool."""
 
     @pytest.mark.live
     @pytest.mark.asyncio
@@ -376,7 +376,7 @@ class TestLiveEquipmentLookup:
         """Verify weapon lookup returns weapons."""
 
         await rate_limiter("open5e")
-        results = await lookup_equipment(type="weapon", limit=10)
+        results = await search_equipment(type="weapon", limit=10)
 
         assert len(results) > 0, "Should find weapons"
         # Verify the first result has weapon-like properties
@@ -390,7 +390,7 @@ class TestLiveEquipmentLookup:
         """Verify armor lookup with AC properties."""
 
         await rate_limiter("open5e")
-        results = await lookup_equipment(type="armor", limit=10)
+        results = await search_equipment(type="armor", limit=10)
 
         assert len(results) >= 5, "Should find at least 5 armor items"
 
@@ -402,14 +402,14 @@ class TestLiveEquipmentLookup:
         await rate_limiter("open5e")
 
         # Query weapons only to avoid magic items API issues
-        first = await lookup_equipment(type="weapon", limit=10)
-        second = await lookup_equipment(type="weapon", limit=10)
+        first = await search_equipment(type="weapon", limit=10)
+        second = await search_equipment(type="weapon", limit=10)
 
         assert first == second, "Cached results should match"
 
 
 class TestLiveCharacterOptionLookup:
-    """Live tests for lookup_character_option tool."""
+    """Live tests for search_character_option tool."""
 
     @pytest.mark.live
     @pytest.mark.asyncio
@@ -417,7 +417,7 @@ class TestLiveCharacterOptionLookup:
         """Verify class lookup returns expected classes."""
 
         await rate_limiter("open5e")
-        results = await lookup_character_option(type="class", limit=100)
+        results = await search_character_option(type="class", limit=100)
 
         assert len(results) >= 12, "Should find at least 12 classes"
         class_names = [c["name"].lower() for c in results]
@@ -430,7 +430,7 @@ class TestLiveCharacterOptionLookup:
         """Verify race lookup returns expected races."""
 
         await rate_limiter("open5e")
-        results = await lookup_character_option(type="race", limit=100)
+        results = await search_character_option(type="race", limit=100)
 
         assert len(results) >= 9, "Should find at least 9 races"
         race_names = [r["name"].lower() for r in results]
@@ -443,13 +443,13 @@ class TestLiveCharacterOptionLookup:
         """Verify feat lookup returns expected feats."""
 
         await rate_limiter("open5e")
-        results = await lookup_character_option(type="feat")
+        results = await search_character_option(type="feat")
 
         assert len(results) >= 20, "Should find at least 20 feats"
 
 
 class TestLiveRuleLookup:
-    """Live tests for lookup_rule tool."""
+    """Live tests for search_rule tool."""
 
     @pytest.mark.live
     @pytest.mark.asyncio
@@ -457,7 +457,7 @@ class TestLiveRuleLookup:
         """Verify condition lookup returns expected conditions."""
 
         await rate_limiter("open5e")
-        results = await lookup_rule(rule_type="condition")
+        results = await search_rule(rule_type="condition")
 
         assert len(results) >= 10, "Should find at least 10 conditions"
         condition_names = [c["name"].lower() for c in results]
@@ -470,7 +470,7 @@ class TestLiveRuleLookup:
         """Verify skill lookup returns expected skills."""
 
         await rate_limiter("open5e")
-        results = await lookup_rule(rule_type="skill")
+        results = await search_rule(rule_type="skill")
 
         # Open5e v2 includes skills from multiple game systems
         assert len(results) >= 18, f"Expected at least 18 skills, got {len(results)}"
@@ -484,7 +484,7 @@ class TestLiveRuleLookup:
         """Verify ability score lookup returns exactly 6 abilities."""
 
         await rate_limiter("open5e")
-        results = await lookup_rule(rule_type="ability-score")
+        results = await search_rule(rule_type="ability-score")
 
         # D&D 5e has exactly 6 ability scores
         assert len(results) == 6, f"Expected 6 abilities, got {len(results)}"
@@ -506,9 +506,9 @@ class TestLiveCacheValidation:
         await rate_limiter("open5e")
 
         # Call both tools
-        spells = await lookup_spell(name="Fire")
+        spells = await search_spell(name="Fire")
         await rate_limiter("open5e")
-        creatures = await lookup_creature(name="Fire")
+        creatures = await search_creature(name="Fire")
 
         # Should get different results (spells vs creatures)
         assert spells != creatures, "Different tools should have different results"
@@ -521,19 +521,19 @@ class TestLiveCacheValidation:
         await rate_limiter("open5e")
 
         # Different level parameters should be cached separately
-        level0 = await lookup_spell(level=0, limit=5)
+        level0 = await search_spell(level=0, limit=5)
         await rate_limiter("open5e")
-        level1 = await lookup_spell(level=1, limit=5)
+        level1 = await search_spell(level=1, limit=5)
 
         assert level0 != level1, "Different parameters should yield different results"
 
         # Both should be cached
         start = time.time()
-        cached0 = await lookup_spell(level=0, limit=5)
+        cached0 = await search_spell(level=0, limit=5)
         duration0 = time.time() - start
 
         start = time.time()
-        cached1 = await lookup_spell(level=1, limit=5)
+        cached1 = await search_spell(level=1, limit=5)
         duration1 = time.time() - start
 
         assert cached0 == level0, "Level 0 cache should work"
@@ -553,7 +553,7 @@ class TestLivePerformance:
         await rate_limiter("open5e")
 
         start = time.time()
-        results = await lookup_spell(name="Detect Magic")
+        results = await search_spell(name="Detect Magic")
         duration = time.time() - start
 
         assert len(results) > 0, "Should find spell"
@@ -567,11 +567,11 @@ class TestLivePerformance:
         await rate_limiter("open5e")
 
         # Prime cache
-        await lookup_creature(name="Goblin")
+        await search_creature(name="Goblin")
 
         # Measure cached performance
         start = time.time()
-        await lookup_creature(name="Goblin")
+        await search_creature(name="Goblin")
         duration = time.time() - start
 
         assert duration < 0.05, f"Cached call took {duration:.3f}s, expected <0.05s"
@@ -604,8 +604,8 @@ class TestLiveMCPProtocol:
 
     @pytest.mark.live
     @pytest.mark.asyncio
-    async def test_lookup_spell_with_document_filter_live(self, mcp_server, rate_limiter) -> None:
-        """Live test for lookup_spell with documents via MCP protocol."""
+    async def test_search_spell_with_document_filter_live(self, mcp_server, rate_limiter) -> None:
+        """Live test for search_spell with documents via MCP protocol."""
         await rate_limiter("open5e")
 
         # First get documents
@@ -620,7 +620,7 @@ class TestLiveMCPProtocol:
         # Now search with document filter
         response = await self.call_mcp_tool(
             mcp_server,
-            "lookup_spell",
+            "search_spell",
             {"documents": [doc_key], "limit": 5},
         )
 

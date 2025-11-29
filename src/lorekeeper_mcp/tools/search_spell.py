@@ -1,9 +1,7 @@
-"""Spell lookup tool using the repository pattern for caching.
+"""Spell search tool with hybrid semantic and structured filtering.
 
-This module provides spell lookup functionality with automatic database caching
-through the repository pattern. The repository abstracts away cache management,
-allowing you to focus on spell searching. Cache misses automatically fetch from
-the D&D 5e API and store results for future queries.
+This module provides spell lookup functionality using both semantic/vector search
+and structured filtering through the repository pattern.
 
 Architecture:
     - Uses SpellRepository for cache-aside pattern
@@ -12,21 +10,21 @@ Architecture:
 
 Examples:
     Default usage (automatically creates repository):
-        spells = await lookup_spell(level=3, school="evocation")
+        spells = await search_spell(level=3, school="evocation")
 
     With context-based injection (testing):
-        from lorekeeper_mcp.tools.spell_lookup import _repository_context
+        from lorekeeper_mcp.tools.search_spell import _repository_context
         from lorekeeper_mcp.repositories.spell import SpellRepository
 
         repository = SpellRepository(cache=my_cache)
         _repository_context["repository"] = repository
-        spells = await lookup_spell(level=3)
+        spells = await search_spell(level=3)
 
     Name search with filtering:
-        spells = await lookup_spell(name="fireball", limit=5)
+        spells = await search_spell(name="fireball", limit=5)
 
     Advanced filtering:
-        spells = await lookup_spell(level=0, class_key="wizard")"""
+        spells = await search_spell(level=0, class_key="wizard")"""
 
 from typing import Any, cast
 
@@ -50,16 +48,7 @@ def _get_repository() -> SpellRepository:
     return RepositoryFactory.create_spell_repository()
 
 
-def clear_spell_cache() -> None:
-    """Clear the spell cache (deprecated).
-
-    This function is deprecated and kept for backward compatibility.
-    Cache management is now handled by the repository pattern with
-    database-backed persistence.
-    """
-
-
-async def lookup_spell(
+async def search_spell(
     name: str | None = None,
     level: int | None = None,
     level_min: int | None = None,
@@ -89,62 +78,62 @@ async def lookup_spell(
 
     Examples:
         Basic spell lookup by name:
-            spells = await lookup_spell(name="fireball")
-            spells = await lookup_spell(name="shield")
+            spells = await search_spell(name="fireball")
+            spells = await search_spell(name="shield")
 
         Filtering by level:
-            cantrips = await lookup_spell(level=0)
-            high_level_spells = await lookup_spell(level=5)
+            cantrips = await search_spell(level=0)
+            high_level_spells = await search_spell(level=5)
 
-        Using level ranges (NEW):
-            mid_level_spells = await lookup_spell(level_min=3, level_max=5)
-            powerful_spells = await lookup_spell(level_min=5)
-            beginner_spells = await lookup_spell(level_max=2)
+        Using level ranges:
+            mid_level_spells = await search_spell(level_min=3, level_max=5)
+            powerful_spells = await search_spell(level_min=5)
+            beginner_spells = await search_spell(level_max=2)
 
         Filtering by school and other properties:
-            evocation_spells = await lookup_spell(school="evocation")
-            wizard_spells = await lookup_spell(class_key="wizard")
-            ritual_spells = await lookup_spell(ritual=True)
-            concentration_spells = await lookup_spell(concentration=True)
+            evocation_spells = await search_spell(school="evocation")
+            wizard_spells = await search_spell(class_key="wizard")
+            ritual_spells = await search_spell(ritual=True)
+            concentration_spells = await search_spell(concentration=True)
 
-        Filtering by damage type (NEW):
-            fire_spells = await lookup_spell(damage_type="fire")
-            cold_spells = await lookup_spell(damage_type="cold")
-            necrotic_spells = await lookup_spell(damage_type="necrotic")
+        Filtering by damage type:
+            fire_spells = await search_spell(damage_type="fire")
+            cold_spells = await search_spell(damage_type="cold")
+            necrotic_spells = await search_spell(damage_type="necrotic")
 
-        Filtering by document (NEW):
-            srd_only = await lookup_spell(documents=["srd-5e"])
-            srd_and_tasha = await lookup_spell(documents=["srd-5e", "tce"])
+        Filtering by document:
+            srd_only = await search_spell(documents=["srd-5e"])
+            srd_and_tasha = await search_spell(documents=["srd-5e", "tce"])
 
         Complex queries combining multiple filters:
-            evocation_fire_spells = await lookup_spell(
+            evocation_fire_spells = await search_spell(
                 school="evocation", damage_type="fire"
             )
-            cleric_rituals = await lookup_spell(
+            cleric_rituals = await search_spell(
                 class_key="cleric", ritual=True, level_min=1
             )
-            mid_level_wizard_spells = await lookup_spell(
+            mid_level_wizard_spells = await search_spell(
                 class_key="wizard", level_min=3, level_max=5, limit=10
             )
 
         Semantic search (natural language queries):
-            fire_spells = await lookup_spell(semantic_query="fire damage explosion")
-            healing_spells = await lookup_spell(semantic_query="restore health allies")
-            protection = await lookup_spell(semantic_query="defensive barrier ward")
+            fire_spells = await search_spell(semantic_query="fire damage explosion")
+            healing_spells = await search_spell(semantic_query="restore health allies")
+            protection = await search_spell(semantic_query="defensive barrier ward")
 
         Hybrid search (semantic + filters):
-            fire_evocation = await lookup_spell(
+            fire_evocation = await search_spell(
                 semantic_query="fire explosion", school="evocation"
             )
-            low_level_healing = await lookup_spell(
+            low_level_healing = await search_spell(
                 semantic_query="heal wounds", level_max=3
             )
 
         With test context injection (testing):
-            from lorekeeper_mcp.tools.spell_lookup import _repository_context
+            from lorekeeper_mcp.tools.search_spell import _repository_context
             custom_repo = SpellRepository(cache=my_cache)
             _repository_context["repository"] = custom_repo
-            spells = await lookup_spell(level=0)
+            spells = await search_spell(level=0)
 
     Args:
         name: Spell name or partial name search. Case-insensitive substring match against

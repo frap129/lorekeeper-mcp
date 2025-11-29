@@ -1,4 +1,4 @@
-"""Rule lookup tool using the repository pattern for caching.
+"""Rule search tool using the repository pattern for caching.
 
 This module provides comprehensive D&D 5e game rules, conditions, and reference
 information with automatic database caching through the repository pattern. The
@@ -12,8 +12,8 @@ Architecture:
 
 Examples:
     Default usage (automatically creates repository):
-        conditions = await lookup_rule(rule_type="condition")
-        skills = await lookup_rule(rule_type="skill", name="stealth")
+        conditions = await search_rule(rule_type="condition")
+        skills = await search_rule(rule_type="skill", name="stealth")
 
     With custom repository (dependency injection):
         from lorekeeper_mcp.repositories.rule import RuleRepository
@@ -21,12 +21,12 @@ Examples:
 
         cache = MilvusCache(db_path="/path/to/cache.db")
         repository = RuleRepository(cache=cache)
-        rules = await lookup_rule(rule_type="rule", repository=repository)
+        rules = await search_rule(rule_type="rule", repository=repository)
 
     Reference data queries:
-        abilities = await lookup_rule(rule_type="ability-score")
-        damage_types = await lookup_rule(rule_type="damage-type")
-        alignments = await lookup_rule(rule_type="alignment")"""
+        abilities = await search_rule(rule_type="ability-score")
+        damage_types = await search_rule(rule_type="damage-type")
+        alignments = await search_rule(rule_type="alignment")"""
 
 from typing import Any, Literal, cast
 
@@ -64,7 +64,7 @@ RuleType = Literal[
 ]
 
 
-async def lookup_rule(
+async def search_rule(
     rule_type: RuleType,
     name: str | None = None,
     section: str | None = None,
@@ -81,23 +81,23 @@ async def lookup_rule(
     Uses the repository pattern with database caching for improved performance.
 
     Examples:
-         - lookup_rule(rule_type="condition", name="grappled") - Find grappled condition rules
-         - lookup_rule(rule_type="skill", name="stealth") - Find stealth skill details
-         - lookup_rule(rule_type="damage-type", name="fire") - Find fire damage rules
-         - lookup_rule(rule_type="rule", section="combat") - Find all combat rules
-         - lookup_rule(rule_type="ability-score") - Get all ability score info
-         - lookup_rule(rule_type="alignment") - Find alignment descriptions
-         - lookup_rule(rule_type="magic-school", name="evocation") - Find evocation school info
-         - lookup_rule(rule_type="rule", documents=["srd-5e"]) - Find rules from SRD only
-         - lookup_rule(rule_type="condition", name="grappled", documents=["srd-5e", "tce"]) - Filter conditions by documents
+         - search_rule(rule_type="condition", name="grappled") - Find grappled condition rules
+         - search_rule(rule_type="skill", name="stealth") - Find stealth skill details
+         - search_rule(rule_type="damage-type", name="fire") - Find fire damage rules
+         - search_rule(rule_type="rule", section="combat") - Find all combat rules
+         - search_rule(rule_type="ability-score") - Get all ability score info
+         - search_rule(rule_type="alignment") - Find alignment descriptions
+         - search_rule(rule_type="magic-school", name="evocation") - Find evocation school info
+         - search_rule(rule_type="rule", documents=["srd-5e"]) - Find rules from SRD only
+         - search_rule(rule_type="condition", name="grappled", documents=["srd-5e", "tce"]) - Filter conditions by documents
 
         Semantic search (natural language queries):
-         - lookup_rule(rule_type="condition", semantic_query="movement restricted") - Find conditions affecting movement
-         - lookup_rule(rule_type="damage-type", semantic_query="burning heat") - Find fire-related damage
-         - lookup_rule(rule_type="skill", semantic_query="sneaking hiding") - Find stealth-related skills
+         - search_rule(rule_type="condition", semantic_query="movement restricted") - Find conditions affecting movement
+         - search_rule(rule_type="damage-type", semantic_query="burning heat") - Find fire-related damage
+         - search_rule(rule_type="skill", semantic_query="sneaking hiding") - Find stealth-related skills
 
         Hybrid search (semantic + filters):
-         - lookup_rule(rule_type="condition", semantic_query="cannot see", documents=["srd-5e"]) - Find blindness/vision conditions
+         - search_rule(rule_type="condition", semantic_query="cannot see", documents=["srd-5e"]) - Find blindness/vision conditions
 
     Args:
         rule_type: **REQUIRED.** Type of game reference to lookup. Must be one of:

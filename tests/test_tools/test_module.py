@@ -2,11 +2,12 @@
 
 from lorekeeper_mcp import tools
 from lorekeeper_mcp.tools import (
-    lookup_character_option,
-    lookup_creature,
-    lookup_equipment,
-    lookup_rule,
-    lookup_spell,
+    search_all,
+    search_character_option,
+    search_creature,
+    search_equipment,
+    search_rule,
+    search_spell,
 )
 
 
@@ -19,8 +20,9 @@ def test_tools_module_exists():
 def test_tools_init_exports():
     """Verify __init__ exports all tool functions."""
 
-    assert callable(lookup_spell)
-    assert callable(lookup_creature)
-    assert callable(lookup_character_option)
-    assert callable(lookup_equipment)
-    assert callable(lookup_rule)
+    assert callable(search_all)
+    assert callable(search_spell)
+    assert callable(search_creature)
+    assert callable(search_character_option)
+    assert callable(search_equipment)
+    assert callable(search_rule)

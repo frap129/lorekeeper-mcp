@@ -1,4 +1,4 @@
-"""Tests for creature lookup tool."""
+"""Tests for creature search tool."""
 
 import inspect
 from unittest.mock import AsyncMock, MagicMock
@@ -7,8 +7,8 @@ import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
 from lorekeeper_mcp.models import Creature
-from lorekeeper_mcp.tools import creature_lookup
-from lorekeeper_mcp.tools.creature_lookup import lookup_creature
+from lorekeeper_mcp.tools import search_creature as search_creature_module
+from lorekeeper_mcp.tools.search_creature import search_creature
 
 
 @pytest.fixture
@@ -23,15 +23,15 @@ def mock_monster_repository() -> MagicMock:
 @pytest.fixture
 def repository_context(mock_monster_repository):
     """Fixture to inject mock repository via context for tests."""
-    creature_lookup._repository_context["repository"] = mock_monster_repository
+    search_creature_module._repository_context["repository"] = mock_monster_repository
     yield mock_monster_repository
     # Clean up after test
-    if "repository" in creature_lookup._repository_context:
-        del creature_lookup._repository_context["repository"]
+    if "repository" in search_creature_module._repository_context:
+        del search_creature_module._repository_context["repository"]
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_by_name(repository_context):
+async def test_search_creature_by_name(repository_context):
     """Test looking up creature by exact name."""
     creature_obj = Creature(
         name="Ancient Red Dragon",
@@ -61,7 +61,7 @@ async def test_lookup_creature_by_name(repository_context):
 
     repository_context.search.return_value = [creature_obj]
 
-    result = await lookup_creature(name="Ancient Red Dragon")
+    result = await search_creature(name="Ancient Red Dragon")
 
     assert len(result) == 1
     assert result[0]["name"] == "Ancient Red Dragon"
@@ -70,7 +70,7 @@ async def test_lookup_creature_by_name(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_by_cr_and_type(repository_context):
+async def test_search_creature_by_cr_and_type(repository_context):
     """Test creature lookup with CR and type filters."""
     creature_obj = Creature(
         name="Zombie",
@@ -98,7 +98,7 @@ async def test_lookup_creature_by_cr_and_type(repository_context):
 
     repository_context.search.return_value = [creature_obj]
 
-    await lookup_creature(cr=5, type="undead", limit=15)
+    await search_creature(cr=5, type="undead", limit=15)
 
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["challenge_rating"] == 5.0  # Maps cr -> challenge_rating
@@ -107,7 +107,7 @@ async def test_lookup_creature_by_cr_and_type(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_fractional_cr(repository_context):
+async def test_search_creature_fractional_cr(repository_context):
     """Test creature lookup with fractional CR."""
     creature_obj = Creature(
         name="Goblin",
@@ -135,14 +135,14 @@ async def test_lookup_creature_fractional_cr(repository_context):
 
     repository_context.search.return_value = [creature_obj]
 
-    await lookup_creature(cr=0.25)
+    await search_creature(cr=0.25)
 
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["challenge_rating"] == 0.25  # Maps cr -> challenge_rating
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_cr_range(repository_context):
+async def test_search_creature_cr_range(repository_context):
     """Test creature lookup with CR range."""
     creatures = [
         Creature(
@@ -173,7 +173,7 @@ async def test_lookup_creature_cr_range(repository_context):
 
     repository_context.search.return_value = creatures
 
-    await lookup_creature(cr_min=1, cr_max=3)
+    await search_creature(cr_min=1, cr_max=3)
 
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["cr_min"] == 1
@@ -181,31 +181,31 @@ async def test_lookup_creature_cr_range(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_empty_results(repository_context):
+async def test_search_creature_empty_results(repository_context):
     """Test creature lookup with no results."""
     repository_context.search.return_value = []
 
-    result = await lookup_creature(name="Nonexistent")
+    result = await search_creature(name="Nonexistent")
 
     assert result == []
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_api_error(repository_context):
+async def test_search_creature_api_error(repository_context):
     """Test creature lookup handles API errors gracefully."""
     repository_context.search.side_effect = ApiError("API unavailable")
 
     with pytest.raises(ApiError, match="API unavailable"):
-        await lookup_creature(name="Dragon")
+        await search_creature(name="Dragon")
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_network_error(repository_context):
+async def test_search_creature_network_error(repository_context):
     """Test creature lookup handles network errors."""
     repository_context.search.side_effect = NetworkError("Connection timeout")
 
     with pytest.raises(NetworkError, match="Connection timeout"):
-        await lookup_creature(name="Dragon")
+        await search_creature(name="Dragon")
 
 
 @pytest.mark.asyncio
@@ -242,7 +242,7 @@ async def test_creature_search_by_name_client_side(repository_context):
     ]
 
     # Call with name filter - repository does server-side filtering
-    result = await lookup_creature(name="red")
+    result = await search_creature(name="red")
 
     # Should only return Ancient Red Dragon
     assert len(result) == 1
@@ -253,8 +253,8 @@ async def test_creature_search_by_name_client_side(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_limit_applied(repository_context):
-    """Test that lookup_creature applies limit to results."""
+async def test_search_creature_limit_applied(repository_context):
+    """Test that search_creature applies limit to results."""
     creatures = [
         Creature(
             name=f"Creature {i}",
@@ -284,23 +284,23 @@ async def test_lookup_creature_limit_applied(repository_context):
 
     repository_context.search.return_value = creatures
 
-    result = await lookup_creature(limit=5)
+    result = await search_creature(limit=5)
 
     # Should only return 5 creatures even though repository returned 29
     assert len(result) == 5
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_default_repository():
-    """Test that lookup_creature creates default repository when not provided."""
+async def test_search_creature_default_repository():
+    """Test that search_creature creates default repository when not provided."""
     # This test verifies the function no longer accepts repository parameter
     # and instead uses context-based injection
-    sig = inspect.signature(lookup_creature)
+    sig = inspect.signature(search_creature)
     assert "repository" not in sig.parameters
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_armor_class_min(repository_context):
+async def test_search_creature_armor_class_min(repository_context):
     """Test creature lookup with armor_class_min filter."""
     creature_obj = Creature(
         name="Ancient Red Dragon",
@@ -330,7 +330,7 @@ async def test_lookup_creature_armor_class_min(repository_context):
 
     repository_context.search.return_value = [creature_obj]
 
-    await lookup_creature(armor_class_min=20)
+    await search_creature(armor_class_min=20)
 
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["armor_class_min"] == 20
@@ -338,7 +338,7 @@ async def test_lookup_creature_armor_class_min(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_hit_points_min(repository_context):
+async def test_search_creature_hit_points_min(repository_context):
     """Test creature lookup with hit_points_min filter."""
     creature_obj = Creature(
         name="Ancient Red Dragon",
@@ -368,7 +368,7 @@ async def test_lookup_creature_hit_points_min(repository_context):
 
     repository_context.search.return_value = [creature_obj]
 
-    await lookup_creature(hit_points_min=500)
+    await search_creature(hit_points_min=500)
 
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["hit_points_min"] == 500
@@ -376,7 +376,7 @@ async def test_lookup_creature_hit_points_min(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_combined_filters(repository_context):
+async def test_search_creature_combined_filters(repository_context):
     """Test creature lookup with armor_class_min and hit_points_min together."""
     creature_obj = Creature(
         name="Ancient Red Dragon",
@@ -406,7 +406,7 @@ async def test_lookup_creature_combined_filters(repository_context):
 
     repository_context.search.return_value = [creature_obj]
 
-    await lookup_creature(armor_class_min=20, hit_points_min=500, cr=10)
+    await search_creature(armor_class_min=20, hit_points_min=500, cr=10)
 
     call_kwargs = repository_context.search.call_args[1]
     assert call_kwargs["armor_class_min"] == 20
@@ -416,7 +416,7 @@ async def test_lookup_creature_combined_filters(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_backward_compatible(repository_context):
+async def test_search_creature_backward_compatible(repository_context):
     """Test that existing calls without new parameters still work."""
     creature_obj = Creature(
         name="Goblin",
@@ -446,7 +446,7 @@ async def test_lookup_creature_backward_compatible(repository_context):
     repository_context.search.return_value = [creature_obj]
 
     # Call without new parameters - should work unchanged
-    result = await lookup_creature(name="goblin")
+    result = await search_creature(name="goblin")
 
     assert len(result) == 1
     assert result[0]["name"] == "Goblin"
@@ -458,7 +458,7 @@ async def test_lookup_creature_backward_compatible(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_with_document_filter(repository_context):
+async def test_search_creature_with_document_filter(repository_context):
     """Test looking up creatures filtered by document name."""
     creature_obj = Creature(
         name="Goblin",
@@ -488,7 +488,7 @@ async def test_lookup_creature_with_document_filter(repository_context):
 
     repository_context.search.return_value = [creature_obj]
 
-    results = await lookup_creature(documents=["System Reference Document 5.1"])
+    results = await search_creature(documents=["System Reference Document 5.1"])
 
     # Verify repository was called with document filter
     repository_context.search.assert_awaited_once()
@@ -501,8 +501,8 @@ async def test_lookup_creature_with_document_filter(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_with_documents(repository_context):
-    """Test lookup_creature with documents filter."""
+async def test_search_creature_with_documents(repository_context):
+    """Test search_creature with documents filter."""
     creature_obj = Creature(
         name="Goblin",
         slug="goblin",
@@ -531,7 +531,7 @@ async def test_lookup_creature_with_documents(repository_context):
 
     repository_context.search.return_value = [creature_obj]
 
-    results = await lookup_creature(name="goblin", documents=["srd-5e"])
+    results = await search_creature(name="goblin", documents=["srd-5e"])
 
     # Verify repository was called with document as documents
     repository_context.search.assert_awaited_once()
@@ -544,7 +544,7 @@ async def test_lookup_creature_with_documents(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_with_semantic_query(repository_context):
+async def test_search_creature_with_semantic_query(repository_context):
     """Test creature lookup with semantic_query parameter."""
     creature_obj = Creature(
         name="Ancient Red Dragon",
@@ -574,7 +574,7 @@ async def test_lookup_creature_with_semantic_query(repository_context):
 
     repository_context.search.return_value = [creature_obj]
 
-    result = await lookup_creature(semantic_query="fire breathing flying beast")
+    result = await search_creature(semantic_query="fire breathing flying beast")
 
     assert len(result) == 1
     assert result[0]["name"] == "Ancient Red Dragon"
@@ -586,7 +586,7 @@ async def test_lookup_creature_with_semantic_query(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_semantic_query_with_filters(repository_context):
+async def test_search_creature_semantic_query_with_filters(repository_context):
     """Test creature lookup combining semantic_query with traditional filters."""
     creature_obj = Creature(
         name="Ancient Red Dragon",
@@ -616,7 +616,7 @@ async def test_lookup_creature_semantic_query_with_filters(repository_context):
 
     repository_context.search.return_value = [creature_obj]
 
-    result = await lookup_creature(semantic_query="fire breathing", type="dragon", cr_min=20)
+    result = await search_creature(semantic_query="fire breathing", type="dragon", cr_min=20)
 
     assert len(result) == 1
 
@@ -628,7 +628,7 @@ async def test_lookup_creature_semantic_query_with_filters(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_creature_semantic_query_none_not_passed(repository_context):
+async def test_search_creature_semantic_query_none_not_passed(repository_context):
     """Test that semantic_query=None is not passed to repository."""
     creature_obj = Creature(
         name="Goblin",
@@ -658,7 +658,7 @@ async def test_lookup_creature_semantic_query_none_not_passed(repository_context
     repository_context.search.return_value = [creature_obj]
 
     # Call without semantic_query (default is None)
-    await lookup_creature(name="Goblin")
+    await search_creature(name="Goblin")
 
     call_kwargs = repository_context.search.call_args[1]
     # semantic_query should not be in the params when None

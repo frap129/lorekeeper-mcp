@@ -1,4 +1,4 @@
-"""Tests for equipment lookup tool."""
+"""Tests for equipment search tool."""
 
 import inspect
 from typing import Any
@@ -8,10 +8,10 @@ import pytest
 
 from lorekeeper_mcp.api_clients.exceptions import ApiError, NetworkError
 from lorekeeper_mcp.models import Armor, MagicItem, Weapon
-from lorekeeper_mcp.tools import equipment_lookup
-from lorekeeper_mcp.tools.equipment_lookup import (
+from lorekeeper_mcp.tools import search_equipment as search_equipment_module
+from lorekeeper_mcp.tools.search_equipment import (
     _repository_context,
-    lookup_equipment,
+    search_equipment,
 )
 
 
@@ -27,11 +27,11 @@ def mock_equipment_repository() -> MagicMock:
 @pytest.fixture
 def repository_context(mock_equipment_repository):
     """Fixture to inject mock repository via context for tests."""
-    equipment_lookup._repository_context["repository"] = mock_equipment_repository
+    search_equipment_module._repository_context["repository"] = mock_equipment_repository
     yield mock_equipment_repository
     # Clean up after test
-    if "repository" in equipment_lookup._repository_context:
-        del equipment_lookup._repository_context["repository"]
+    if "repository" in search_equipment_module._repository_context:
+        del search_equipment_module._repository_context["repository"]
 
 
 @pytest.fixture
@@ -125,11 +125,11 @@ def sample_wand_of_fireballs() -> MagicItem:
 
 
 @pytest.mark.asyncio
-async def test_lookup_weapon(repository_context, sample_longsword):
+async def test_search_weapon(repository_context, sample_longsword):
     """Test looking up a weapon."""
     repository_context.search.return_value = [sample_longsword]
 
-    result = await lookup_equipment(type="weapon", name="Longsword")
+    result = await search_equipment(type="weapon", name="Longsword")
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
@@ -138,11 +138,11 @@ async def test_lookup_weapon(repository_context, sample_longsword):
 
 
 @pytest.mark.asyncio
-async def test_lookup_armor(repository_context, sample_chain_mail):
+async def test_search_armor(repository_context, sample_chain_mail):
     """Test looking up armor."""
     repository_context.search.return_value = [sample_chain_mail]
 
-    result = await lookup_equipment(type="armor", name="Chain Mail")
+    result = await search_equipment(type="armor", name="Chain Mail")
 
     assert len(result) == 1
     assert result[0]["name"] == "Chain Mail"
@@ -151,11 +151,11 @@ async def test_lookup_armor(repository_context, sample_chain_mail):
 
 
 @pytest.mark.asyncio
-async def test_lookup_simple_weapons(repository_context, sample_dagger):
+async def test_search_simple_weapons(repository_context, sample_dagger):
     """Test filtering for simple weapons."""
     repository_context.search.return_value = [sample_dagger]
 
-    result = await lookup_equipment(type="weapon", is_simple=True)
+    result = await search_equipment(type="weapon", is_simple=True)
 
     assert len(result) == 1
     assert result[0]["is_simple"] is True
@@ -166,11 +166,11 @@ async def test_lookup_simple_weapons(repository_context, sample_dagger):
 
 
 @pytest.mark.asyncio
-async def test_lookup_armor_by_category(repository_context, sample_leather):
+async def test_search_armor_by_category(repository_context, sample_leather):
     """Test looking up armor by category."""
     repository_context.search.return_value = [sample_leather]
 
-    result = await lookup_equipment(type="armor")
+    result = await search_equipment(type="armor")
 
     assert len(result) == 1
     assert result[0]["category"] == "Light"
@@ -180,33 +180,33 @@ async def test_lookup_armor_by_category(repository_context, sample_leather):
 
 
 @pytest.mark.asyncio
-async def test_lookup_equipment_api_error(repository_context):
-    """Test equipment lookup handles API errors gracefully."""
+async def test_search_equipment_api_error(repository_context):
+    """Test equipment search handles API errors gracefully."""
     repository_context.search.side_effect = ApiError("API unavailable")
 
     with pytest.raises(ApiError, match="API unavailable"):
-        await lookup_equipment(type="weapon")
+        await search_equipment(type="weapon")
 
 
 @pytest.mark.asyncio
-async def test_lookup_equipment_network_error(repository_context):
-    """Test equipment lookup handles network errors."""
+async def test_search_equipment_network_error(repository_context):
+    """Test equipment search handles network errors."""
     repository_context.search.side_effect = NetworkError("Connection timeout")
 
     with pytest.raises(NetworkError, match="Connection timeout"):
-        await lookup_equipment(type="armor")
+        await search_equipment(type="armor")
 
 
 @pytest.mark.asyncio
 async def test_equipment_search_by_name_client_side(
     repository_context, sample_longsword, sample_dagger
 ):
-    """Test that equipment lookup passes name filter to repository for server-side filtering."""
+    """Test that equipment search passes name filter to repository for server-side filtering."""
     # Repository returns only matching weapon when called with name filter
     repository_context.search.return_value = [sample_longsword]
 
     # Call with name filter - should pass to repository
-    result = await lookup_equipment(type="weapon", name="longsword")
+    result = await search_equipment(type="weapon", name="longsword")
 
     # Should only return Longsword
     assert len(result) == 1
@@ -219,8 +219,8 @@ async def test_equipment_search_by_name_client_side(
 
 
 @pytest.mark.asyncio
-async def test_lookup_equipment_limit_applied(repository_context):
-    """Test that lookup_equipment passes limit to repository for server-side limiting."""
+async def test_search_equipment_limit_applied(repository_context):
+    """Test that search_equipment passes limit to repository for server-side limiting."""
     weapons = [
         Weapon(
             name=f"Weapon {i}",
@@ -240,7 +240,7 @@ async def test_lookup_equipment_limit_applied(repository_context):
 
     repository_context.search.return_value = weapons
 
-    result = await lookup_equipment(type="weapon", limit=5)
+    result = await search_equipment(type="weapon", limit=5)
 
     # Should return 5 weapons from repository (server-side limit)
     assert len(result) == 5
@@ -249,14 +249,14 @@ async def test_lookup_equipment_limit_applied(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_equipment_default_repository():
-    """Test that lookup_equipment does NOT have repository parameter in signature."""
-    sig = inspect.signature(lookup_equipment)
+async def test_search_equipment_default_repository():
+    """Test that search_equipment does NOT have repository parameter in signature."""
+    sig = inspect.signature(search_equipment)
     assert "repository" not in sig.parameters
 
 
 @pytest.mark.asyncio
-async def test_lookup_magic_items(repository_context):
+async def test_search_magic_items(repository_context):
     """Test looking up magic items."""
     sample_bag = MagicItem(
         name="Bag of Holding",
@@ -268,7 +268,7 @@ async def test_lookup_magic_items(repository_context):
 
     repository_context.search.return_value = [sample_bag]
 
-    result = await lookup_equipment(type="magic-item", name="Bag")
+    result = await search_equipment(type="magic-item", name="Bag")
 
     assert len(result) == 1
     assert result[0]["name"] == "Bag of Holding"
@@ -277,7 +277,7 @@ async def test_lookup_magic_items(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_magic_items_by_rarity(repository_context):
+async def test_search_magic_items_by_rarity(repository_context):
     """Test filtering magic items by rarity."""
     sample_rare = MagicItem(
         name="Wand of Fireballs",
@@ -289,7 +289,7 @@ async def test_lookup_magic_items_by_rarity(repository_context):
 
     repository_context.search.return_value = [sample_rare]
 
-    result = await lookup_equipment(type="magic-item", rarity="rare")
+    result = await search_equipment(type="magic-item", rarity="rare")
 
     assert len(result) == 1
     assert result[0]["rarity"] == "rare"
@@ -300,7 +300,7 @@ async def test_lookup_magic_items_by_rarity(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_magic_items_by_attunement(repository_context):
+async def test_search_magic_items_by_attunement(repository_context):
     """Test filtering magic items by attunement requirement."""
     sample_attune = MagicItem(
         name="Ring of Protection",
@@ -312,7 +312,7 @@ async def test_lookup_magic_items_by_attunement(repository_context):
 
     repository_context.search.return_value = [sample_attune]
 
-    result = await lookup_equipment(
+    result = await search_equipment(
         type="magic-item",
         requires_attunement="yes",
     )
@@ -326,7 +326,7 @@ async def test_lookup_magic_items_by_attunement(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_all_equipment_types(repository_context):
+async def test_search_all_equipment_types(repository_context):
     """Test searching all equipment types together."""
     sample_longsword = Weapon(
         name="Longsword",
@@ -372,7 +372,7 @@ async def test_lookup_all_equipment_types(repository_context):
 
     repository_context.search.side_effect = search_side_effect
 
-    result = await lookup_equipment(type="all", limit=20)
+    result = await search_equipment(type="all", limit=20)
 
     # Should get one of each type
     assert len(result) == 3
@@ -381,21 +381,21 @@ async def test_lookup_all_equipment_types(repository_context):
 
 
 @pytest.mark.asyncio
-async def test_lookup_magic_items_empty_results(repository_context):
-    """Test magic item lookup when no results are found."""
+async def test_search_magic_items_empty_results(repository_context):
+    """Test magic item search when no results are found."""
     repository_context.search.return_value = []
 
-    result = await lookup_equipment(type="magic-item", name="NonExistent")
+    result = await search_equipment(type="magic-item", name="NonExistent")
 
     assert len(result) == 0
 
 
 @pytest.mark.asyncio
-async def test_lookup_weapon_by_cost_min(repository_context, sample_longsword):
+async def test_search_weapon_by_cost_min(repository_context, sample_longsword):
     """Test filtering weapons by minimum cost."""
     repository_context.search.return_value = [sample_longsword]
 
-    result = await lookup_equipment(type="weapon", cost_min=10)
+    result = await search_equipment(type="weapon", cost_min=10)
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
@@ -406,11 +406,11 @@ async def test_lookup_weapon_by_cost_min(repository_context, sample_longsword):
 
 
 @pytest.mark.asyncio
-async def test_lookup_weapon_by_cost_max(repository_context, sample_dagger):
+async def test_search_weapon_by_cost_max(repository_context, sample_dagger):
     """Test filtering weapons by maximum cost."""
     repository_context.search.return_value = [sample_dagger]
 
-    result = await lookup_equipment(type="weapon", cost_max=5)
+    result = await search_equipment(type="weapon", cost_max=5)
 
     assert len(result) == 1
     assert result[0]["name"] == "Dagger"
@@ -421,11 +421,11 @@ async def test_lookup_weapon_by_cost_max(repository_context, sample_dagger):
 
 
 @pytest.mark.asyncio
-async def test_lookup_armor_by_cost_max(repository_context, sample_leather):
+async def test_search_armor_by_cost_max(repository_context, sample_leather):
     """Test filtering armor by maximum cost."""
     repository_context.search.return_value = [sample_leather]
 
-    result = await lookup_equipment(type="armor", cost_max=10)
+    result = await search_equipment(type="armor", cost_max=10)
 
     assert len(result) == 1
     assert result[0]["name"] == "Leather"
@@ -436,11 +436,11 @@ async def test_lookup_armor_by_cost_max(repository_context, sample_leather):
 
 
 @pytest.mark.asyncio
-async def test_lookup_weapon_by_weight_max(repository_context, sample_dagger):
+async def test_search_weapon_by_weight_max(repository_context, sample_dagger):
     """Test filtering weapons by maximum weight."""
     repository_context.search.return_value = [sample_dagger]
 
-    result = await lookup_equipment(type="weapon", weight_max=3)
+    result = await search_equipment(type="weapon", weight_max=3)
 
     assert len(result) == 1
     assert result[0]["name"] == "Dagger"
@@ -451,11 +451,11 @@ async def test_lookup_weapon_by_weight_max(repository_context, sample_dagger):
 
 
 @pytest.mark.asyncio
-async def test_lookup_weapon_by_is_finesse(repository_context, sample_dagger):
+async def test_search_weapon_by_is_finesse(repository_context, sample_dagger):
     """Test filtering weapons by finesse property."""
     repository_context.search.return_value = [sample_dagger]
 
-    result = await lookup_equipment(type="weapon", is_finesse=True)
+    result = await search_equipment(type="weapon", is_finesse=True)
 
     assert len(result) == 1
     assert result[0]["name"] == "Dagger"
@@ -466,11 +466,11 @@ async def test_lookup_weapon_by_is_finesse(repository_context, sample_dagger):
 
 
 @pytest.mark.asyncio
-async def test_lookup_weapon_by_is_light(repository_context, sample_dagger):
+async def test_search_weapon_by_is_light(repository_context, sample_dagger):
     """Test filtering weapons by light property."""
     repository_context.search.return_value = [sample_dagger]
 
-    result = await lookup_equipment(type="weapon", is_light=True)
+    result = await search_equipment(type="weapon", is_light=True)
 
     assert len(result) == 1
     assert result[0]["name"] == "Dagger"
@@ -481,11 +481,11 @@ async def test_lookup_weapon_by_is_light(repository_context, sample_dagger):
 
 
 @pytest.mark.asyncio
-async def test_lookup_weapon_by_is_magic(repository_context, sample_longsword):
+async def test_search_weapon_by_is_magic(repository_context, sample_longsword):
     """Test filtering weapons by magic property."""
     repository_context.search.return_value = [sample_longsword]
 
-    result = await lookup_equipment(type="weapon", is_magic=True)
+    result = await search_equipment(type="weapon", is_magic=True)
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
@@ -496,11 +496,11 @@ async def test_lookup_weapon_by_is_magic(repository_context, sample_longsword):
 
 
 @pytest.mark.asyncio
-async def test_lookup_weapon_multiple_new_filters(repository_context, sample_longsword):
+async def test_search_weapon_multiple_new_filters(repository_context, sample_longsword):
     """Test filtering weapons with multiple new parameters."""
     repository_context.search.return_value = [sample_longsword]
 
-    result = await lookup_equipment(
+    result = await search_equipment(
         type="weapon",
         cost_min=5,
         cost_max=25,
@@ -520,14 +520,14 @@ async def test_lookup_weapon_multiple_new_filters(repository_context, sample_lon
 
 
 @pytest.mark.asyncio
-async def test_lookup_equipment_backward_compatibility_no_new_params(
+async def test_search_equipment_backward_compatibility_no_new_params(
     repository_context, sample_longsword
 ):
     """Test backward compatibility when new parameters are not used."""
     repository_context.search.return_value = [sample_longsword]
 
     # Old-style call without new parameters should still work
-    result = await lookup_equipment(type="weapon", name="longsword", limit=20)
+    result = await search_equipment(type="weapon", name="longsword", limit=20)
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
@@ -546,11 +546,11 @@ async def test_lookup_equipment_backward_compatibility_no_new_params(
 
 
 @pytest.mark.asyncio
-async def test_lookup_weapon_with_document_filter(repository_context, sample_longsword):
+async def test_search_weapon_with_document_filter(repository_context, sample_longsword):
     """Test filtering weapons by document name."""
     repository_context.search.return_value = [sample_longsword]
 
-    result = await lookup_equipment(type="weapon", documents=["System Reference Document 5.1"])
+    result = await search_equipment(type="weapon", documents=["System Reference Document 5.1"])
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
@@ -561,11 +561,11 @@ async def test_lookup_weapon_with_document_filter(repository_context, sample_lon
 
 
 @pytest.mark.asyncio
-async def test_lookup_armor_with_document_filter(repository_context, sample_chain_mail):
+async def test_search_armor_with_document_filter(repository_context, sample_chain_mail):
     """Test filtering armor by document name."""
     repository_context.search.return_value = [sample_chain_mail]
 
-    result = await lookup_equipment(type="armor", documents=["System Reference Document 5.1"])
+    result = await search_equipment(type="armor", documents=["System Reference Document 5.1"])
 
     assert len(result) == 1
     assert result[0]["name"] == "Chain Mail"
@@ -576,11 +576,11 @@ async def test_lookup_armor_with_document_filter(repository_context, sample_chai
 
 
 @pytest.mark.asyncio
-async def test_lookup_magic_item_with_document_filter(repository_context, sample_bag_of_holding):
+async def test_search_magic_item_with_document_filter(repository_context, sample_bag_of_holding):
     """Test filtering magic items by document name."""
     repository_context.search.return_value = [sample_bag_of_holding]
 
-    result = await lookup_equipment(type="magic-item", documents=["System Reference Document 5.1"])
+    result = await search_equipment(type="magic-item", documents=["System Reference Document 5.1"])
 
     assert len(result) == 1
     assert result[0]["name"] == "Bag of Holding"
@@ -591,8 +591,8 @@ async def test_lookup_magic_item_with_document_filter(repository_context, sample
 
 
 @pytest.mark.asyncio
-async def test_lookup_equipment_with_documents() -> None:
-    """Test lookup_equipment with documents filter."""
+async def test_search_equipment_with_documents() -> None:
+    """Test search_equipment with documents filter."""
 
     # Mock repository
     class MockRepository:
@@ -619,7 +619,7 @@ async def test_lookup_equipment_with_documents() -> None:
     _repository_context["repository"] = MockRepository()
 
     try:
-        results = await lookup_equipment(type="weapon", name="longsword", documents=["srd-5e"])
+        results = await search_equipment(type="weapon", name="longsword", documents=["srd-5e"])
         assert len(results) == 1
         assert results[0]["name"] == "Longsword"
     finally:
@@ -627,11 +627,11 @@ async def test_lookup_equipment_with_documents() -> None:
 
 
 @pytest.mark.asyncio
-async def test_lookup_equipment_with_semantic_query(repository_context, sample_longsword):
-    """Test equipment lookup with semantic_query parameter."""
+async def test_search_equipment_with_semantic_query(repository_context, sample_longsword):
+    """Test equipment search with semantic_query parameter."""
     repository_context.search.return_value = [sample_longsword]
 
-    result = await lookup_equipment(type="weapon", semantic_query="slashing blade for combat")
+    result = await search_equipment(type="weapon", semantic_query="slashing blade for combat")
 
     assert len(result) == 1
     assert result[0]["name"] == "Longsword"
@@ -643,11 +643,11 @@ async def test_lookup_equipment_with_semantic_query(repository_context, sample_l
 
 
 @pytest.mark.asyncio
-async def test_lookup_equipment_semantic_query_with_filters(repository_context, sample_dagger):
-    """Test equipment lookup combining semantic_query with traditional filters."""
+async def test_search_equipment_semantic_query_with_filters(repository_context, sample_dagger):
+    """Test equipment search combining semantic_query with traditional filters."""
     repository_context.search.return_value = [sample_dagger]
 
-    result = await lookup_equipment(
+    result = await search_equipment(
         type="weapon", semantic_query="small throwing knife", is_simple=True
     )
 
@@ -660,14 +660,14 @@ async def test_lookup_equipment_semantic_query_with_filters(repository_context, 
 
 
 @pytest.mark.asyncio
-async def test_lookup_equipment_semantic_query_none_not_passed(
+async def test_search_equipment_semantic_query_none_not_passed(
     repository_context, sample_longsword
 ):
     """Test that semantic_query=None is not passed to repository."""
     repository_context.search.return_value = [sample_longsword]
 
     # Call without semantic_query (default is None)
-    await lookup_equipment(type="weapon", name="Longsword")
+    await search_equipment(type="weapon", name="Longsword")
 
     call_kwargs = repository_context.search.call_args[1]
     # semantic_query should not be in the params when None

@@ -1,6 +1,6 @@
-"""Equipment lookup tool using the repository pattern for caching.
+"""Equipment search tool using the repository pattern for caching.
 
-This module provides comprehensive equipment lookup for weapons, armor, and magic
+This module provides comprehensive equipment search for weapons, armor, and magic
 items with automatic database caching through the repository pattern. The repository
 abstracts away cache management and allows filtering across multiple equipment types.
 
@@ -12,20 +12,20 @@ Architecture:
 
 Examples:
     Default usage (automatically creates repository):
-        weapons = await lookup_equipment(type="weapon", damage_dice="1d8")
-        items = await lookup_equipment(type="magic-item", rarity="rare")
+        weapons = await search_equipment(type="weapon", damage_dice="1d8")
+        items = await search_equipment(type="magic-item", rarity="rare")
 
     With context-based injection (testing):
-        from lorekeeper_mcp.tools.equipment_lookup import _repository_context
+        from lorekeeper_mcp.tools.search_equipment import _repository_context
         from lorekeeper_mcp.repositories.equipment import EquipmentRepository
 
         repository = EquipmentRepository(cache=my_cache)
         _repository_context["repository"] = repository
-        armor = await lookup_equipment(type="armor")
+        armor = await search_equipment(type="armor")
 
     Item type filtering:
-        all_items = await lookup_equipment(type="all", name="chain")
-        simple_weapons = await lookup_equipment(type="weapon", is_simple=True)"""
+        all_items = await search_equipment(type="all", name="chain")
+        simple_weapons = await search_equipment(type="weapon", is_simple=True)"""
 
 from typing import Any, Literal, cast
 
@@ -51,7 +51,7 @@ def _get_repository() -> EquipmentRepository:
     return RepositoryFactory.create_equipment_repository()
 
 
-async def lookup_equipment(
+async def search_equipment(
     type: EquipmentType = "all",  # noqa: A002
     name: str | None = None,
     rarity: str | None = None,
@@ -77,64 +77,64 @@ async def lookup_equipment(
 
         Examples:
             Basic equipment lookup:
-                longswords = await lookup_equipment(type="weapon", name="longsword")
-                rare_items = await lookup_equipment(type="magic-item", rarity="rare")
-                light_armor = await lookup_equipment(type="armor", is_simple=True)
+                longswords = await search_equipment(type="weapon", name="longsword")
+                rare_items = await search_equipment(type="magic-item", rarity="rare")
+                light_armor = await search_equipment(type="armor", is_simple=True)
 
             Using cost ranges (NEW in Phase 3):
-                affordable_weapons = await lookup_equipment(
+                affordable_weapons = await search_equipment(
                     type="weapon", cost_max=25
                 )
-                expensive_items = await lookup_equipment(
+                expensive_items = await search_equipment(
                     type="weapon", cost_min=50, cost_max=100
                 )
 
             Using weight and properties (NEW in Phase 3):
-                lightweight_weapons = await lookup_equipment(
+                lightweight_weapons = await search_equipment(
                     type="weapon", weight_max=3
                 )
-                finesse_weapons = await lookup_equipment(
+                finesse_weapons = await search_equipment(
                     type="weapon", is_finesse=True
                 )
-                light_dual_wield_weapons = await lookup_equipment(
+                light_dual_wield_weapons = await search_equipment(
                     type="weapon", is_light=True
                 )
-                magical_weapons = await lookup_equipment(
+                magical_weapons = await search_equipment(
                     type="weapon", is_magic=True
                 )
 
             Complex equipment queries:
-                affordable_simple_weapons = await lookup_equipment(
+                affordable_simple_weapons = await search_equipment(
                     type="weapon", is_simple=True, cost_max=10
                 )
-                light_finesse_weapons = await lookup_equipment(
+                light_finesse_weapons = await search_equipment(
                     type="weapon", is_light=True, is_finesse=True, limit=10
                 )
-                expensive_magical_weapons = await lookup_equipment(
+                expensive_magical_weapons = await search_equipment(
                     type="weapon", is_magic=True, cost_min=100
                 )
 
             Searching all types:
-                all_chain_items = await lookup_equipment(
+                all_chain_items = await search_equipment(
                     type="all", name="chain"
                 )
 
             Semantic search (natural language queries):
-                melee_weapons = await lookup_equipment(
+                melee_weapons = await search_equipment(
                     type="weapon", semantic_query="slashing blade for close combat"
                 )
-                protective_gear = await lookup_equipment(
+                protective_gear = await search_equipment(
                     type="armor", semantic_query="heavy protective plate"
                 )
-                magical_storage = await lookup_equipment(
+                magical_storage = await search_equipment(
                     type="magic-item", semantic_query="bag that holds items"
                 )
 
             Hybrid search (semantic + filters):
-                finesse_slashing = await lookup_equipment(
+                finesse_slashing = await search_equipment(
                     type="weapon", semantic_query="elegant blade", is_finesse=True
                 )
-                rare_magical = await lookup_equipment(
+                rare_magical = await search_equipment(
                     type="magic-item", semantic_query="fire wand", rarity="rare"
                 )
 

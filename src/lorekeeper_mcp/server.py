@@ -7,12 +7,12 @@ from fastmcp import FastMCP
 
 from lorekeeper_mcp.tools import (
     list_documents,
-    lookup_character_option,
-    lookup_creature,
-    lookup_equipment,
-    lookup_rule,
-    lookup_spell,
-    search_dnd_content,
+    search_all,
+    search_character_option,
+    search_creature,
+    search_equipment,
+    search_rule,
+    search_spell,
 )
 
 
@@ -30,9 +30,9 @@ mcp = FastMCP(
     lifespan=lifespan,
 )
 mcp.tool()(list_documents)
-mcp.tool()(lookup_spell)
-mcp.tool()(lookup_creature)
-mcp.tool()(lookup_character_option)
-mcp.tool()(lookup_equipment)
-mcp.tool()(lookup_rule)
-mcp.tool()(search_dnd_content)
+mcp.tool()(search_spell)
+mcp.tool()(search_creature)
+mcp.tool()(search_character_option)
+mcp.tool()(search_equipment)
+mcp.tool()(search_rule)
+mcp.tool()(search_all)
