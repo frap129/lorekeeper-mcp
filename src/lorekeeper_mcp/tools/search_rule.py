@@ -13,7 +13,7 @@ Architecture:
 Examples:
     Default usage (automatically creates repository):
         conditions = await search_rule(rule_type="condition")
-        skills = await search_rule(rule_type="skill", name="stealth")
+        skills = await search_rule(rule_type="skill", search="stealth")
 
     With custom repository (dependency injection):
         from lorekeeper_mcp.repositories.rule import RuleRepository
@@ -66,10 +66,9 @@ RuleType = Literal[
 
 async def search_rule(
     rule_type: RuleType,
-    name: str | None = None,
     section: str | None = None,
     documents: list[str] | None = None,
-    semantic_query: str | None = None,
+    search: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -81,23 +80,23 @@ async def search_rule(
     Uses the repository pattern with database caching for improved performance.
 
     Examples:
-         - search_rule(rule_type="condition", name="grappled") - Find grappled condition rules
-         - search_rule(rule_type="skill", name="stealth") - Find stealth skill details
-         - search_rule(rule_type="damage-type", name="fire") - Find fire damage rules
+         - search_rule(rule_type="condition", search="grappled") - Find grappled condition rules
+         - search_rule(rule_type="skill", search="stealth") - Find stealth skill details
+         - search_rule(rule_type="damage-type", search="fire") - Find fire damage rules
          - search_rule(rule_type="rule", section="combat") - Find all combat rules
          - search_rule(rule_type="ability-score") - Get all ability score info
          - search_rule(rule_type="alignment") - Find alignment descriptions
-         - search_rule(rule_type="magic-school", name="evocation") - Find evocation school info
+         - search_rule(rule_type="magic-school", search="evocation") - Find evocation school info
          - search_rule(rule_type="rule", documents=["srd-5e"]) - Find rules from SRD only
-         - search_rule(rule_type="condition", name="grappled", documents=["srd-5e", "tce"]) - Filter conditions by documents
+         - search_rule(rule_type="condition", search="grappled", documents=["srd-5e", "tce"]) - Filter conditions by documents
 
         Semantic search (natural language queries):
-         - search_rule(rule_type="condition", semantic_query="movement restricted") - Find conditions affecting movement
-         - search_rule(rule_type="damage-type", semantic_query="burning heat") - Find fire-related damage
-         - search_rule(rule_type="skill", semantic_query="sneaking hiding") - Find stealth-related skills
+         - search_rule(rule_type="condition", search="movement restricted") - Find conditions affecting movement
+         - search_rule(rule_type="damage-type", search="burning heat") - Find fire-related damage
+         - search_rule(rule_type="skill", search="sneaking hiding") - Find stealth-related skills
 
-        Hybrid search (semantic + filters):
-         - search_rule(rule_type="condition", semantic_query="cannot see", documents=["srd-5e"]) - Find blindness/vision conditions
+        Hybrid search (search + filters):
+         - search_rule(rule_type="condition", search="cannot see", documents=["srd-5e"]) - Find blindness/vision conditions
 
     Args:
         rule_type: **REQUIRED.** Type of game reference to lookup. Must be one of:
@@ -118,9 +117,6 @@ async def search_rule(
               Goblin, Orc, Primordial, Sylvan, Undercommon, Celestial, Draconic, Deep Speech, Infernal)
             - "proficiency": Character proficiency types (armor, weapon, tool, saving throw, skill)
             - "alignment": Character alignment axes (Lawful/Chaotic, Good/Evil, Neutral options)
-        name: Optional name or partial name search for filtering results. Matches entries
-            containing this substring. Case-insensitive matching.
-            Examples: "grappled" for conditions, "fire" for damage types, "stealth" for skills
         section: For rule_type="rule" only. Filter rules by section/chapter.
             Examples: "combat", "spellcasting", "movement", "actions-in-combat"
             Ignored for other rule types.
@@ -128,7 +124,7 @@ async def search_rule(
             document names/identifiers from list_documents() tool. Examples:
             ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
             Use list_documents() to see available documents.
-        semantic_query: Natural language search query for semantic/vector search.
+        search: Natural language search query for semantic/vector search.
             When provided, uses vector similarity to find rules matching the
             conceptual meaning rather than exact text matches. Can be combined
             with other filters for hybrid search. Examples: "movement restricted",
@@ -208,14 +204,12 @@ async def search_rule(
     repository = _get_repository()
 
     params: dict[str, Any] = {"rule_type": rule_type}
-    if name is not None:
-        params["name"] = name
     if limit is not None:
         params["limit"] = limit
     if rule_type == "rule" and section is not None:
         params["section"] = section
     if documents is not None:
         params["document"] = documents
-    if semantic_query is not None:
-        params["semantic_query"] = semantic_query
+    if search is not None:
+        params["search"] = search
     return await repository.search(**params)

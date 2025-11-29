@@ -50,7 +50,6 @@ def _get_repository() -> CreatureRepository:
 
 
 async def search_creature(
-    name: str | None = None,
     cr: float | None = None,
     cr_min: float | None = None,
     cr_max: float | None = None,
@@ -59,7 +58,7 @@ async def search_creature(
     armor_class_min: int | None = None,
     hit_points_min: int | None = None,
     documents: list[str] | None = None,
-    semantic_query: str | None = None,
+    search: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -71,7 +70,7 @@ async def search_creature(
 
     Examples:
         Basic creature lookup:
-            creatures = await search_creature(name="dragon")
+            creatures = await search_creature(search="dragon")
             creatures = await search_creature(cr=5)
             medium_creatures = await search_creature(size="Medium")
 
@@ -104,21 +103,21 @@ async def search_creature(
 
         Semantic search (natural language queries):
             fire_creatures = await search_creature(
-                semantic_query="fire breathing flying beast"
+                search="fire breathing flying beast"
             )
             undead_minions = await search_creature(
-                semantic_query="shambling corpse horde"
+                search="shambling corpse horde"
             )
             intelligent_foes = await search_creature(
-                semantic_query="cunning spellcaster manipulator"
+                search="cunning spellcaster manipulator"
             )
 
-        Hybrid search (semantic + filters):
+        Hybrid search (search + filters):
             fire_dragons = await search_creature(
-                semantic_query="fire breathing", type="dragon", cr_min=10
+                search="fire breathing", type="dragon", cr_min=10
             )
             weak_undead = await search_creature(
-                semantic_query="shambling minion", type="undead", cr_max=2
+                search="shambling minion", type="undead", cr_max=2
             )
 
         With test context injection (testing):
@@ -128,8 +127,6 @@ async def search_creature(
             creatures = await search_creature(size="Tiny")
 
       Args:
-          name: Creature name or partial name search. Matches creatures containing this substring.
-              Examples: "dragon", "goblin", "lich", "red dragon"
           cr: Exact Challenge Rating to search for. Supports fractional values including
               0.125, 0.25, 0.5 for weak creatures. Range: 0.125 to 30
               Examples: 0.125 (weak minion), 5 (party challenge), 20 (deadly boss)
@@ -151,7 +148,7 @@ async def search_creature(
               document names/identifiers from list_documents() tool. Examples:
               ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
               Use list_documents() to see available documents.
-          semantic_query: Natural language search query for semantic/vector search.
+          search: Natural language search query for semantic/vector search.
               When provided, uses vector similarity to find creatures matching the
               conceptual meaning rather than exact text matches. Can be combined
               with other filters for hybrid search. Examples: "fire breathing dragon",
@@ -182,8 +179,6 @@ async def search_creature(
     repository = _get_repository()
 
     params: dict[str, Any] = {}
-    if name is not None:
-        params["name"] = name
     if cr is not None:
         params["challenge_rating"] = float(cr)
     if cr_min is not None:
@@ -200,8 +195,8 @@ async def search_creature(
         params["hit_points_min"] = hit_points_min
     if documents is not None:
         params["document"] = documents
-    if semantic_query is not None:
-        params["semantic_query"] = semantic_query
+    if search is not None:
+        params["search"] = search
 
     creatures = await repository.search(limit=limit, **params)
 

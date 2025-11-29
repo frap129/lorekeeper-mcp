@@ -21,7 +21,7 @@ Examples:
         spells = await search_spell(level=3)
 
     Name search with filtering:
-        spells = await search_spell(name="fireball", limit=5)
+        spells = await search_spell(search="fireball", limit=5)
 
     Advanced filtering:
         spells = await search_spell(level=0, class_key="wizard")"""
@@ -49,7 +49,6 @@ def _get_repository() -> SpellRepository:
 
 
 async def search_spell(
-    name: str | None = None,
     level: int | None = None,
     level_min: int | None = None,
     level_max: int | None = None,
@@ -60,7 +59,7 @@ async def search_spell(
     casting_time: str | None = None,
     damage_type: str | None = None,
     documents: list[str] | None = None,
-    semantic_query: str | None = None,
+    search: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -77,9 +76,9 @@ async def search_spell(
     - Supports test context-based repository injection via _repository_context
 
     Examples:
-        Basic spell lookup by name:
-            spells = await search_spell(name="fireball")
-            spells = await search_spell(name="shield")
+        Search for spells:
+            spells = await search_spell(search="fireball")
+            spells = await search_spell(search="healing restoration")
 
         Filtering by level:
             cantrips = await search_spell(level=0)
@@ -117,16 +116,16 @@ async def search_spell(
             )
 
         Semantic search (natural language queries):
-            fire_spells = await search_spell(semantic_query="fire damage explosion")
-            healing_spells = await search_spell(semantic_query="restore health allies")
-            protection = await search_spell(semantic_query="defensive barrier ward")
+            fire_spells = await search_spell(search="fire damage explosion")
+            healing_spells = await search_spell(search="restore health allies")
+            protection = await search_spell(search="defensive barrier ward")
 
-        Hybrid search (semantic + filters):
+        Hybrid search (search + filters):
             fire_evocation = await search_spell(
-                semantic_query="fire explosion", school="evocation"
+                search="fire explosion", school="evocation"
             )
             low_level_healing = await search_spell(
-                semantic_query="heal wounds", level_max=3
+                search="heal wounds", level_max=3
             )
 
         With test context injection (testing):
@@ -136,8 +135,6 @@ async def search_spell(
             spells = await search_spell(level=0)
 
     Args:
-        name: Spell name or partial name search. Case-insensitive substring match against
-            spell names. Examples: "fireball", "magic", "shield", "cure wounds"
         level: Exact spell level ranging from 0-9. 0 represents cantrips/0-level spells,
             9 represents 9th level spells. Example: 3 for exactly 3rd level spells
         level_min: Minimum spell level (inclusive) for range-based searches. Use with
@@ -168,7 +165,7 @@ async def search_spell(
             document names/identifiers from list_documents() tool. Examples:
             ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
             Use list_documents() to see available documents.
-        semantic_query: Natural language search query for semantic/vector search.
+        search: Natural language search query for semantic/vector search.
             When provided, uses vector similarity to find spells matching the
             conceptual meaning rather than exact text matches. Can be combined
             with other filters for hybrid search. Examples: "fire damage explosion",
@@ -201,8 +198,6 @@ async def search_spell(
     repository = _get_repository()
 
     params: dict[str, Any] = {}
-    if name is not None:
-        params["name"] = name
     if level is not None:
         params["level"] = level
     if level_min is not None:
@@ -223,8 +218,8 @@ async def search_spell(
         params["damage_type"] = damage_type
     if documents is not None:
         params["document"] = documents
-    if semantic_query is not None:
-        params["semantic_query"] = semantic_query
+    if search is not None:
+        params["search"] = search
 
     spells = await repository.search(limit=limit, **params)
 

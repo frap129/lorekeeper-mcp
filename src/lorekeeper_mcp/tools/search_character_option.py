@@ -13,7 +13,7 @@ Architecture:
 Examples:
     Default usage (automatically creates repository):
         classes = await search_character_option(type="class")
-        elves = await search_character_option(type="race", name="elf")
+        elves = await search_character_option(type="race", search="elf")
 
     With context-based injection (testing):
         from lorekeeper_mcp.tools.search_character_option import _repository_context
@@ -25,7 +25,7 @@ Examples:
 
     Character building queries:
         all_classes = await search_character_option(type="class")
-        backgrounds = await search_character_option(type="background", name="soldier")"""
+        backgrounds = await search_character_option(type="background", search="soldier")"""
 
 from typing import Any, Literal, cast
 
@@ -53,9 +53,8 @@ def _get_repository() -> CharacterOptionRepository:
 
 async def search_character_option(
     type: OptionType,  # noqa: A002
-    name: str | None = None,
     documents: list[str] | None = None,  # Replaces document_keys
-    semantic_query: str | None = None,
+    search: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -74,9 +73,9 @@ async def search_character_option(
     Examples:
         Default usage (automatic repository creation):
             classes = await search_character_option(type="class")
-            elves = await search_character_option(type="race", name="elf")
-            backgrounds = await search_character_option(type="background", name="soldier")
-            feats = await search_character_option(type="feat", name="great")
+            elves = await search_character_option(type="race", search="elf")
+            backgrounds = await search_character_option(type="background", search="soldier")
+            feats = await search_character_option(type="feat", search="great")
 
         With test context injection (testing):
             from lorekeeper_mcp.tools.search_character_option import _repository_context
@@ -86,18 +85,18 @@ async def search_character_option(
 
         Semantic search (natural language queries):
             warriors = await search_character_option(
-                type="class", semantic_query="martial combat warrior"
+                type="class", search="martial combat warrior"
             )
             sneaky_classes = await search_character_option(
-                type="class", semantic_query="stealthy shadow assassin"
+                type="class", search="stealthy shadow assassin"
             )
             magical_races = await search_character_option(
-                type="race", semantic_query="innate magical abilities"
+                type="race", search="innate magical abilities"
             )
 
-        Hybrid search (semantic + filters):
+        Hybrid search (search + filters):
             srd_fighters = await search_character_option(
-                type="class", semantic_query="melee fighter", documents=["srd-5e"]
+                type="class", search="melee fighter", documents=["srd-5e"]
             )
 
     Args:
@@ -110,14 +109,11 @@ async def search_character_option(
               Folk Hero, Sage, etc.)
             - "feat": Character feats (Ability Score Improvement, Great Weapon Master,
               Magic Initiate, etc.) - typically chosen at levels 4, 8, 12, 16, 19
-        name: Optional name or partial name search. Filters options containing this substring.
-            Examples: "ranger" for classes, "dragon" for feats, "noble" for backgrounds
-            Case-insensitive matching.
         documents: Filter to specific source documents. Provide a list of
             document names/identifiers from list_documents() tool. Examples:
             ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
             Use list_documents() to see available documents.
-        semantic_query: Natural language search query for semantic/vector search.
+        search: Natural language search query for semantic/vector search.
             When provided, uses vector similarity to find character options matching
             the conceptual meaning rather than exact text matches. Can be combined
             with other filters for hybrid search. Examples: "martial combat warrior",
@@ -177,12 +173,9 @@ async def search_character_option(
     }
     if documents is not None:
         params["document"] = documents
-    if semantic_query is not None:
-        params["semantic_query"] = semantic_query
+    if search is not None:
+        params["search"] = search
 
     results: list[dict[str, Any]] = await repository.search(**params)
-    if name is not None and results:
-        name_lower = name.lower()
-        results = [r for r in results if name_lower in r.get("name", "").lower()]
 
     return results

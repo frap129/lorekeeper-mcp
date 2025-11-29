@@ -53,7 +53,6 @@ def _get_repository() -> EquipmentRepository:
 
 async def search_equipment(
     type: EquipmentType = "all",  # noqa: A002
-    name: str | None = None,
     rarity: str | None = None,
     damage_dice: str | None = None,
     is_simple: bool | None = None,
@@ -65,7 +64,7 @@ async def search_equipment(
     is_light: bool | None = None,
     is_magic: bool | None = None,
     documents: list[str] | None = None,  # Replaces document and document_keys
-    semantic_query: str | None = None,
+    search: str | None = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
@@ -77,7 +76,6 @@ async def search_equipment(
 
         Examples:
             Basic equipment lookup:
-                longswords = await search_equipment(type="weapon", name="longsword")
                 rare_items = await search_equipment(type="magic-item", rarity="rare")
                 light_armor = await search_equipment(type="armor", is_simple=True)
 
@@ -116,26 +114,26 @@ async def search_equipment(
 
             Searching all types:
                 all_chain_items = await search_equipment(
-                    type="all", name="chain"
+                    type="all", search="chain"
                 )
 
             Semantic search (natural language queries):
                 melee_weapons = await search_equipment(
-                    type="weapon", semantic_query="slashing blade for close combat"
+                    type="weapon", search="slashing blade for close combat"
                 )
                 protective_gear = await search_equipment(
-                    type="armor", semantic_query="heavy protective plate"
+                    type="armor", search="heavy protective plate"
                 )
                 magical_storage = await search_equipment(
-                    type="magic-item", semantic_query="bag that holds items"
+                    type="magic-item", search="bag that holds items"
                 )
 
-            Hybrid search (semantic + filters):
+            Hybrid search (search + filters):
                 finesse_slashing = await search_equipment(
-                    type="weapon", semantic_query="elegant blade", is_finesse=True
+                    type="weapon", search="elegant blade", is_finesse=True
                 )
                 rare_magical = await search_equipment(
-                    type="magic-item", semantic_query="fire wand", rarity="rare"
+                    type="magic-item", search="fire wand", rarity="rare"
                 )
 
         Args:
@@ -144,8 +142,6 @@ async def search_equipment(
                 - "armor": Protective gear (leather armor, chain mail, plate, etc.)
                 - "magic-item": Magical items (Bag of Holding, Wand of Fireballs, etc.)
                 - "all": Search all equipment types simultaneously (may return many results)
-            name: Item name or partial name search. Matches items containing this substring.
-                Case-insensitive. Examples: "longsword", "chain", "bag", "wand"
             rarity: Magic item rarity filter (weapon/armor types don't use this).
                 Valid values: common, uncommon, rare, very rare, legendary, artifact
                 Example: "rare" for high-value magical items
@@ -174,7 +170,7 @@ async def search_equipment(
                  document names/identifiers from list_documents() tool. Examples:
                  ["srd-5e"] for SRD only, ["srd-5e", "tce"] for SRD and Tasha's.
                  Use list_documents() to see available documents.
-             semantic_query: Natural language search query for semantic/vector search.
+             search: Natural language search query for semantic/vector search.
                  When provided, uses vector similarity to find equipment matching the
                  conceptual meaning rather than exact text matches. Can be combined
                  with other filters for hybrid search. Examples: "slashing weapon for
@@ -223,8 +219,6 @@ async def search_equipment(
 
     if type in ("weapon", "all"):
         weapon_filters: dict[str, Any] = {"item_type": "weapon"}
-        if name is not None:
-            weapon_filters["name"] = name
         if damage_dice is not None:
             weapon_filters["damage_dice"] = damage_dice
         if is_simple is not None:
@@ -243,8 +237,8 @@ async def search_equipment(
             weapon_filters["is_magic"] = is_magic
         if documents is not None:
             weapon_filters["document"] = documents
-        if semantic_query is not None:
-            weapon_filters["semantic_query"] = semantic_query
+        if search is not None:
+            weapon_filters["search"] = search
 
         weapons = await repository.search(limit=limit, **weapon_filters)
 
@@ -253,16 +247,14 @@ async def search_equipment(
 
     if type in ("armor", "all"):
         armor_filters: dict[str, Any] = {"item_type": "armor"}
-        if name is not None:
-            armor_filters["name"] = name
         if cost_min is not None:
             armor_filters["cost_min"] = cost_min
         if cost_max is not None:
             armor_filters["cost_max"] = cost_max
         if documents is not None:
             armor_filters["document"] = documents
-        if semantic_query is not None:
-            armor_filters["semantic_query"] = semantic_query
+        if search is not None:
+            armor_filters["search"] = search
 
         armors = await repository.search(limit=limit, **armor_filters)
 
@@ -271,8 +263,6 @@ async def search_equipment(
 
     if type in ("magic-item", "all"):
         magic_item_filters: dict[str, Any] = {"item_type": "magic-item"}
-        if name is not None:
-            magic_item_filters["name"] = name
         if rarity is not None:
             magic_item_filters["rarity"] = rarity
         if requires_attunement is not None:
@@ -282,8 +272,8 @@ async def search_equipment(
                 magic_item_filters["requires_attunement"] = False
         if documents is not None:
             magic_item_filters["document"] = documents
-        if semantic_query is not None:
-            magic_item_filters["semantic_query"] = semantic_query
+        if search is not None:
+            magic_item_filters["search"] = search
 
         magic_items = await repository.search(limit=limit, **magic_item_filters)
 
