@@ -118,7 +118,7 @@ LoreKeeper uses environment variables for configuration. All settings use the `L
 ```bash
 # Cache backend settings
 LOREKEEPER_CACHE_BACKEND=milvus        # "milvus" (default) or "sqlite"
-LOREKEEPER_MILVUS_DB_PATH=~/.lorekeeper/milvus.db
+LOREKEEPER_MILVUS_DB_PATH=~/.local/share/lorekeeper/milvus.db  # or $XDG_DATA_HOME/lorekeeper/milvus.db
 LOREKEEPER_EMBEDDING_MODEL=all-MiniLM-L6-v2
 
 # SQLite settings (if using sqlite backend)
@@ -189,7 +189,7 @@ Configure Milvus via environment variables:
 # Use Milvus backend (default)
 LOREKEEPER_CACHE_BACKEND=milvus
 
-# Custom database path
+# Custom database path (defaults to $XDG_DATA_HOME/lorekeeper/milvus.db)
 LOREKEEPER_MILVUS_DB_PATH=/path/to/milvus.db
 
 # Alternative embedding model

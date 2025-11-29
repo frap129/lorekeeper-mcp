@@ -76,8 +76,8 @@ Each entity type has its own Milvus collection with the following structure:
 ```python
 from lorekeeper_mcp.cache import MilvusCache
 
-# Create cache instance
-cache = MilvusCache("~/.lorekeeper/milvus.db")
+# Create cache instance (uses XDG_DATA_HOME by default)
+cache = MilvusCache("~/.local/share/lorekeeper/milvus.db")
 
 # Store entities (embeddings generated automatically)
 spells = [
@@ -112,7 +112,7 @@ cache.close()
 ### Context Manager Usage
 
 ```python
-async with MilvusCache("~/.lorekeeper/milvus.db") as cache:
+async with MilvusCache("~/.local/share/lorekeeper/milvus.db") as cache:
     results = await cache.semantic_search("spells", "healing magic")
     # Cache automatically closed on exit
 ```
@@ -197,7 +197,7 @@ for spell in results:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `LOREKEEPER_MILVUS_DB_PATH` | Path to Milvus database file | `~/.lorekeeper/milvus.db` |
+| `LOREKEEPER_MILVUS_DB_PATH` | Path to Milvus database file | `$XDG_DATA_HOME/lorekeeper/milvus.db` (or `~/.local/share/lorekeeper/milvus.db`) |
 | `LOREKEEPER_EMBEDDING_MODEL` | Sentence-transformers model name | `all-MiniLM-L6-v2` |
 
 ### Configuration Examples
@@ -206,7 +206,8 @@ for spell in results:
 # .env file
 
 # Path to Milvus database (supports ~ expansion)
-LOREKEEPER_MILVUS_DB_PATH=~/.lorekeeper/milvus.db
+# Defaults to $XDG_DATA_HOME/lorekeeper/milvus.db (or ~/.local/share/lorekeeper/milvus.db)
+LOREKEEPER_MILVUS_DB_PATH=~/.local/share/lorekeeper/milvus.db
 
 # Custom embedding model (advanced)
 LOREKEEPER_EMBEDDING_MODEL=all-MiniLM-L6-v2

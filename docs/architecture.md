@@ -110,7 +110,7 @@ All configuration and data structures use Pydantic models:
 
 ```python
 class Settings(BaseSettings):
-    milvus_db_path: Path = Field(default=Path("~/.lorekeeper/milvus.db"))
+    milvus_db_path: Path = Field(default_factory=get_default_milvus_db_path)  # XDG path
     cache_ttl_days: int = Field(default=7, ge=1, le=365)
 
 class Spell(BaseModel):

@@ -1,9 +1,71 @@
 """Configuration management using Pydantic Settings."""
 
+import logging
+import os
 from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
+
+# Path constants
+LEGACY_MILVUS_DB_PATH = Path("~/.lorekeeper/milvus.db")
+XDG_DATA_HOME_DEFAULT = Path("~/.local/share")
+LOREKEEPER_DATA_DIR = "lorekeeper"
+MILVUS_DB_FILENAME = "milvus.db"
+
+
+def get_xdg_data_home() -> Path:
+    """Get XDG_DATA_HOME path, defaulting to ~/.local/share if not set.
+
+    Returns:
+        Path to the XDG data home directory.
+    """
+    xdg_data_home = os.environ.get("XDG_DATA_HOME")
+    if xdg_data_home:
+        return Path(xdg_data_home).expanduser()
+    return XDG_DATA_HOME_DEFAULT.expanduser()
+
+
+def get_default_milvus_db_path() -> Path:
+    """Determine the default Milvus database path with backward compatibility.
+
+    Path resolution order:
+    1. If legacy path (~/.lorekeeper/milvus.db) exists AND XDG path doesn't exist,
+       use legacy path for backward compatibility
+    2. Otherwise, use XDG path ($XDG_DATA_HOME/lorekeeper/milvus.db or
+       ~/.local/share/lorekeeper/milvus.db)
+
+    If both paths exist, prefer XDG and log a warning about the orphaned legacy database.
+
+    Returns:
+        Path to the Milvus database file.
+    """
+    legacy_path = LEGACY_MILVUS_DB_PATH.expanduser()
+    xdg_path = get_xdg_data_home() / LOREKEEPER_DATA_DIR / MILVUS_DB_FILENAME
+
+    legacy_exists = legacy_path.exists()
+    xdg_exists = xdg_path.exists()
+
+    if legacy_exists and xdg_exists:
+        logger.warning(
+            "Database exists at both legacy (%s) and XDG (%s) locations. "
+            "Using XDG location. Consider removing the legacy database.",
+            legacy_path,
+            xdg_path,
+        )
+        return xdg_path
+    if legacy_exists and not xdg_exists:
+        logger.info(
+            "Using legacy database location (%s) for backward compatibility. "
+            "New installations use %s.",
+            legacy_path,
+            xdg_path,
+        )
+        return legacy_path
+    # Either XDG exists, or neither exists (new installation)
+    return xdg_path
 
 
 class Settings(BaseSettings):
@@ -31,7 +93,7 @@ class Settings(BaseSettings):
     )
 
     # Cache configuration (Milvus)
-    milvus_db_path: Path = Field(default=Path("~/.lorekeeper/milvus.db"))
+    milvus_db_path: Path = Field(default_factory=get_default_milvus_db_path)
     embedding_model: str = Field(default="all-MiniLM-L6-v2")
 
     # Cache TTL configuration

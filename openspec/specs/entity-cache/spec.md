@@ -368,8 +368,8 @@ The cache MUST support Milvus Lite as an embedded vector database backend, provi
 
 #### Scenario: Initialize Milvus Lite cache
 **Given** a configuration specifying Milvus Lite backend
-**When** the cache is initialized with `MilvusCache(db_path="~/.lorekeeper/milvus.db")`
-**Then** a single database file is created at the specified path
+**When** the cache is initialized with default configuration
+**Then** a single database file is created at the XDG path (`$XDG_DATA_HOME/lorekeeper/milvus.db` or `~/.local/share/lorekeeper/milvus.db`)
 **And** collections are automatically created for each entity type
 **And** IVF_FLAT index with COSINE similarity is configured
 **And** no external services are required
@@ -554,7 +554,7 @@ The cache layer SHALL provide a factory function to create MilvusCache instances
 **Given** no environment variables are set
 **When** calling `create_cache()`
 **Then** a MilvusCache instance is returned
-**And** uses db_path `~/.lorekeeper/milvus.db` by default
+**And** uses XDG path (`$XDG_DATA_HOME/lorekeeper/milvus.db` or `~/.local/share/lorekeeper/milvus.db`) by default
 **And** semantic search capabilities are available
 
 ### Requirement: Error Handling and Graceful Degradation
