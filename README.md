@@ -144,8 +144,32 @@ LoreKeeper uses **Milvus Lite** as the default cache backend, providing semantic
 
 - **Semantic Search**: Find content by meaning, not just exact text matches
 - **Vector Embeddings**: Uses sentence-transformers for high-quality text embeddings
+- **Hybrid Search**: Combine semantic queries with structured filters
 - **Zero Configuration**: Works out of the box with sensible defaults
 - **Lightweight**: Embedded database, no external services required
+
+### Usage Examples
+
+```python
+# Find spells by concept (not just keywords)
+healing = await lookup_spell(semantic_query="restore health and cure wounds")
+# Returns: Cure Wounds, Healing Word, Mass Cure Wounds, etc.
+
+# Find creatures by behavior
+flyers = await lookup_creature(semantic_query="flying creatures with ranged attacks")
+# Returns: Dragon, Wyvern, Harpy, etc.
+
+# Hybrid search: semantic + structured filters
+fire_evocation = await lookup_spell(
+    semantic_query="area fire damage",
+    level=3,
+    school="evocation"
+)
+# Returns: Fireball (exact match for both semantic and filter)
+
+# Search across all content types
+results = await search_dnd_content(query="dragon breath weapon")
+```
 
 ### First-Run Setup
 
@@ -174,10 +198,22 @@ LOREKEEPER_EMBEDDING_MODEL=all-MiniLM-L6-v2
 
 ### Migrating from SQLite
 
-If you were using an older version with SQLite caching, set the backend for backward compatibility:
+If you were using an older version with SQLite caching:
 
+1. Set the backend to Milvus (default):
+   ```bash
+   LOREKEEPER_CACHE_BACKEND=milvus
+   ```
+
+2. Re-import your data (Milvus cache starts empty):
+   ```bash
+   lorekeeper import /path/to/content.orcbrew
+   ```
+
+3. Or let it repopulate from APIs on first query.
+
+**Rollback**: To keep using SQLite (no semantic search):
 ```bash
-# Keep using SQLite
 LOREKEEPER_CACHE_BACKEND=sqlite
 LOREKEEPER_DB_PATH=./data/cache.db
 ```

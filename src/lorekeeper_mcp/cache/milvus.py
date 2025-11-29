@@ -336,12 +336,23 @@ class MilvusCache:
     ) -> int:
         """Store or update entities in cache with auto-generated embeddings.
 
+        This method performs the following steps:
+        1. Validates that all entities have required 'slug' and 'name' fields
+        2. Extracts searchable text from each entity based on entity type
+        3. Batch-encodes all texts to embedding vectors
+        4. Prepares entities with indexed scalar fields and full entity data
+        5. Upserts all entities to Milvus (insert or update by slug)
+
         Args:
-            entities: List of entity dictionaries to cache.
-            entity_type: Type of entities being stored.
+            entities: List of entity dictionaries to cache. Each entity must
+                have 'slug' (unique ID) and 'name' fields at minimum.
+            entity_type: Type of entities being stored (e.g., 'spells', 'creatures').
 
         Returns:
             Number of entities successfully stored/updated.
+
+        Raises:
+            ValueError: If entities list is empty or entities lack required fields.
         """
         if not entities:
             raise ValueError("entities list is empty")
@@ -355,22 +366,24 @@ class MilvusCache:
 
         self._ensure_collection(entity_type)
 
-        # Prepare entities with embeddings
+        # Step 1: Extract searchable text for embedding generation
+        # Each entity type has different fields that are relevant for search
+        # (e.g., spells use desc/higher_level, creatures use type/actions)
         prepared_entities = []
         texts_to_embed = []
 
         for entity in entities:
-            # Extract searchable text
             text = self._embedding_service.get_searchable_text(entity, entity_type)
             texts_to_embed.append(text)
 
-        # Batch encode all texts
+        # Step 2: Batch encode all texts to embedding vectors
+        # This is much more efficient than encoding one at a time
         embeddings = self._embedding_service.encode_batch(texts_to_embed)
 
-        # Get schema for this entity type (or default)
+        # Step 3: Build field defaults based on collection schema
+        # Milvus requires all indexed fields to have values, so we provide defaults
         schema_def = COLLECTION_SCHEMAS.get(entity_type, DEFAULT_COLLECTION_SCHEMA)
 
-        # Build a mapping of field name to default value based on type
         field_defaults: dict[str, Any] = {}
         for field_def in schema_def["indexed_fields"]:
             field_name = field_def["name"]
@@ -384,7 +397,7 @@ class MilvusCache:
             elif field_type == "FLOAT":
                 field_defaults[field_name] = 0.0
 
-        # Prepare entities with embeddings
+        # Step 4: Prepare entities with base fields, indexed fields, and full data
         for entity, embedding in zip(entities, embeddings, strict=True):
             prepared = {
                 "slug": entity.get("slug", ""),
@@ -394,23 +407,25 @@ class MilvusCache:
             }
 
             # Add ALL indexed fields with proper defaults
+            # This ensures filter queries work even for missing fields
             for field_name, default_value in field_defaults.items():
                 if field_name in entity:
                     prepared[field_name] = entity[field_name]
                 elif field_name == "document":
-                    # Handle document field specially
+                    # Document field may come from 'document' or 'document__slug'
                     prepared["document"] = entity.get(
                         "document", entity.get("document__slug", default_value)
                     )
                 else:
                     prepared[field_name] = default_value
 
-            # Store full entity data in dynamic fields
+            # Store full entity data in dynamic field for complete retrieval
+            # This preserves all original fields without requiring explicit schema
             prepared["entity_data"] = entity
 
             prepared_entities.append(prepared)
 
-        # Upsert to Milvus
+        # Step 5: Upsert to Milvus (insert or update existing by slug primary key)
         try:
             self.client.upsert(
                 collection_name=entity_type,
@@ -490,68 +505,83 @@ class MilvusCache:
     ) -> list[dict[str, Any]]:
         """Perform semantic search using vector similarity.
 
-        Combines vector similarity search with optional scalar filters
-        for hybrid search functionality.
+        This method enables natural language queries by:
+        1. Converting the query text to a 384-dimensional embedding vector
+        2. Finding entities with similar embedding vectors (cosine similarity)
+        3. Optionally filtering results by scalar fields (hybrid search)
+        4. Returning results ranked by similarity score (highest first)
+
+        The similarity score (_score field) ranges from 0.0 to 1.0, where:
+        - 1.0 = exact semantic match
+        - 0.8+ = highly relevant
+        - 0.5-0.8 = somewhat relevant
+        - <0.5 = loosely related
 
         Args:
             entity_type: Type of entities to search (e.g., 'spells', 'creatures')
-            query: Natural language search query
+            query: Natural language search query (e.g., "fire damage", "healing magic")
             limit: Maximum number of results to return (default 20)
             document: Optional document filter (string or list of strings)
-            **filters: Optional keyword filters for hybrid search
+            **filters: Optional keyword filters for hybrid search (e.g., level=3)
 
         Returns:
             List of entity dictionaries ranked by similarity score.
+            Each entity includes a '_score' field with the similarity value.
+
+        Note:
+            If query is empty, falls back to get_entities() for structured filtering.
+            On search errors, falls back to get_entities() to ensure results.
         """
-        # Handle empty query - fall back to get_entities
+        # Handle empty query - fall back to structured filtering
         if not query or not query.strip():
             return await self.get_entities(entity_type, document=document, **filters)
 
         self._ensure_collection(entity_type)
 
-        # Generate query embedding
+        # Step 1: Convert query text to embedding vector
         query_embedding = self._embedding_service.encode(query)
 
-        # Add document to filters if provided
+        # Step 2: Build scalar filter expression for hybrid search
         if document is not None:
             filters["document"] = document
-
-        # Build filter expression
         filter_expr = self._build_filter_expression(filters)
 
-        # Execute vector search
+        # Step 3: Execute vector search with optional scalar filtering
         try:
+            # IVF_FLAT index parameters - nprobe controls recall/speed tradeoff
             search_params = {
-                "metric_type": "COSINE",
-                "params": {"nprobe": 16},
+                "metric_type": "COSINE",  # Cosine similarity: 1.0 = identical
+                "params": {"nprobe": 16},  # Higher = more accurate, slower
             }
 
             results = self.client.search(
                 collection_name=entity_type,
-                data=[query_embedding],
-                filter=filter_expr if filter_expr else "",
+                data=[query_embedding],  # Search for vectors similar to query
+                filter=filter_expr if filter_expr else "",  # Apply scalar filters
                 limit=limit,
-                output_fields=["*"],
+                output_fields=["*"],  # Return all fields
                 search_params=search_params,
             )
 
-            # Extract entities from search results
+            # Step 4: Extract entities and attach similarity scores
             entities = []
             if results and len(results) > 0:
                 for hit in results[0]:
                     hit_entity = hit["entity"]
-                    # If entity_data is stored, use it as the base
+                    # Reconstruct full entity from entity_data if available
                     if "entity_data" in hit_entity and isinstance(hit_entity["entity_data"], dict):
                         entity = dict(hit_entity["entity_data"])
                     else:
                         entity = dict(hit_entity)
                         entity.pop("embedding", None)  # Don't return embeddings
-                    entity["_score"] = hit["distance"]  # Include similarity score
+                    # Include similarity score (cosine distance)
+                    entity["_score"] = hit["distance"]
                     entities.append(entity)
 
             return entities
 
         except Exception as e:
+            # Graceful degradation: fall back to structured search on error
             logger.warning(
                 "Semantic search failed for %s: %s, falling back to structured search",
                 entity_type,

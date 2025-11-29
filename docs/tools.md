@@ -10,6 +10,164 @@ This document defines the MCP tools for LoreKeeper, organized by domain.
 
 ---
 
+## Semantic Search
+
+LoreKeeper supports **semantic search** for finding content by meaning rather than exact text matches. This is powered by the Milvus Lite cache backend with sentence-transformers embeddings.
+
+### Overview
+
+All lookup tools and the search tool accept an optional `semantic_query` parameter:
+
+```python
+# Find spells conceptually related to "fire damage"
+spells = await lookup_spell(semantic_query="explosive fire damage")
+
+# Combine semantic search with filters
+fire_spells = await lookup_spell(
+    semantic_query="area of effect fire damage",
+    level=3,
+    school="evocation"
+)
+```
+
+### How It Works
+
+1. Your natural language query is converted to a 384-dimensional embedding vector
+2. The vector is compared against all cached entity embeddings using cosine similarity
+3. Results are ranked by semantic similarity (highest first)
+4. Optional filters (level, type, etc.) are applied as constraints
+
+### Semantic Search Examples
+
+#### Spells by Concept
+
+```python
+# Find healing spells without knowing exact names
+healing = await lookup_spell(semantic_query="restore health and cure wounds")
+# Returns: Cure Wounds, Healing Word, Mass Cure Wounds, etc.
+
+# Find crowd control spells
+control = await lookup_spell(semantic_query="stop enemies from moving or acting")
+# Returns: Hold Person, Web, Entangle, etc.
+
+# Find protective magic
+protection = await lookup_spell(semantic_query="shield and protect allies from harm")
+# Returns: Shield, Shield of Faith, Protection from Evil and Good, etc.
+
+# Find spells by damage type (without using damage_type filter)
+lightning = await lookup_spell(semantic_query="electricity and lightning damage")
+# Returns: Lightning Bolt, Call Lightning, Witch Bolt, etc.
+```
+
+#### Creatures by Behavior
+
+```python
+# Find flying enemies
+flyers = await lookup_creature(semantic_query="creatures that fly and attack from above")
+# Returns: Dragon, Wyvern, Harpy, etc.
+
+# Find undead by theme
+undead = await lookup_creature(semantic_query="risen dead that drain life force")
+# Returns: Wraith, Specter, Vampire, etc.
+
+# Find ambush predators
+ambushers = await lookup_creature(semantic_query="stealthy hunters that attack by surprise")
+# Returns: Assassin, Displacer Beast, Invisible Stalker, etc.
+```
+
+#### Equipment by Use Case
+
+```python
+# Find ranged weapons
+ranged = await lookup_equipment(
+    semantic_query="weapons for attacking from a distance",
+    type="weapon"
+)
+# Returns: Longbow, Crossbow, Javelin, etc.
+
+# Find defensive gear
+defensive = await lookup_equipment(
+    semantic_query="armor and shields for protection"
+)
+# Returns: Plate Armor, Shield, Chain Mail, etc.
+
+# Find magical utility items
+utility = await lookup_equipment(
+    semantic_query="magic items for utility and exploration",
+    type="magic-item"
+)
+# Returns: Bag of Holding, Rope of Climbing, Decanter of Endless Water, etc.
+```
+
+#### Hybrid Search (Semantic + Filters)
+
+Combine semantic queries with structured filters for precise results:
+
+```python
+# Low-level fire spells
+low_fire = await lookup_spell(
+    semantic_query="fire and burning damage",
+    level=1,
+    limit=5
+)
+
+# Undead under CR 5
+weak_undead = await lookup_creature(
+    semantic_query="undead creatures",
+    cr_max=5,
+    type="undead"
+)
+
+# Rare magic weapons
+rare_weapons = await lookup_equipment(
+    semantic_query="magical swords and blades",
+    type="magic-item",
+    rarity="rare"
+)
+
+# SRD-only results
+srd_healing = await lookup_spell(
+    semantic_query="healing magic",
+    documents=["srd-5e"]
+)
+```
+
+### Similarity Scores
+
+Semantic search results include a `_score` field (0.0 to 1.0):
+
+```python
+results = await lookup_spell(semantic_query="fire explosion")
+for spell in results[:3]:
+    print(f"{spell['name']}: {spell.get('_score', 0):.3f}")
+# Output:
+# Fireball: 0.892
+# Fire Storm: 0.834
+# Flame Strike: 0.789
+```
+
+### When to Use Semantic Search
+
+**Use semantic search when:**
+- You don't know exact names or terminology
+- You want conceptually related results
+- Natural language queries feel more intuitive
+- You're exploring content by theme or use case
+
+**Use structured filters when:**
+- You know the exact spell level, CR, or type
+- You need precise filtering (e.g., all level 3 evocation spells)
+- Performance is critical (filters are faster than semantic search)
+
+### Backend Requirements
+
+Semantic search requires the **Milvus Lite** cache backend. If using SQLite:
+- `semantic_query` parameter is ignored
+- Only structured filters are applied
+- Consider switching to Milvus for semantic capabilities
+
+---
+
 ## Document Filtering
 
 ### Overview
@@ -453,21 +611,85 @@ results = await lookup_spell(documents=filtered_keys)
 
 ---
 
+## Tool 6: `search_dnd_content`
+
+**Purpose**: General-purpose search across all D&D content types with semantic search support
+
+**Parameters**:
+- `query` (string, required): Search query (supports natural language with semantic search)
+- `entity_types` (list[string], optional): Limit search to specific types (spells, creatures, equipment, etc.)
+- `documents` (list[string], optional): Filter by source documents
+- `semantic` (boolean, optional, default=true): Use semantic search (Milvus backend only)
+- `limit` (integer, optional, default=20): Maximum results per entity type
+
+**Returns**:
+- Results grouped by entity type
+- Each result includes entity data and similarity score (when semantic=true)
+
+**Example Queries**:
+```python
+# Semantic search across all content
+results = await search_dnd_content(query="fire damage")
+
+# Search specific entity types
+results = await search_dnd_content(
+    query="healing magic",
+    entity_types=["spells", "magicitems"]
+)
+
+# Disable semantic search for exact matching
+results = await search_dnd_content(
+    query="fireball",
+    semantic=False
+)
+
+# Search within specific documents
+results = await search_dnd_content(
+    query="dragon breath",
+    documents=["srd-5e"]
+)
+```
+
+---
+
 ## Implementation Notes
 
 ### Caching Strategy
-All API responses should be cached in SQLite with:
-- Endpoint URL as key
-- Response JSON as value
-- Timestamp for cache invalidation
-- TTL: 7 days (game data rarely changes)
+
+LoreKeeper uses two cache backends:
+
+**Milvus Lite (default):**
+- Stores entity data with embedding vectors
+- Supports semantic/vector search
+- Entity embeddings generated automatically on storage
+- TTL: Infinite (entities never expire)
+
+**SQLite (legacy):**
+- Stores entity data as JSON blobs
+- Pattern matching only (no semantic search)
+- TTL: Configurable (default 7 days)
+
+### Semantic Search
+
+When `semantic_query` is provided (Milvus backend):
+1. Query text is converted to a 384-dimensional embedding vector
+2. Vector similarity search finds semantically related content
+3. Results are ranked by cosine similarity (0.0 to 1.0)
+4. Structured filters are applied as constraints
+
+**Embedding Model**: `all-MiniLM-L6-v2` (sentence-transformers)
+- 384 dimensions
+- ~80MB model (downloaded on first use)
+- <10ms encoding time per query
 
 ### Error Handling
 - If primary API fails, log error and return user-friendly message
 - Log detailed errors for debugging
 - Cache errors with short TTL (5 minutes) to avoid hammering failed endpoints
+- Semantic search falls back to structured search on error
 
 ### Search Behavior
+- **Semantic search**: Natural language queries find conceptually related results
 - **Exact match**: If `name` parameter exactly matches, return single result
 - **Partial match**: If `name` is partial, return up to `limit` results ranked by relevance
 - **No name**: If no `name` provided, filter by other parameters and return up to `limit` results
@@ -475,6 +697,7 @@ All API responses should be cached in SQLite with:
 ### Response Formatting
 - Return structured data suitable for AI consumption
 - Include source attribution (document name/title)
+- Include similarity score (`_score`) for semantic search results
 - Format text descriptions as markdown where appropriate
 - Include URLs to original API resources for reference
 
