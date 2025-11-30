@@ -476,6 +476,17 @@ class MilvusCache:
         """
         self._ensure_collection(entity_type)
 
+        # Check if collection is empty - avoids hang on empty collection queries
+        try:
+            stats = self.client.get_collection_stats(collection_name=entity_type)
+            row_count = stats.get("row_count", 0)
+            if row_count == 0:
+                logger.debug("Collection %s is empty, returning empty list", entity_type)
+                return []
+        except Exception as e:
+            logger.debug("Could not get collection stats for %s: %s", entity_type, e)
+            # Continue anyway - query will fail/return empty if collection doesn't exist
+
         # Add document to filters if provided
         if document is not None:
             filters["document"] = document
@@ -558,6 +569,16 @@ class MilvusCache:
             return await self.get_entities(entity_type, document=document, **filters)
 
         self._ensure_collection(entity_type)
+
+        # Check if collection is empty - avoids hang on empty collection queries
+        try:
+            stats = self.client.get_collection_stats(collection_name=entity_type)
+            row_count = stats.get("row_count", 0)
+            if row_count == 0:
+                logger.debug("Collection %s is empty, returning empty list", entity_type)
+                return []
+        except Exception as e:
+            logger.debug("Could not get collection stats for %s: %s", entity_type, e)
 
         # Step 1: Convert query text to embedding vector
         query_embedding = self._embedding_service.encode(query)

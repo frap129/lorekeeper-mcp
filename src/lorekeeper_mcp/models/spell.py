@@ -19,7 +19,7 @@ class Spell(BaseEntity):
     casting_time: str = Field(..., description="Time required to cast")
     range: str = Field(..., description="Spell range")
     components: str = Field(default="", description="Components (V, S, M)")
-    duration: str = Field(..., description="Spell duration")
+    duration: str = Field(default="Instantaneous", description="Spell duration")
     concentration: bool = Field(False, description="Requires concentration")
     ritual: bool = Field(False, description="Can be cast as ritual")
     material: str | None = Field(None, description="Material components")

@@ -2,7 +2,7 @@
 
 import asyncio
 import time
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 from typing import Any
 
@@ -41,20 +41,34 @@ def mcp_server():
     return mcp
 
 
-@pytest.fixture
-async def live_db(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> AsyncGenerator[MilvusCache, None]:
+# Module-scoped cache container to avoid reloading embedding model for each test
+_live_db_state: dict[str, Any] = {"cache": None, "path": None}
+
+
+@pytest.fixture(scope="module")
+def live_db(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Generator[MilvusCache, None, None]:
     """Provide isolated test Milvus cache for live tests.
 
-    Creates temporary database, yields cache instance, cleans up after test.
+    Module-scoped to avoid reloading the embedding model for each test.
+    Pre-warms the embedding model during fixture setup to avoid delays
+    during test execution (HuggingFace model loading can take 30+ seconds).
     """
-    db_file = tmp_path / "test_live_cache.db"
-    cache = MilvusCache(str(db_file))
+    if _live_db_state["cache"] is None:
+        db_path = tmp_path_factory.mktemp("live_tests") / "test_live_cache.db"
+        _live_db_state["path"] = db_path
+        cache = MilvusCache(str(db_path))
+        _live_db_state["cache"] = cache
 
-    yield cache
+        # Pre-warm the embedding model by generating a dummy embedding
+        # This loads the model from HuggingFace once during fixture setup
+        # instead of during the first test that tries to store data
+        cache._embedding_service.encode("warmup")  # type: ignore[attr-defined]
 
-    cache.close()
+    yield _live_db_state["cache"]
+
+    # Cleanup happens at module end (handled by pytest)
 
 
 @pytest.fixture
@@ -109,8 +123,41 @@ def cache_stats() -> CacheStats:
 
 @pytest.fixture
 async def clear_cache(live_db: MilvusCache) -> AsyncGenerator[None, None]:
-    """Clear cache before test execution."""
-    # MilvusCache doesn't have in-memory clear functions
-    # The test database is already fresh due to tmp_path fixture
+    """Clear cache before test execution and inject test cache into tools.
+
+    This fixture ensures that live tests use the fresh temporary database
+    instead of the global cache, which may be corrupted or cause hangs.
+    """
+    from lorekeeper_mcp.repositories.factory import RepositoryFactory
+    from lorekeeper_mcp.tools.search_character_option import (
+        _repository_context as char_option_ctx,
+    )
+    from lorekeeper_mcp.tools.search_creature import _repository_context as creature_ctx
+    from lorekeeper_mcp.tools.search_equipment import _repository_context as equipment_ctx
+    from lorekeeper_mcp.tools.search_rule import _repository_context as rule_ctx
+
+    # Import _repository_context from each tool module
+    from lorekeeper_mcp.tools.search_spell import _repository_context as spell_ctx
+
+    # Create repositories with the test cache
+    spell_repo = RepositoryFactory.create_spell_repository(cache=live_db)
+    creature_repo = RepositoryFactory.create_creature_repository(cache=live_db)
+    equipment_repo = RepositoryFactory.create_equipment_repository(cache=live_db)
+    rule_repo = RepositoryFactory.create_rule_repository(cache=live_db)
+    char_option_repo = RepositoryFactory.create_character_option_repository(cache=live_db)
+
+    # Inject repositories into tool modules for testing
+    spell_ctx["repository"] = spell_repo
+    creature_ctx["repository"] = creature_repo
+    equipment_ctx["repository"] = equipment_repo
+    rule_ctx["repository"] = rule_repo
+    char_option_ctx["repository"] = char_option_repo
+
     yield
-    # Cache will be cleared with temp database
+
+    # Cleanup - clear repository contexts
+    spell_ctx.clear()
+    creature_ctx.clear()
+    equipment_ctx.clear()
+    rule_ctx.clear()
+    char_option_ctx.clear()
