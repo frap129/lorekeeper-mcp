@@ -58,7 +58,7 @@ uv run mypy src/
 ```toml
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py311"
 exclude = [
     ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg",
     ".mypy_cache", ".nox", ".pants.d", ".pytype", ".ruff_cache",
@@ -109,7 +109,7 @@ line-ending = "auto"
 
 [tool.black]
 line-length = 100
-target-version = ["py313"]
+target-version = ["py311"]
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -125,7 +125,7 @@ extend-exclude = '''
 '''
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -167,7 +167,7 @@ repos:
     rev: 24.10.0
     hooks:
       - id: black
-        language_version: python3.13
+        language_version: python3.11
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.4

@@ -51,7 +51,9 @@ tests/
 ├── test_project_structure.py # Project structure validation
 └── test_cache/             # Cache layer tests
     ├── __init__.py
-    └── test_db.py         # Database operations tests
+    ├── test_milvus.py     # Milvus operations tests
+    ├── test_embedding.py  # Embedding service tests
+    └── test_protocol.py   # Cache protocol tests
 ```
 
 ### File Naming
@@ -124,33 +126,40 @@ markers = [
 
 ```python
 import pytest
-from lorekeeper_mcp.cache.db import get_cached, set_cached
+from lorekeeper_mcp.cache import MilvusCache
 
 class TestCacheOperations:
     """Test cache read/write operations."""
 
-    async def test_set_and_get_cached(self, temp_db):
-        """Test that cached data can be retrieved."""
+    async def test_store_and_get_entities(self, temp_cache):
+        """Test that entities can be stored and retrieved."""
         # Arrange
-        key = "test:key"
-        data = {"test": "data", "number": 42}
+        entities = [
+            {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"}
+        ]
 
         # Act
-        await set_cached(key, data, "test", 3600)
-        result = await get_cached(key)
+        await temp_cache.store_entities(entities, "spells")
+        result = await temp_cache.get_entities("spells", level=3)
 
         # Assert
-        assert result == data
-        assert result["test"] == "data"
-        assert result["number"] == 42
+        assert len(result) == 1
+        assert result[0]["name"] == "Fireball"
 
-    async def test_get_nonexistent_returns_none(self, temp_db):
-        """Test that getting non-existent key returns None."""
+    async def test_semantic_search(self, temp_cache):
+        """Test semantic search functionality."""
+        # Arrange
+        entities = [
+            {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"}
+        ]
+        await temp_cache.store_entities(entities, "spells")
+
         # Act
-        result = await get_cached("nonexistent:key")
+        results = await temp_cache.semantic_search("spells", "fire damage spell")
 
         # Assert
-        assert result is None
+        assert len(results) > 0
+        assert results[0]["name"] == "Fireball"
 ```
 
 ### Parameterized Tests
@@ -230,26 +239,21 @@ class TestConfiguration:
 ### AAA Pattern (Arrange, Act, Assert)
 
 ```python
-async def test_cache_expiration(self, temp_db):
-    """Test that cache entries expire correctly."""
+async def test_entity_filtering(self, temp_cache):
+    """Test that entity filtering works correctly."""
     # Arrange
-    key = "test:expiration"
-    data = {"test": "data"}
-    short_ttl = 1  # 1 second
+    entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+        {"slug": "shield", "name": "Shield", "level": 1, "school": "Abjuration"}
+    ]
+    await temp_cache.store_entities(entities, "spells")
 
     # Act
-    await set_cached(key, data, "test", short_ttl)
-
-    # Should be available immediately
-    result = await get_cached(key)
-    assert result == data
-
-    # Wait for expiration
-    await asyncio.sleep(1.1)
+    level_3_spells = await temp_cache.get_entities("spells", level=3)
 
     # Assert
-    result = await get_cached(key)
-    assert result is None
+    assert len(level_3_spells) == 1
+    assert level_3_spells[0]["name"] == "Fireball"
 ```
 
 ### Builder Pattern for Test Data
@@ -394,31 +398,33 @@ Create async fixtures for test setup:
 
 ```python
 @pytest.fixture
-async def temp_database():
-    """Provide a temporary database for testing."""
-    # Create temporary database
+async def temp_cache():
+    """Provide a temporary Milvus cache for testing."""
+    # Create temporary database path
     db_path = tempfile.mktemp(suffix=".db")
 
-    # Initialize database
-    await init_db_with_path(db_path)
+    # Create cache instance
+    cache = MilvusCache(db_path)
 
-    yield db_path
+    yield cache
 
     # Cleanup
-    os.unlink(db_path)
+    cache.close()
+    if os.path.exists(db_path):
+        os.unlink(db_path)
 
 @pytest.fixture
-async def populated_cache(temp_database):
+async def populated_cache(temp_cache):
     """Provide a cache with test data."""
-    test_data = [
-        ("spell:fireball", {"name": "Fireball", "level": 3}, "spell", 3600),
-        ("monster:goblin", {"name": "Goblin", "cr": 0.25}, "monster", 3600),
+    test_entities = [
+        {"slug": "fireball", "name": "Fireball", "level": 3, "school": "Evocation"},
+        {"slug": "goblin", "name": "Goblin", "challenge_rating": "1/4", "type": "humanoid"},
     ]
 
-    for key, data, content_type, ttl in test_data:
-        await set_cached(key, data, content_type, ttl)
+    await temp_cache.store_entities([test_entities[0]], "spells")
+    await temp_cache.store_entities([test_entities[1]], "creatures")
 
-    return test_data
+    return test_entities
 ```
 
 ## Mocking and Fixtures
@@ -495,37 +501,33 @@ Create reusable database fixtures:
 
 ```python
 @pytest.fixture
-async def temp_db():
-    """Provide a temporary database for testing."""
+async def temp_cache():
+    """Provide a temporary Milvus cache for testing."""
     # Create temporary database file
     db_fd, db_path = tempfile.mkstemp(suffix=".db")
     os.close(db_fd)
 
-    # Override settings for test
-    original_db_path = settings.db_path
-    settings.db_path = Path(db_path)
+    # Create cache instance
+    cache = MilvusCache(db_path)
 
-    # Initialize database
-    await init_db()
-
-    yield db_path
+    yield cache
 
     # Cleanup
-    settings.db_path = original_db_path
+    cache.close()
     os.unlink(db_path)
 
 @pytest.fixture
-async def cache_with_data(temp_db):
+async def cache_with_data(temp_cache):
     """Provide a cache with pre-populated test data."""
-    test_entries = [
-        ("spell:test", {"name": "Test Spell"}, "spell", 3600, "open5e"),
-        ("monster:test", {"name": "Test Monster"}, "monster", 3600, "open5e"),
+    test_entities = [
+        {"slug": "test-spell", "name": "Test Spell", "level": 1, "source_api": "open5e_v2"},
+        {"slug": "test-monster", "name": "Test Monster", "challenge_rating": "1", "source_api": "open5e_v2"},
     ]
 
-    for key, data, content_type, ttl, source in test_entries:
-        await set_cached(key, data, content_type, ttl, source)
+    await temp_cache.store_entities([test_entities[0]], "spells")
+    await temp_cache.store_entities([test_entities[1]], "creatures")
 
-    return test_entries
+    return test_entities
 ```
 
 ### Configuration Fixtures
@@ -715,7 +717,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.13"]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
     - uses: actions/checkout@v4

@@ -110,7 +110,8 @@ All configuration and data structures use Pydantic models:
 
 ```python
 class Settings(BaseSettings):
-    milvus_db_path: Path = Field(default_factory=get_default_milvus_db_path)  # XDG path
+    milvus_db_path: Path = Field(default_factory=get_default_milvus_db_path)
+    embedding_model: str = Field(default="all-MiniLM-L6-v2")
     cache_ttl_days: int = Field(default=7, ge=1, le=365)
 
 class Spell(BaseModel):
@@ -210,6 +211,7 @@ mcp = FastMCP(
 ```python
 @mcp.tool()
 async def search_spell(
+    search: str | None = None,
     name: str | None = None,
     level: int | None = None,
     school: str | None = None,
@@ -221,7 +223,9 @@ async def search_spell(
     spell_repo = RepositoryFactory.create_spell_repository()
 
     # Use repository for data access with built-in caching
-    spells = await spell_repo.search(name=name, level=level, school=school)
+    spells = await spell_repo.search(
+        search=search, name=name, level=level, school=school
+    )
 
     return format_spell_response(spells)
 ```
@@ -742,15 +746,23 @@ async def test_lookup_spell(mock_repo):
 ### Key Implementation Files
 
 ```
-src/lorekeeper_mcp/repositories/
-├── __init__.py              # Public API exports
-├── base.py                  # Repository protocol definition
-├── factory.py               # RepositoryFactory for DI
-├── spell.py                 # SpellRepository
-├── creature.py              # CreatureRepository
-├── equipment.py             # EquipmentRepository
-├── character_option.py      # CharacterOptionRepository
-└── rule.py                  # RuleRepository
+src/lorekeeper_mcp/
+├── __init__.py              # Package initialization
+├── __main__.py             # Entry point for `python -m lorekeeper_mcp`
+├── config.py               # Configuration management
+├── server.py               # FastMCP server setup
+├── cache/                  # Vector database caching layer
+│   ├── __init__.py
+│   ├── milvus.py          # Milvus Lite cache implementation
+│   ├── embedding.py       # Embedding service for semantic search
+│   ├── protocol.py        # Cache protocol definition
+│   └── factory.py         # Cache factory
+├── api_clients/            # External API clients
+│   └── __init__.py
+├── repositories/           # Repository pattern for data access
+│   └── __init__.py
+└── tools/                  # MCP tool implementations
+    └── __init__.py
 ```
 
 ### Creating Custom Repositories

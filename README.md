@@ -5,17 +5,17 @@ A Model Context Protocol (MCP) server for D&D 5e information lookup with AI assi
 ## Features
 
 - **Comprehensive D&D 5e Data**: Access spells, monsters, classes, races, equipment, and rules
-- **Intelligent Caching**: SQLite-based caching with TTL support for fast responses
+- **Semantic Search**: Milvus Lite vector database with natural language search capabilities
 - **Open5e API Integration**: Access to comprehensive D&D 5e content via Open5e API
 - **Type-Safe Configuration**: Pydantic-based configuration management
-- **Modern Python Stack**: Built with Python 3.13+, async/await patterns, and FastMCP
+- **Modern Python Stack**: Built with Python 3.11+, async/await patterns, and FastMCP
 - **Production Ready**: Comprehensive test suite, code quality tools, and pre-commit hooks
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.13 or higher
+- Python 3.11 or higher
 - [uv](https://docs.astral.sh/uv/) for package management
 
 ### Installation
@@ -51,13 +51,14 @@ uv run python -m lorekeeper_mcp
 
 ## Available Tools
 
-LoreKeeper provides 5 MCP tools for querying D&D 5e game data:
+LoreKeeper provides 6 MCP tools for querying D&D 5e game data:
 
-1. **`lookup_spell`** - Search spells by name, level, school, class, and properties
-2. **`lookup_creature`** - Find monsters by name, CR, type, and size
-3. **`lookup_character_option`** - Get classes, races, backgrounds, and feats
-4. **`lookup_equipment`** - Search weapons, armor, and magic items
-5. **`lookup_rule`** - Look up game rules, conditions, and reference information
+1. **`search_spell`** - Search spells by name, level, school, class, and properties
+2. **`search_creature`** - Find monsters by name, CR, type, and size
+3. **`search_character_option`** - Get classes, races, backgrounds, and feats
+4. **`search_equipment`** - Search weapons, armor, and magic items
+5. **`search_rule`** - Look up game rules, conditions, and reference information
+6. **`search_all`** - Unified search across all content types with semantic search
 
 See [docs/tools.md](docs/tools.md) for detailed usage and examples.
 
@@ -70,19 +71,19 @@ All lookup tools and the search tool support filtering by source document:
 documents = await list_documents()
 
 # Filter spells to SRD only
-srd_spells = await lookup_spell(
+srd_spells = await search_spell(
     level=3,
     documents=["srd-5e"]
 )
 
 # Filter creatures from multiple sources
-creatures = await lookup_creature(
+creatures = await search_creature(
     type="dragon",
     documents=["srd-5e", "tce", "phb"]
 )
 
 # Search with document filter
-results = await search_dnd_content(
+results = await search_all(
     query="fireball",
     documents=["srd-5e"]
 )
@@ -152,15 +153,15 @@ LoreKeeper uses **Milvus Lite** as the default cache backend, providing semantic
 
 ```python
 # Find spells by concept (not just keywords)
-healing = await lookup_spell(search="restore health and cure wounds")
+healing = await search_spell(search="restore health and cure wounds")
 # Returns: Cure Wounds, Healing Word, Mass Cure Wounds, etc.
 
 # Find creatures by behavior
-flyers = await lookup_creature(search="flying creatures with ranged attacks")
+flyers = await search_creature(search="flying creatures with ranged attacks")
 # Returns: Dragon, Wyvern, Harpy, etc.
 
 # Hybrid search: semantic + structured filters
-fire_evocation = await lookup_spell(
+fire_evocation = await search_spell(
     search="area fire damage",
     level=3,
     school="evocation"
@@ -168,7 +169,7 @@ fire_evocation = await lookup_spell(
 # Returns: Fireball (exact match for both semantic and filter)
 
 # Search across all content types
-results = await search_dnd_content(query="dragon breath weapon")
+results = await search_all(query="dragon breath weapon")
 ```
 
 ### First-Run Setup
@@ -227,9 +228,13 @@ Note: SQLite cache does not support semantic search—only exact and pattern mat
 ```
 lorekeeper-mcp/
 ├── src/lorekeeper_mcp/          # Main package
-│   ├── cache/                   # Database caching layer
-│   │   └── db.py               # SQLite cache implementation
+│   ├── cache/                   # Vector database caching layer
+│   │   ├── milvus.py           # Milvus Lite cache implementation
+│   │   ├── embedding.py        # Embedding service for semantic search
+│   │   ├── protocol.py         # Cache protocol definition
+│   │   └── factory.py          # Cache factory
 │   ├── api_clients/            # External API clients
+│   ├── repositories/           # Repository pattern for data access
 │   ├── tools/                  # MCP tool implementations
 │   ├── config.py               # Configuration management
 │   ├── server.py               # FastMCP server setup
@@ -277,15 +282,15 @@ uv run mypy src/
 uv run pre-commit run --all-files
 ```
 
-### Database Cache
+### Vector Database Cache
 
-LoreKeeper uses SQLite with WAL mode for efficient caching:
+LoreKeeper uses Milvus Lite for semantic search and efficient caching:
 
-- **Schema**: `api_cache` table with indexes on expiration and content type
-- **TTL Support**: Configurable cache duration (default: 7 days)
-- **Content Types**: Spells, monsters, equipment, etc. for organized storage
+- **Vector Storage**: 384-dimensional embeddings for semantic search
+- **Entity Collections**: Separate collections for spells, creatures, equipment, etc.
+- **Hybrid Search**: Combine vector similarity with scalar filters
 - **Source Tracking**: Records which API provided cached data
-- **Automatic Cleanup**: Expired entries are automatically pruned
+- **Zero Configuration**: Embedded database with no external dependencies
 
 ### API Strategy
 

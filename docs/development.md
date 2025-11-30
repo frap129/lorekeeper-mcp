@@ -18,10 +18,9 @@ This guide provides comprehensive information for developers working on the Lore
 
 ### Prerequisites
 
-- Python 3.13 or higher
+- Python 3.11 or higher
 - [uv](https://docs.astral.sh/uv/) package manager
 - Git
-- SQLite3 (usually included with Python)
 
 ### Initial Setup
 
@@ -114,10 +113,15 @@ src/lorekeeper_mcp/
 ├── __main__.py             # Entry point for `python -m lorekeeper_mcp`
 ├── config.py               # Configuration management
 ├── server.py               # FastMCP server setup
-├── cache/                  # Database caching layer
+├── cache/                  # Vector database caching layer
 │   ├── __init__.py
-│   └── db.py              # SQLite cache implementation
+│   ├── milvus.py          # Milvus Lite cache implementation
+│   ├── embedding.py       # Embedding service for semantic search
+│   ├── protocol.py        # Cache protocol definition
+│   └── factory.py         # Cache factory
 ├── api_clients/            # External API clients
+│   └── __init__.py
+├── repositories/           # Repository pattern for data access
 │   └── __init__.py
 └── tools/                  # MCP tool implementations
     └── __init__.py
@@ -137,11 +141,25 @@ src/lorekeeper_mcp/
 - Tool registration
 - Error handling middleware
 
-#### `cache/db.py`
-- Database schema management
-- Cache operations (get, set, cleanup)
-- TTL enforcement
-- Connection management with WAL mode
+#### `cache/milvus.py`
+- Milvus Lite database operations
+- Vector storage and retrieval
+- Semantic search implementation
+- Entity collection management
+
+#### `cache/embedding.py`
+- Sentence-transformers integration
+- Text to vector embedding conversion
+- Batch embedding generation
+- Model lazy loading
+
+#### `cache/protocol.py`
+- Cache protocol definition
+- Type annotations for cache interface
+
+#### `cache/factory.py`
+- Cache factory for dependency injection
+- Backend selection logic
 
 #### `api_clients/`
 - HTTP client implementations
@@ -155,65 +173,71 @@ src/lorekeeper_mcp/
 - Response formatting
 - Cache integration
 
-## Database Cache Layer
+## Vector Database Cache Layer
 
-### Schema Design
+### Milvus Lite Architecture
 
-```sql
-CREATE TABLE api_cache (
-    cache_key TEXT PRIMARY KEY,
-    response_data TEXT NOT NULL,
-    created_at REAL NOT NULL,
-    expires_at REAL NOT NULL,
-    content_type TEXT NOT NULL,
-    source_api TEXT NOT NULL
-);
-```
+LoreKeeper uses Milvus Lite, an embedded vector database for semantic search:
+
+- **Entity Collections**: Separate collections for each entity type (spells, creatures, etc.)
+- **Vector Embeddings**: 384-dimensional embeddings using sentence-transformers
+- **Hybrid Search**: Combine semantic similarity with scalar filters
+- **Lazy Loading**: Embedding model loaded on first use
 
 ### Cache Operations
 
-#### Retrieval
+#### Entity Storage
 ```python
-async def get_cached(key: str) -> dict[str, Any] | None:
-    """Retrieve cached data if not expired."""
-    # Checks expiration and returns parsed JSON
+async def store_entities(
+    entities: list[dict[str, Any]],
+    entity_type: str
+) -> int:
+    """Store entities with auto-generated embeddings."""
+    # Extracts searchable text, generates embeddings, stores in collection
 ```
 
-#### Storage
+#### Semantic Search
 ```python
-async def set_cached(
-    key: str,
-    data: dict[str, Any],
-    content_type: str,
-    ttl_seconds: int,
-    source_api: str = "unknown",
-) -> None:
-    """Store data in cache with TTL."""
-    # Serializes data and stores with expiration
+async def semantic_search(
+    entity_type: str,
+    query: str,
+    limit: int = 20,
+    **filters
+) -> list[dict[str, Any]]:
+    """Search entities by semantic similarity."""
+    # Converts query to embedding, searches vectors, applies filters
 ```
 
-#### Cleanup
+#### Structured Retrieval
 ```python
-async def cleanup_expired() -> int:
-    """Remove expired cache entries."""
-    # Returns count of deleted entries
+async def get_entities(
+    entity_type: str,
+    **filters
+) -> list[dict[str, Any]]:
+    """Retrieve entities with structured filters only."""
+    # Queries collection with scalar filters (no vector search)
 ```
 
-### Cache Keys
+### Entity Collections
 
-Cache keys follow the pattern: `{api}:{endpoint}:{params_hash}`
+Each entity type has its own Milvus collection:
 
-Examples:
-- `open5e:v2/spells:name=fireball`
-- `open5e:v1/monsters:cr=5,type=undead`
-- `open5e:v2/rules:section=combat`
+- **spells**: Spell data with level, school, concentration, ritual filters
+- **creatures**: Creature data with CR, type, size filters
+- **equipment**: Equipment with type, rarity filters
+- **weapons**: Weapons with category, damage_type filters
+- **armor**: Armor with category, AC filters
+- **magicitems**: Magic items with type, rarity, attunement filters
+- **classes**: Classes with hit_die filter
+- **races**: Races with size filter
+- **rules**: Rules with parent filter
 
 ### Performance Optimizations
 
-- **WAL Mode**: Enables concurrent reads/writes
-- **Indexes**: Optimized for expiration and content type queries
-- **Connection Pooling**: Reuses database connections
-- **Batch Operations**: Minimizes transaction overhead
+- **Vector Indexing**: Fast similarity search using HNSW algorithm
+- **Scalar Indexes**: Indexed filters for efficient hybrid queries
+- **Batch Embeddings**: Generate embeddings in batches for efficiency
+- **Connection Pooling**: Reuse database connections
 
 ## Configuration Management
 
@@ -225,9 +249,11 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        env_prefix="LOREKEEPER_",
     )
 
-    db_path: Path = Field(default=Path("./data/cache.db"))
+    milvus_db_path: Path = Field(default_factory=get_default_milvus_db_path)
+    embedding_model: str = Field(default="all-MiniLM-L6-v2")
     cache_ttl_days: int = Field(default=7)
     error_cache_ttl_seconds: int = Field(default=300)
     log_level: str = Field(default="INFO")
@@ -237,14 +263,17 @@ class Settings(BaseSettings):
 
 ### Environment Variables
 
+All environment variables use the `LOREKEEPER_` prefix:
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DB_PATH` | SQLite database file path | `./data/cache.db` |
-| `CACHE_TTL_DAYS` | Normal cache TTL in days | `7` |
-| `ERROR_CACHE_TTL_SECONDS` | Error cache TTL in seconds | `300` |
-| `LOG_LEVEL` | Logging level | `INFO` |
-| `DEBUG` | Enable debug mode | `false` |
-| `OPEN5E_BASE_URL` | Open5e API base URL | `https://api.open5e.com` |
+| `LOREKEEPER_MILVUS_DB_PATH` | Milvus database file path | `$XDG_DATA_HOME/lorekeeper/milvus.db` |
+| `LOREKEEPER_EMBEDDING_MODEL` | Sentence-transformers model | `all-MiniLM-L6-v2` |
+| `LOREKEEPER_CACHE_TTL_DAYS` | Normal cache TTL in days | `7` |
+| `LOREKEEPER_ERROR_CACHE_TTL_SECONDS` | Error cache TTL in seconds | `300` |
+| `LOREKEEPER_LOG_LEVEL` | Logging level | `INFO` |
+| `LOREKEEPER_DEBUG` | Enable debug mode | `false` |
+| `LOREKEEPER_OPEN5E_BASE_URL` | Open5e API base URL | `https://api.open5e.com` |
 
 ### Configuration Validation
 
@@ -264,7 +293,9 @@ tests/
 ├── test_server.py          # Server tests
 └── test_cache/             # Cache layer tests
     ├── __init__.py
-    └── test_db.py         # Database operations tests
+    ├── test_milvus.py     # Milvus operations tests
+    ├── test_embedding.py  # Embedding service tests
+    └── test_protocol.py   # Cache protocol tests
 ```
 
 ### Testing Standards
@@ -284,7 +315,7 @@ tests/
 
 ```python
 import pytest
-from lorekeeper_mcp.cache.db import get_cached, set_cached
+from lorekeeper_mcp.cache import MilvusCache
 
 class TestCacheOperations:
     async def test_set_and_get_cached(self):
