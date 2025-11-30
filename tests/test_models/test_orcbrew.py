@@ -68,6 +68,55 @@ class TestOrcBrewSpell:
                 school="Evocation",
             )
 
+    def test_orcbrew_spell_components_dict_verbal_somatic(self) -> None:
+        """Test that components dict is converted to string format."""
+        spell = OrcBrewSpell(
+            name="Test Spell",
+            slug="test-spell",
+            level=1,
+            school="Evocation",
+            components={"verbal": True, "somatic": True},
+        )
+        assert spell.components == "V, S"
+
+    def test_orcbrew_spell_components_dict_all_three(self) -> None:
+        """Test components dict with V, S, M."""
+        spell = OrcBrewSpell(
+            name="Test Spell",
+            slug="test-spell",
+            level=1,
+            school="Evocation",
+            components={"verbal": True, "somatic": True, "material": True},
+        )
+        assert spell.components == "V, S, M"
+
+    def test_orcbrew_spell_components_dict_with_material_component(self) -> None:
+        """Test that material-component is extracted to material field."""
+        spell = OrcBrewSpell(
+            name="Dawn",
+            slug="dawn",
+            level=5,
+            school="Evocation",
+            components={
+                "verbal": True,
+                "material": True,
+                "material-component": "a sunburst pendant worth at least 100 gp",
+            },
+        )
+        assert spell.components == "V, M"
+        assert spell.material == "a sunburst pendant worth at least 100 gp"
+
+    def test_orcbrew_spell_components_dict_only_verbal(self) -> None:
+        """Test components dict with only verbal."""
+        spell = OrcBrewSpell(
+            name="Test Spell",
+            slug="test-spell",
+            level=1,
+            school="Evocation",
+            components={"verbal": True},
+        )
+        assert spell.components == "V"
+
 
 class TestOrcBrewCreature:
     """Tests for OrcBrewCreature model with relaxed constraints."""
@@ -124,6 +173,78 @@ class TestOrcBrewCreature:
             challenge=0.5,
         )
         assert creature2.challenge_rating == "1/2"
+
+    def test_orcbrew_creature_hit_points_dict_conversion(self) -> None:
+        """Test that hit_points dict is converted to integer."""
+        creature = OrcBrewCreature(
+            name="Test Creature",
+            slug="test-creature",
+            type="beast",
+            size="Medium",
+            hit_points={"die": 8, "die-count": 10, "modifier": 20},
+        )
+        # Average HP: 10 * (8 + 1) / 2 + 20 = 10 * 4.5 + 20 = 45 + 20 = 65
+        assert creature.hit_points == 65
+
+    def test_orcbrew_creature_hit_points_dict_no_modifier(self) -> None:
+        """Test hit_points dict without modifier."""
+        creature = OrcBrewCreature(
+            name="Test Creature",
+            slug="test-creature",
+            type="beast",
+            size="Small",
+            hit_points={"die": 6, "die-count": 2},
+        )
+        # Average HP: 2 * (6 + 1) / 2 = 2 * 3.5 = 7
+        assert creature.hit_points == 7
+
+    def test_orcbrew_creature_hit_points_dict_with_die_count_key(self) -> None:
+        """Test hit_points dict with die_count (underscore) key."""
+        creature = OrcBrewCreature(
+            name="Test Creature",
+            slug="test-creature",
+            type="dragon",
+            size="Huge",
+            hit_points={"die": 12, "die_count": 20, "modifier": 100},
+        )
+        # Average HP: 20 * (12 + 1) / 2 + 100 = 20 * 6.5 + 100 = 130 + 100 = 230
+        assert creature.hit_points == 230
+
+    def test_orcbrew_creature_hit_points_modifier_only(self) -> None:
+        """Test hit_points dict with only modifier (no die/die_count)."""
+        creature = OrcBrewCreature(
+            name="Test Creature",
+            slug="test-creature",
+            type="humanoid",
+            size="Medium",
+            hit_points={"modifier": 25},
+        )
+        # Should use modifier as HP when die/die_count are not present
+        assert creature.hit_points == 25
+
+    def test_orcbrew_creature_hit_points_empty_dict(self) -> None:
+        """Test hit_points dict with no values."""
+        creature = OrcBrewCreature(
+            name="Test Creature",
+            slug="test-creature",
+            type="humanoid",
+            size="Small",
+            hit_points={},
+        )
+        # Should default to 0 when no values are present
+        assert creature.hit_points == 0
+
+    def test_orcbrew_creature_hit_points_die_count_zero(self) -> None:
+        """Test hit_points dict with die_count explicitly set to 0."""
+        creature = OrcBrewCreature(
+            name="Test Creature",
+            slug="test-creature",
+            type="humanoid",
+            size="Small",
+            hit_points={"die": 8, "die-count": 0, "modifier": 10},
+        )
+        # Should fall back to modifier when die_count is 0
+        assert creature.hit_points == 10
 
 
 class TestOrcBrewWeapon:

@@ -55,6 +55,21 @@ class OrcBrewSpell(BaseEntity):
         # Handle components - default to empty if missing
         if "components" not in data or not data["components"]:
             data["components"] = ""
+        elif isinstance(data["components"], dict):
+            # OrcBrew format: {'verbal': True, 'somatic': True, 'material': True}
+            components_dict = data["components"]
+            parts = []
+            if components_dict.get("verbal"):
+                parts.append("V")
+            if components_dict.get("somatic"):
+                parts.append("S")
+            if components_dict.get("material"):
+                parts.append("M")
+            data["components"] = ", ".join(parts)
+
+            # Extract material description if present
+            if "material-component" in components_dict:
+                data["material"] = components_dict["material-component"]
         elif isinstance(data["components"], list):
             data["components"] = ", ".join(str(c) for c in data["components"])
 

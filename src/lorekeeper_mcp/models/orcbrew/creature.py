@@ -64,6 +64,20 @@ class OrcBrewCreature(BaseEntity):
         if not isinstance(data, dict):
             return data
 
+        # Handle hit_points dict format from OrcBrew (e.g., {'die': 8, 'die-count': 10, 'modifier': 20})
+        if isinstance(data.get("hit_points"), dict):
+            hp_dict = data["hit_points"]
+            # Try to calculate average HP from die notation
+            die_count = hp_dict.get("die-count") or hp_dict.get("die_count") or 0
+            die = hp_dict.get("die", 0)
+            modifier = hp_dict.get("modifier", 0)
+            if die_count and die:
+                # Average = die_count * (die + 1) / 2 + modifier
+                data["hit_points"] = int(die_count * (die + 1) / 2 + modifier)
+            else:
+                # Fall back to just the modifier if die/die_count are not present
+                data["hit_points"] = modifier if modifier else 0
+
         # Handle OrcBrew 'challenge' field
         if "challenge" in data and "challenge_rating" not in data:
             challenge = data["challenge"]
