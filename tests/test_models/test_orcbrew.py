@@ -268,6 +268,62 @@ class TestOrcBrewCreature:
         )
         assert creature.speed == {"walk": 30, "fly": 60}
 
+    def test_orcbrew_creature_legendary_actions_as_dict(self) -> None:
+        """Test that legendary_actions can be a single dict (metadata)."""
+        creature = OrcBrewCreature(
+            name="Zuggtmoy",
+            slug="zuggtmoy",
+            type="fiend",
+            size="Large",
+            legendary_actions={
+                "description": "Zuggtmoy can take 3 legendary actions, choosing from the options below."
+            },
+        )
+        assert creature.legendary_actions == {
+            "description": "Zuggtmoy can take 3 legendary actions, choosing from the options below."
+        }
+
+    def test_orcbrew_creature_legendary_actions_as_list(self) -> None:
+        """Test that legendary_actions can still be a list."""
+        creature = OrcBrewCreature(
+            name="Test Creature",
+            slug="test-creature",
+            type="beast",
+            size="Medium",
+            legendary_actions=[
+                {"name": "Attack", "desc": "The creature attacks."},
+                {"name": "Move", "desc": "The creature moves."},
+            ],
+        )
+        assert len(creature.legendary_actions) == 2
+
+    def test_orcbrew_creature_actions_as_dict(self) -> None:
+        """Test that actions can be a single dict (metadata)."""
+        creature = OrcBrewCreature(
+            name="Test Creature",
+            slug="test-creature",
+            type="beast",
+            size="Medium",
+            actions={"description": "On each of its turns, the creature can use its action."},
+        )
+        assert creature.actions == {
+            "description": "On each of its turns, the creature can use its action."
+        }
+
+    def test_orcbrew_creature_actions_as_list(self) -> None:
+        """Test that actions can still be a list."""
+        creature = OrcBrewCreature(
+            name="Test Creature",
+            slug="test-creature",
+            type="beast",
+            size="Medium",
+            actions=[
+                {"name": "Bite", "desc": "Melee attack."},
+                {"name": "Claw", "desc": "Melee attack."},
+            ],
+        )
+        assert len(creature.actions) == 2
+
 
 class TestOrcBrewWeapon:
     """Tests for OrcBrewWeapon model with relaxed constraints."""

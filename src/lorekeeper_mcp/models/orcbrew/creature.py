@@ -50,8 +50,10 @@ class OrcBrewCreature(BaseEntity):
 
     # Optional arrays
     speed: dict[str, int] | str | None = Field(None, description="Speed values")
-    actions: list[dict[str, Any]] | None = Field(None, description="Actions")
-    legendary_actions: list[dict[str, Any]] | None = Field(None, description="Legendary actions")
+    actions: list[dict[str, Any]] | dict[str, Any] | None = Field(None, description="Actions")
+    legendary_actions: list[dict[str, Any]] | dict[str, Any] | None = Field(
+        None, description="Legendary actions"
+    )
     special_abilities: list[dict[str, Any]] | None = Field(None, description="Special abilities")
 
     @model_validator(mode="before")
