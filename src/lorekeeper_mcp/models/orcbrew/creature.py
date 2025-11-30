@@ -49,7 +49,7 @@ class OrcBrewCreature(BaseEntity):
     charisma: int | None = Field(None, ge=1, le=50, description="Charisma score")
 
     # Optional arrays
-    speed: dict[str, int] | None = Field(None, description="Speed values")
+    speed: dict[str, int] | str | None = Field(None, description="Speed values")
     actions: list[dict[str, Any]] | None = Field(None, description="Actions")
     legendary_actions: list[dict[str, Any]] | None = Field(None, description="Legendary actions")
     special_abilities: list[dict[str, Any]] | None = Field(None, description="Special abilities")

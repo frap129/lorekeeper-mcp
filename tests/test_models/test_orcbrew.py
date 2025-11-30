@@ -246,6 +246,28 @@ class TestOrcBrewCreature:
         # Should fall back to modifier when die_count is 0
         assert creature.hit_points == 10
 
+    def test_orcbrew_creature_speed_as_string(self) -> None:
+        """Test that speed can be a string."""
+        creature = OrcBrewCreature(
+            name="Test Creature",
+            slug="test-creature",
+            type="beast",
+            size="Medium",
+            speed="30 ft.",
+        )
+        assert creature.speed == "30 ft."
+
+    def test_orcbrew_creature_speed_as_dict(self) -> None:
+        """Test that speed can still be a dict."""
+        creature = OrcBrewCreature(
+            name="Test Creature",
+            slug="test-creature",
+            type="beast",
+            size="Medium",
+            speed={"walk": 30, "fly": 60},
+        )
+        assert creature.speed == {"walk": 30, "fly": 60}
+
 
 class TestOrcBrewWeapon:
     """Tests for OrcBrewWeapon model with relaxed constraints."""
